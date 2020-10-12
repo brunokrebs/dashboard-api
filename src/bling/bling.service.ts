@@ -13,12 +13,12 @@ export class BlingService {
 
   constructor(private httpService: HttpService) {}
 
-  async removeProduct(productVariation: ProductVariation) {
+  async removeProduct(productVariation: ProductVariation): Promise<any> {
     const data = {
       apikey: process.env.BLING_APIKEY,
     };
 
-    return this.httpService.delete(
+    this.httpService.delete(
       `https://bling.com.br/Api/v2/produto/${productVariation.sku}`,
       {
         data: qs.stringify(data),
@@ -26,7 +26,9 @@ export class BlingService {
     );
   }
 
-  async createOrUpdateProduct(productVariation: ProductVariation) {
+  async createOrUpdateProduct(
+    productVariation: ProductVariation,
+  ): Promise<any> {
     const xml = this.parser.parse({
       produto: {
         codigo: productVariation.sku,
@@ -49,7 +51,7 @@ export class BlingService {
     );
   }
 
-  async createPurchaseOrder(saleOrder: SaleOrder) {
+  async createPurchaseOrder(saleOrder: SaleOrder): Promise<any> {
     if (saleOrder.paymentDetails.paymentStatus !== PaymentStatus.APPROVED) {
       throw new Error(
         'We should only create purchase orders that have payment approved.',
@@ -150,7 +152,7 @@ export class BlingService {
     return Promise.resolve(response);
   }
 
-  async cancelPurchaseOrder(saleOrder: SaleOrder) {
+  async cancelPurchaseOrder(saleOrder: SaleOrder): Promise<any> {
     const xml = this.parser.parse({
       pedido: {
         idSituacao: 12, // more info: https://ajuda.bling.com.br/hc/pt-br/articles/360046304394-GET-situacao-m%C3%B3dulo-
