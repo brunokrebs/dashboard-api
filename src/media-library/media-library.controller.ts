@@ -10,6 +10,7 @@ import {
   Param,
   Delete,
   UseFilters,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import execa from 'execa';
@@ -148,8 +149,8 @@ export class MediaLibraryController {
   }
 
   @Get()
-  findAll(): Promise<Image[]> {
-    return this.imagesService.findAll();
+  fetchMore(@Query('page') page: number): Promise<Image[]> {
+    return this.imagesService.findAll(page);
   }
 
   @Get('with-tag/:tagLabel')
