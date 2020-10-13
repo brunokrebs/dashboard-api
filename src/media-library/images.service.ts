@@ -15,9 +15,12 @@ export class ImagesService {
     return this.imagesRepository.save(image);
   }
 
-  async findAll(archived = false): Promise<Image[]> {
+  async findAll(page: number): Promise<Image[]> {
+    const archived = false;
     const images = await this.imagesRepository.find({
       where: { archived },
+      take: 24,
+      skip: page * 24,
       order: { id: 'DESC' },
     });
     return Promise.resolve(

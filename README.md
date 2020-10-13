@@ -53,6 +53,8 @@ First, you will need to create a `.env` file:
 # these are development variables
 #################################
 
+NODE_ENV=development
+
 # database variables
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
