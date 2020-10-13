@@ -58,7 +58,7 @@ import { ChartModule } from './chart/chart.module';
         migrationsDir: 'src/db-migrations',
       },
       logging: !!process.env.LOG_SQL_QUERIES,
-      ssl: {
+      ssl: process.env.NODE_ENV !== 'development' && {
         rejectUnauthorized: false,
       },
     }),
