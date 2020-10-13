@@ -164,6 +164,8 @@ export class BlingService {
       apikey: process.env.BLING_APIKEY,
     };
 
+    console.log(`Cancelling order ${saleOrder.referenceCode} on Bling.`);
+
     return this.httpService
       .put(
         `https://bling.com.br/Api/v2/pedido/${saleOrder.referenceCode}/json/`,

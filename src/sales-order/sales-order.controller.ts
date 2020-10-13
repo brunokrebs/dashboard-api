@@ -124,6 +124,7 @@ export class SalesOrderController {
   async cancelOnBling(
     @Param('referenceCode') referenceCode: string,
   ): Promise<void> {
+    console.log(`Request to cancel ${referenceCode} on Bling.`);
     await this.salesOrderService.updateStatus(
       referenceCode,
       PaymentStatus.CANCELLED,
@@ -135,6 +136,7 @@ export class SalesOrderController {
     @Body() updateDTO: UpdateSaleOrderStatusDTO,
     @Param('referenceCode') referenceCode: string,
   ): Promise<SaleOrder> {
+    console.log(`Request to record ${referenceCode} on Bling.`);
     const saleOrderPersisted = await this.salesOrderService.updateStatus(
       referenceCode,
       PaymentStatus[updateDTO.status],
