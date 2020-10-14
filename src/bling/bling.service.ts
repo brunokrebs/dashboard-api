@@ -18,7 +18,7 @@ export class BlingService {
       apikey: process.env.BLING_APIKEY,
     };
 
-    this.httpService.delete(
+    return this.httpService.delete(
       `https://bling.com.br/Api/v2/produto/${productVariation.sku}`,
       {
         data: qs.stringify(data),

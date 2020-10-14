@@ -202,6 +202,7 @@ export class SalesOrderService {
       !saleOrder.blingStatus
     ) {
       await this.blingService.createPurchaseOrder(saleOrder);
+      saleOrder.approvalDate = new Date();
       saleOrder.blingStatus = SaleOrderBlingStatus.EM_ABERTO;
     }
 
@@ -247,9 +248,16 @@ export class SalesOrderService {
     referenceCode: string,
     status: PaymentStatus,
   ): Promise<SaleOrder> {
-    const saleOrder = await this.salesOrderRepository.findOne({
-      where: { referenceCode },
-    });
+    const saleOrder = await this.salesOrderRepository
+      .createQueryBuilder('so')
+      .leftJoinAndSelect('so.customer', 'c')
+      .leftJoinAndSelect('so.items', 'i')
+      .leftJoinAndSelect('i.productVariation', 'pv')
+      .leftJoinAndSelect('pv.product', 'p')
+      .where({
+        referenceCode,
+      })
+      .getOne();
 
     if (saleOrder.paymentDetails.paymentStatus === PaymentStatus.CANCELLED) {
       throw new Error('Sale order was cancelled already.');
@@ -266,12 +274,13 @@ export class SalesOrderService {
       }
     }
 
+    saleOrder.paymentDetails.paymentStatus = status;
+
     if (status === PaymentStatus.APPROVED) {
       saleOrder.approvalDate = new Date();
-      await this.salesOrderRepository.save(saleOrder);
+      await this.blingService.createPurchaseOrder(saleOrder);
     }
 
-    saleOrder.paymentDetails.paymentStatus = status;
     await this.salesOrderRepository.save(saleOrder);
     return Promise.resolve(saleOrder);
   }

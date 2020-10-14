@@ -14,7 +14,10 @@ export async function bootstrap(silentMode = false) {
   const app = await NestFactory.create(AppModule, { logger });
   app.use(helmet());
 
-  if (process.env.NODE_ENV !== 'development') {
+  if (
+    process.env.NODE_ENV !== 'development' &&
+    process.env.NODE_ENV !== 'test'
+  ) {
     app.enableCors({
       origin: 'https://dashboard.digituz.com.br',
     });
