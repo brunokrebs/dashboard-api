@@ -160,10 +160,10 @@ export class MediaLibraryController {
 
   @Get('by-tag')
   fetchMoreByTag(
-    @Query('tagLabel') tagLabel: string,
+    @Query('tagLabel') tags: string,
     @Query('page') page: number,
   ): Promise<Image[]> {
-    return this.imagesService.fetchMoreByTag(tagLabel, page);
+    return this.imagesService.fetchMoreByTag(tags, page);
   }
 
   @Get(':imageId')

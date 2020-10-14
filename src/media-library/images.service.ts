@@ -159,11 +159,12 @@ export class ImagesService {
     );
   }
 
-  async fetchMoreByTag(tagLabel: string, page: number): Promise<Image[]> {
+  async fetchMoreByTag(tags: string, page: number): Promise<Image[]> {
+    const arrayTags = tags.split(',');
     const images = await this.imagesRepository
       .createQueryBuilder('image')
       .leftJoin('image.tags', 'tag')
-      .where('tag.label = :label', { label: tagLabel })
+      .where('tag.label IN (:...label)', { label: arrayTags })
       .take(24)
       .skip(page * 24)
       .getMany();
