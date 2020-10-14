@@ -150,12 +150,20 @@ export class MediaLibraryController {
 
   @Get()
   fetchMore(@Query('page') page: number): Promise<Image[]> {
-    return this.imagesService.findAll(page);
+    return this.imagesService.fetchMore(page);
   }
 
   @Get('with-tag/:tagLabel')
   findAllWithTag(@Param('tagLabel') tagLabel: string): Promise<Image[]> {
     return this.imagesService.findAllWithTag(tagLabel);
+  }
+
+  @Get('by-tag')
+  fetchMoreByTag(
+    @Query('tagLabel') tagLabel: string,
+    @Query('page') page: number,
+  ): Promise<Image[]> {
+    return this.imagesService.fetchMoreByTag(tagLabel, page);
   }
 
   @Get(':imageId')
