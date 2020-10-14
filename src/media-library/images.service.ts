@@ -15,7 +15,7 @@ export class ImagesService {
     return this.imagesRepository.save(image);
   }
 
-  async findAll(page: number): Promise<Image[]> {
+  async fetchMore(page: number): Promise<Image[]> {
     const archived = false;
     const images = await this.imagesRepository.find({
       where: { archived },
@@ -127,6 +127,45 @@ export class ImagesService {
       .createQueryBuilder('image')
       .leftJoin('image.tags', 'tag')
       .where('tag.label = :label', { label: tagLabel })
+      .getMany();
+    return Promise.resolve(
+      images.map(image => ({
+        ...image,
+        originalFileURL: image.originalFileURL.replace(
+          'https://s3.sa-east-1.amazonaws.com/',
+          'https://',
+        ),
+        extraLargeFileURL: image.extraLargeFileURL.replace(
+          'https://s3.sa-east-1.amazonaws.com/',
+          'https://',
+        ),
+        largeFileURL: image.largeFileURL.replace(
+          'https://s3.sa-east-1.amazonaws.com/',
+          'https://',
+        ),
+        mediumFileURL: image.mediumFileURL.replace(
+          'https://s3.sa-east-1.amazonaws.com/',
+          'https://',
+        ),
+        smallFileURL: image.smallFileURL.replace(
+          'https://s3.sa-east-1.amazonaws.com/',
+          'https://',
+        ),
+        thumbnailFileURL: image.thumbnailFileURL.replace(
+          'https://s3.sa-east-1.amazonaws.com/',
+          'https://',
+        ),
+      })),
+    );
+  }
+
+  async fetchMoreByTag(tagLabel: string, page: number): Promise<Image[]> {
+    const images = await this.imagesRepository
+      .createQueryBuilder('image')
+      .leftJoin('image.tags', 'tag')
+      .where('tag.label = :label', { label: tagLabel })
+      .take(24)
+      .skip(page * 24)
       .getMany();
     return Promise.resolve(
       images.map(image => ({
