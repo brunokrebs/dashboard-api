@@ -4,7 +4,7 @@ import randomize from 'randomatic';
 import moment from 'moment';
 
 import { SaleOrder } from './entities/sale-order.entity';
-import { Repository, Brackets } from 'typeorm';
+import { Repository, Brackets, Between } from 'typeorm';
 import { SaleOrderDTO } from './sale-order.dto';
 import { SaleOrderItem } from './entities/sale-order-item.entity';
 import { CustomersService } from '../customers/customers.service';
@@ -21,6 +21,7 @@ import { Pagination, paginate } from 'nestjs-typeorm-paginate';
 import { isNullOrUndefined } from '../util/numeric-transformer';
 import { SaleOrderBlingStatus } from './entities/sale-order-bling-status.enum';
 import { BlingService } from '../bling/bling.service';
+import { groupBy } from 'lodash';
 
 @Injectable()
 export class SalesOrderService {
@@ -324,5 +325,27 @@ export class SalesOrderService {
       .orderBy('so.approvalDate', 'DESC')
       .getMany();
     return queryBuilder;
+  }
+
+  async getGroupBy(startDate: string, endDate: string, groupBy: string) {
+    switch (groupBy) {
+      case 'CUSTOMER': {
+        const queryBuilder = await this.salesOrderRepository
+          .createQueryBuilder('so')
+          .select('SUM(so.paymentDetails.total)', 'total')
+          .leftJoinAndSelect('so.customer', 'c')
+          .where(
+            'so.creationDate >= :dateStart AND so.creationDate <= :dateEnd',
+            {
+              dateStart: moment(startDate, 'YYYY-MM-DD'),
+              dateEnd: moment(endDate, 'YYYY-MM-DD'),
+            },
+          )
+          .groupBy('c.id')
+          .getRawMany();
+        console.log(queryBuilder);
+        return queryBuilder;
+      }
+    }
   }
 }

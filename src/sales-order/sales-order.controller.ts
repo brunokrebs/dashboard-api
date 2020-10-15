@@ -92,6 +92,15 @@ export class SalesOrderController {
     };
   }
 
+  @Get('/report') //report
+  async getGroupBy(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('groupBy') groupBy: string, //groupBy tirar o numero magico
+  ) {
+    return this.salesOrderService.getGroupBy(startDate, endDate, groupBy);
+  }
+
   @Get('/confirmed-sales-orders')
   async getConfirmedSalesOrders(
     @Query('page') page: number = 1,
