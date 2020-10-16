@@ -278,6 +278,7 @@ export class SalesOrderService {
 
     if (status === PaymentStatus.APPROVED) {
       saleOrder.approvalDate = new Date();
+      saleOrder.blingStatus = SaleOrderBlingStatus.EM_ABERTO;
       await this.blingService.createPurchaseOrder(saleOrder);
     }
 
