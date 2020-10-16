@@ -22,6 +22,8 @@ import { isNullOrUndefined } from '../util/numeric-transformer';
 import { SaleOrderBlingStatus } from './entities/sale-order-bling-status.enum';
 import { BlingService } from '../bling/bling.service';
 import { groupBy } from 'lodash';
+import { SalesOrderCustomerReport } from './sales-order-customer-report.interface';
+import { query } from 'express';
 
 @Injectable()
 export class SalesOrderService {
@@ -327,13 +329,18 @@ export class SalesOrderService {
     return queryBuilder;
   }
 
-  async getGroupBy(startDate: string, endDate: string, groupBy: string) {
+  async getGroupBy(
+    startDate: string,
+    endDate: string,
+    groupBy: string,
+    options: IPaginationOpts,
+  ) {
     switch (groupBy) {
       case 'CUSTOMER': {
         const queryBuilder = await this.salesOrderRepository
           .createQueryBuilder('so')
           .select('SUM(so.paymentDetails.total)', 'total')
-          .leftJoinAndSelect('so.customer', 'c')
+          .leftJoinAndSelect('so.customer', 'customer')
           .where(
             'so.creationDate >= :dateStart AND so.creationDate <= :dateEnd',
             {
@@ -341,11 +348,36 @@ export class SalesOrderService {
               dateEnd: moment(endDate, 'YYYY-MM-DD'),
             },
           )
-          .groupBy('c.id')
+          .groupBy('customer.id')
           .getRawMany();
-        console.log(queryBuilder);
-        return queryBuilder;
+        const customer = this.formatCustomer(queryBuilder);
+        return customer;
       }
     }
+  }
+
+  formatCustomer(data: any) {
+    const customerData: SalesOrderCustomerReport[] = [];
+    data.map((data: any) => {
+      const formatedCustomer: SalesOrderCustomerReport = {
+        id: Number.parseInt(data.customer_id),
+        version: Number.parseInt(data.customer_version),
+        cpf: data.customer_cpf,
+        name: data.customer_name,
+        phone_number: data.customer_phone_number,
+        email: data.customer_email,
+        birthday: data.customer_birthday,
+        zip_address: data.customer_birthday,
+        state: data.customer_state,
+        city: data.customer_city,
+        neighborhood: data.customer_neighborhood,
+        street_address: data.customer_street_address,
+        street_number: data.customer_street_number,
+        street_number2: data.customer_street_number2,
+        total: Number.parseFloat(data.total),
+      };
+      customerData.push(formatedCustomer);
+    });
+    return customerData;
   }
 }

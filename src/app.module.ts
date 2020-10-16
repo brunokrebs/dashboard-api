@@ -58,7 +58,7 @@ import { ChartModule } from './chart/chart.module';
       cli: {
         migrationsDir: 'src/db-migrations',
       },
-      logging: true,
+      logging: !!process.env.LOG_SQL_QUERIES, //true
       ssl: process.env.NODE_ENV !== 'development' &&
         process.env.NODE_ENV !== 'test' && {
           rejectUnauthorized: false,

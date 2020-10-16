@@ -92,13 +92,34 @@ export class SalesOrderController {
     };
   }
 
-  @Get('/report') //report
+  @Get('/report')
   async getGroupBy(
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
-    @Query('groupBy') groupBy: string, //groupBy tirar o numero magico
+    @Query('groupBy') groupBy: string,
+    @Query('limit') limit: number = 10,
+    @Query('page') page: number = 1,
   ) {
-    return this.salesOrderService.getGroupBy(startDate, endDate, groupBy);
+    const items = await this.salesOrderService.getGroupBy(
+      startDate,
+      endDate,
+      groupBy,
+      {
+        page,
+        limit,
+      },
+    );
+    return {
+      items: items,
+      meta: {
+        totalItems: items.length,
+        itemCount: items.length,
+        itemsPerPage: items.length,
+        totalPages: 1,
+        currentPage: 1,
+      },
+      links: { first: '', previous: '', next: '', last: '' },
+    };
   }
 
   @Get('/confirmed-sales-orders')
