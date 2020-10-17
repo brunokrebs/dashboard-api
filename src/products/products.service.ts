@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
+import { Cron } from '@nestjs/schedule';
 import { Repository, Brackets, In } from 'typeorm';
 import * as _ from 'lodash';
+import { minBy } from 'lodash';
 
 import { Product } from './entities/product.entity';
 import { ProductDTO } from './dtos/product.dto';
@@ -16,7 +18,7 @@ import { InventoryService } from '../inventory/inventory.service';
 import { ProductVariationDetailsDTO } from './dtos/product-variation-details.dto';
 import { ProductCategory } from './entities/product-category.enum';
 import { ProductComposition } from './entities/product-composition.entity';
-import { minBy } from 'lodash';
+import { BlingService } from '../bling/bling.service';
 
 @Injectable()
 export class ProductsService {
@@ -32,7 +34,21 @@ export class ProductsService {
     private inventoryService: InventoryService,
     private imagesService: ImagesService,
     private tagsService: TagsService,
+    private blingService: BlingService,
   ) {}
+
+  // x:0:0 (every hour)
+  @Cron('0 0 * * * *')
+  async syncProducts() {
+    const products = await this.findAll();
+    const productVariations = products.flatMap(p => {
+      return p.productVariations.map(pv => ({
+        ...pv,
+        product: p,
+      }));
+    });
+    this.blingService.updateProductsOnBling(products, productVariations);
+  }
 
   async findAll(): Promise<Product[]> {
     const products = await this.productsRepository

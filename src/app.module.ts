@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { Image } from './media-library/image.entity';
 import { ProductsModule } from './products/products.module';
@@ -63,6 +64,7 @@ import { ChartModule } from './chart/chart.module';
           rejectUnauthorized: false,
         },
     }),
+    ScheduleModule.forRoot(),
     ProductsModule,
     MediaLibraryModule,
     AuthModule,

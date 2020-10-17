@@ -6,6 +6,7 @@ import qs from 'qs';
 import { SaleOrder } from '../sales-order/entities/sale-order.entity';
 import { PaymentStatus } from '../sales-order/entities/payment-status.enum';
 import { ProductVariation } from '../products/entities/product-variation.entity';
+import { Product } from '../products/entities/product.entity';
 
 @Injectable()
 export class BlingService {
@@ -26,16 +27,44 @@ export class BlingService {
     );
   }
 
-  async createOrUpdateProduct(
+  createOrUpdateProduct(product: Product): Promise<any> {
+    return this.pushItemToBling(
+      product.title,
+      product.sku,
+      product.ncm,
+      product.productVariations[0].sellingPrice,
+    );
+  }
+
+  createOrUpdateProductVariation(
     productVariation: ProductVariation,
   ): Promise<any> {
+    let descricao = productVariation.product.title;
+    if (productVariation.description !== 'Tamanho Único') {
+      descricao = `${descricao} ${productVariation.description}`;
+    }
+
+    return this.pushItemToBling(
+      descricao,
+      productVariation.sku,
+      productVariation.product.ncm,
+      productVariation.sellingPrice,
+    );
+  }
+
+  private pushItemToBling(
+    descricao: string,
+    sku: string,
+    ncm: string,
+    sellingPrice: number,
+  ) {
     const xml = this.parser.parse({
       produto: {
-        codigo: productVariation.sku,
-        descricao: `${productVariation.product.title} ${productVariation.description}`,
-        class_fiscal: productVariation.product.ncm,
+        codigo: sku,
+        descricao: descricao,
+        class_fiscal: ncm,
         un: 'Un',
-        vlr_unit: productVariation.sellingPrice,
+        vlr_unit: sellingPrice,
         origem: 0, // origem conforme ICMS (0 = nacional ...) TODO cadastrar origem nos produtos
       },
     });
@@ -45,10 +74,9 @@ export class BlingService {
       apikey: process.env.BLING_APIKEY,
     };
 
-    return this.httpService.post(
-      'https://bling.com.br/Api/v2/produto/json/',
-      qs.stringify(data),
-    );
+    return this.httpService
+      .post('https://bling.com.br/Api/v2/produto/json/', qs.stringify(data))
+      .toPromise();
   }
 
   async createPurchaseOrder(saleOrder: SaleOrder): Promise<any> {
@@ -172,5 +200,40 @@ export class BlingService {
         qs.stringify(data),
       )
       .toPromise();
+  }
+
+  async updateProductsOnBling(
+    allProducts: Product[],
+    allProductVariations: ProductVariation[],
+  ) {
+    const updateParentProductsJobs = allProducts
+      .filter(p => p.productVariations.length > 1)
+      .map((p, idx) => {
+        return new Promise(res => {
+          setTimeout(async () => {
+            try {
+              await this.createOrUpdateProduct(p);
+            } catch (e) {
+              console.error(e);
+            }
+            res();
+          }, 200 * idx);
+        });
+      });
+    await Promise.all(updateParentProductsJobs);
+
+    const updateVariationsJobs = allProductVariations.map((pv, idx) => {
+      return new Promise(res => {
+        setTimeout(async () => {
+          try {
+            await this.createOrUpdateProductVariation(pv);
+          } catch (e) {
+            console.error(e);
+          }
+          res();
+        }, 200 * idx);
+      });
+    });
+    await Promise.all(updateVariationsJobs);
   }
 }

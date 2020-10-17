@@ -9,10 +9,12 @@ import { TagsModule } from '../tags/tags.module';
 import { ProductImage } from './entities/product-image.entity';
 import { MediaLibraryModule } from '../media-library/media-library.module';
 import { InventoryModule } from '../inventory/inventory.module';
+import { BlingModule } from '../bling/bling.module';
 
 @Module({
   imports: [
     InventoryModule,
+    BlingModule,
     TagsModule,
     MediaLibraryModule,
     TypeOrmModule.forFeature([
