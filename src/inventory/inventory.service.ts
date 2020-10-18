@@ -1,4 +1,4 @@
-import { Header, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Pagination, paginate } from 'nestjs-typeorm-paginate';
 import { minBy } from 'lodash';
 
@@ -7,15 +7,13 @@ import * as XLSX from 'xlsx';
 import { Inventory } from './inventory.entity';
 import { InventoryMovement } from './inventory-movement.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Brackets, In, Binary } from 'typeorm';
+import { Repository, Brackets, In } from 'typeorm';
 import { IPaginationOpts } from '../pagination/pagination';
 import { InventoryMovementDTO } from './inventory-movement.dto';
 import { SaleOrder } from '../sales-order/entities/sale-order.entity';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { Product } from '../products/entities/product.entity';
 import { ProductComposition } from '../products/entities/product-composition.entity';
-import { response } from 'express';
-import { fileURLToPath } from 'url';
 
 @Injectable()
 export class InventoryService {

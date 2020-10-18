@@ -236,4 +236,15 @@ export class BlingService {
     });
     await Promise.all(updateVariationsJobs);
   }
+
+  async loadPurchaseOrders() {
+    const loadRequest = await this.httpService.post(
+      'https://bling.com.br/Api/v2/pedidoscompra/json/?filters=dataEmissao[10/10/2020 TO 20/10/2020]; situacao[1]',
+      qs.stringify({ apikey: process.env.BLING_APIKEY }),
+    );
+
+    const response = await loadRequest.toPromise();
+
+    console.log(response);
+  }
 }
