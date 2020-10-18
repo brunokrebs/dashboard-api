@@ -14,10 +14,9 @@ describe('Bling integration', () => {
   const realBlingService = new BlingService(new HttpService(axios));
 
   async function createOrUpdateProduct(productVariation: ProductVariation) {
-    const httpResponse = await realBlingService.createOrUpdateProduct(
+    const response = await realBlingService.createOrUpdateProductVariation(
       productVariation,
     );
-    const response = await httpResponse.toPromise();
     expect(response).toBeDefined();
     expect(response.data).toBeDefined();
     expect(response.data.retorno.erros).toBeUndefined();
