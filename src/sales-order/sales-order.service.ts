@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import randomize from 'randomatic';
-import moment from 'moment';
+import moment, { Moment } from 'moment';
 
 import { SaleOrder } from './entities/sale-order.entity';
 import { Repository, Brackets } from 'typeorm';
@@ -328,8 +328,8 @@ export class SalesOrderService {
   }
 
   async getGroupBy(
-    startDate: string,
-    endDate: string,
+    startDate: Moment,
+    endDate: Moment,
     groupBy: string,
     options: IPaginationOpts,
   ) {
@@ -349,25 +349,22 @@ export class SalesOrderService {
           }, 'customer')
           .where('so.customer_id= customer.id')
           .andWhere(
-            'so.creationDate >= :dateStart AND so.creationDate <= :dateEnd',
+            'so.creationDate >= :startDate AND so.creationDate <= :endDate',
             {
-              dateStart: moment(startDate, 'YYYY-MM-DD'),
-              dateEnd: moment(endDate, 'YYYY-MM-DD'),
+              startDate,
+              endDate,
             },
           )
           .groupBy(
             'customer.name,customer.email,customer.phone_number,customer.id',
           )
           .getRawMany();
-        const customer = this.formatCustomer(queryBuilder);
-        response = customer;
-        break;
+        return this.mapCustomerReport(queryBuilder);
       }
     }
-    return response;
   }
 
-  formatCustomer(data: any) {
+  mapCustomerReport(data: any) {
     return data.map((data: any) => {
       return {
         id: Number.parseInt(data.id),

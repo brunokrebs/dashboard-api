@@ -11,6 +11,7 @@ import {
   Delete,
 } from '@nestjs/common';
 import { Pagination } from 'nestjs-typeorm-paginate';
+import moment from 'moment';
 
 import { SaleOrderDTO } from './sale-order.dto';
 import { SalesOrderService } from './sales-order.service';
@@ -94,12 +95,14 @@ export class SalesOrderController {
 
   @Get('/report')
   async getGroupBy(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
+    @Query('startDate') startDate: any,
+    @Query('endDate') endDate: any,
     @Query('groupBy') groupBy: string,
     @Query('limit') limit: number = 10,
     @Query('page') page: number = 1,
   ) {
+    startDate = moment(startDate, 'YYYY-MM-DD');
+    endDate = moment(endDate, 'YYYY-MM-DD');
     const items = await this.salesOrderService.getGroupBy(
       startDate,
       endDate,
