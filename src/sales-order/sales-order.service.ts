@@ -4,7 +4,7 @@ import randomize from 'randomatic';
 import moment from 'moment';
 
 import { SaleOrder } from './entities/sale-order.entity';
-import { Repository, Brackets, Between } from 'typeorm';
+import { Repository, Brackets } from 'typeorm';
 import { SaleOrderDTO } from './sale-order.dto';
 import { SaleOrderItem } from './entities/sale-order-item.entity';
 import { CustomersService } from '../customers/customers.service';
@@ -21,7 +21,7 @@ import { Pagination, paginate } from 'nestjs-typeorm-paginate';
 import { isNullOrUndefined } from '../util/numeric-transformer';
 import { SaleOrderBlingStatus } from './entities/sale-order-bling-status.enum';
 import { BlingService } from '../bling/bling.service';
-import { SalesOrderCustomerReport } from './sales-order-customer-report.interface';
+import { Customer } from 'src/customers/customer.entity';
 
 @Injectable()
 export class SalesOrderService {
@@ -339,17 +339,26 @@ export class SalesOrderService {
         const queryBuilder = await this.salesOrderRepository
           .createQueryBuilder('so')
           .select('SUM(so.paymentDetails.total)', 'total')
-          .leftJoinAndSelect('so.customer', 'customer')
-          .where(
+          .addSelect('customer.*')
+          .from(subQuery => {
+            return subQuery
+              .select(
+                'customer.name,customer.email,customer.phone_number,customer.id',
+              )
+              .from(Customer, 'customer');
+          }, 'customer')
+          .where('so.customer_id= customer.id')
+          .andWhere(
             'so.creationDate >= :dateStart AND so.creationDate <= :dateEnd',
             {
               dateStart: moment(startDate, 'YYYY-MM-DD'),
               dateEnd: moment(endDate, 'YYYY-MM-DD'),
             },
           )
-          .groupBy('customer.id')
+          .groupBy(
+            'customer.name,customer.email,customer.phone_number,customer.id',
+          )
           .getRawMany();
-
         const customer = this.formatCustomer(queryBuilder);
         response = customer;
         break;
@@ -359,27 +368,14 @@ export class SalesOrderService {
   }
 
   formatCustomer(data: any) {
-    const customerData: SalesOrderCustomerReport[] = [];
-    data.map((data: any) => {
-      const formatedCustomer: SalesOrderCustomerReport = {
-        id: Number.parseInt(data.customer_id),
-        version: Number.parseInt(data.customer_version),
-        cpf: data.customer_cpf,
-        name: data.customer_name,
-        phone_number: data.customer_phone_number,
-        email: data.customer_email,
-        birthday: data.customer_birthday,
-        zip_address: data.customer_birthday,
-        state: data.customer_state,
-        city: data.customer_city,
-        neighborhood: data.customer_neighborhood,
-        street_address: data.customer_street_address,
-        street_number: data.customer_street_number,
-        street_number2: data.customer_street_number2,
+    return data.map((data: any) => {
+      return {
+        id: Number.parseInt(data.id),
+        name: data.name,
+        phoneNumber: data.phone_number,
+        email: data.email,
         total: Number.parseFloat(data.total),
       };
-      customerData.push(formatedCustomer);
     });
-    return customerData;
   }
 }
