@@ -94,7 +94,7 @@ export class SalesOrderController {
   }
 
   @Get('/report')
-  async getGroupBy(
+  async getReportGroupBy(
     @Query('startDate') startDate: any,
     @Query('endDate') endDate: any,
     @Query('groupBy') groupBy: string,
@@ -103,7 +103,7 @@ export class SalesOrderController {
   ) {
     startDate = moment(startDate, 'YYYY-MM-DD');
     endDate = moment(endDate, 'YYYY-MM-DD');
-    const items = await this.salesOrderService.getGroupBy(
+    const items = await this.salesOrderService.getReportGroupBy(
       startDate,
       endDate,
       groupBy,

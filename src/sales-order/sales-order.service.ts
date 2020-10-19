@@ -327,7 +327,7 @@ export class SalesOrderService {
     return queryBuilder;
   }
 
-  async getGroupBy(
+  async getReportGroupBy(
     startDate: Moment,
     endDate: Moment,
     groupBy: string,
