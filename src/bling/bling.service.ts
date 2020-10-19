@@ -238,13 +238,21 @@ export class BlingService {
   }
 
   async loadPurchaseOrders() {
-    const loadRequest = await this.httpService.post(
-      'https://bling.com.br/Api/v2/pedidoscompra/json/?filters=dataEmissao[10/10/2020 TO 20/10/2020]; situacao[1]',
-      qs.stringify({ apikey: process.env.BLING_APIKEY }),
+    const loadRequest = await this.httpService.get(
+      'https://bling.com.br/Api/v2/pedidoscompra/json/?filters=dataEmissao[10/09/2020 TO 20/10/2020]; situacao[1]&apikey=' +
+        process.env.BLING_APIKEY,
     );
 
     const response = await loadRequest.toPromise();
 
-    console.log(response);
+    if (!response?.data?.retorno?.pedidoscompra) {
+      throw new Error('Error while loading purchase orders from Bling.');
+    }
+
+    return response.data.retorno.pedidoscompra.flatMap(item => {
+      return item.map(pc => {
+        return pc.pedidocompra;
+      });
+    });
   }
 }

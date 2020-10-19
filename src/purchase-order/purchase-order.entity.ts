@@ -1,5 +1,5 @@
-import { Supplier } from 'src/supplier/supplier.entity';
-import { NumericTransformer } from 'src/util/numeric-transformer';
+import { Supplier } from '../supplier/supplier.entity';
+import { NumericTransformer } from '../util/numeric-transformer';
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 
 import { BaseEntity } from '../util/base-entity';
