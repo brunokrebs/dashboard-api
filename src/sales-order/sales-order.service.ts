@@ -21,9 +21,7 @@ import { Pagination, paginate } from 'nestjs-typeorm-paginate';
 import { isNullOrUndefined } from '../util/numeric-transformer';
 import { SaleOrderBlingStatus } from './entities/sale-order-bling-status.enum';
 import { BlingService } from '../bling/bling.service';
-import { groupBy } from 'lodash';
 import { SalesOrderCustomerReport } from './sales-order-customer-report.interface';
-import { query } from 'express';
 
 @Injectable()
 export class SalesOrderService {
@@ -335,6 +333,7 @@ export class SalesOrderService {
     groupBy: string,
     options: IPaginationOpts,
   ) {
+    let response: any;
     switch (groupBy) {
       case 'CUSTOMER': {
         const queryBuilder = await this.salesOrderRepository
@@ -350,10 +349,13 @@ export class SalesOrderService {
           )
           .groupBy('customer.id')
           .getRawMany();
+
         const customer = this.formatCustomer(queryBuilder);
-        return customer;
+        response = customer;
+        break;
       }
     }
+    return response;
   }
 
   formatCustomer(data: any) {
