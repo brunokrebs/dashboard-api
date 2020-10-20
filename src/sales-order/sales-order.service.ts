@@ -393,6 +393,28 @@ export class SalesOrderService {
 
         return this.mapProductReport(queryBuilder);
       }
+
+      case 'PRODUCT_VARIATION': {
+        const queryBuilder = await this.salesOrderItemRepository
+          .createQueryBuilder('soi')
+          .select([
+            'pv.id,product.title,pv.description,pv.sku,pv.selling_price',
+          ])
+          .leftJoin('soi.saleOrder', 'so')
+          .leftJoin('soi.productVariation', 'pv')
+          .leftJoin('pv.product', 'product')
+          .where(
+            'so.creationDate >= :startDate AND so.creationDate <= :endDate',
+            {
+              startDate,
+              endDate,
+            },
+          )
+          .groupBy('pv.id,product.title,so.creation_date')
+          .getRawMany();
+
+        return this.mapProductReport(queryBuilder);
+      }
     }
   }
 
@@ -413,6 +435,7 @@ export class SalesOrderService {
         title: row.title,
         sku: row.sku,
         sellingPrice: row.selling_price,
+        description: row.description,
       };
     });
   }
