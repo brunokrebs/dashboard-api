@@ -327,7 +327,16 @@ export class SalesOrderService {
     return queryBuilder;
   }
 
+<<<<<<< HEAD
   async getReportGroupBy(startDate: Moment, endDate: Moment, groupBy: string) {
+=======
+  async getReportGroupBy(
+    startDate: Moment,
+    endDate: Moment,
+    groupBy: string,
+    options: IPaginationOpts,
+  ) {
+>>>>>>> select de relatório pegando só os dados necessarios
     switch (groupBy) {
       case 'CUSTOMER': {
         const reportByCustomerResult = await this.salesOrderRepository
@@ -351,6 +360,27 @@ export class SalesOrderService {
           .getRawMany();
         return this.mapCustomerReport(reportByCustomerResult);
       }
+      case 'PRODUCT': {
+        const queryBuilder = await this.salesOrderItemRepository
+          .createQueryBuilder('soi')
+          .select([
+            'product.id,product.title,product.sku,product.selling_price',
+          ])
+          .leftJoin('soi.saleOrder', 'so')
+          .leftJoin('soi.productVariation', 'pv')
+          .leftJoin('pv.product', 'product')
+          .where(
+            'so.creationDate >= :startDate AND so.creationDate <= :endDate',
+            {
+              startDate,
+              endDate,
+            },
+          )
+          .groupBy('product.id,so.creation_date')
+          .getRawMany();
+
+        return this.mapProductReport(queryBuilder);
+      }
     }
   }
 
@@ -362,5 +392,16 @@ export class SalesOrderService {
       email: row.email,
       total: Number.parseFloat(row.total),
     }));
+  }
+
+  mapProductReport(data: any) {
+    return data.map(data => {
+      return {
+        id: data.id,
+        title: data.title,
+        sku: data.sku,
+        sellingPrice: data.selling_price,
+      };
+    });
   }
 }
