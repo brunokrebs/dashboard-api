@@ -338,15 +338,10 @@ export class SalesOrderService {
       case 'CUSTOMER': {
         const queryBuilder = await this.salesOrderRepository
           .createQueryBuilder('so')
-          .select('SUM(so.paymentDetails.total)', 'total')
-          .addSelect('customer.*')
-          .from(subQuery => {
-            return subQuery
-              .select(
-                'customer.name,customer.email,customer.phone_number,customer.id',
-              )
-              .from(Customer, 'customer');
-          }, 'customer')
+          .select(
+            'SUM(so.paymentDetails.total) as total,customer.id,customer.name, customer.email, customer.phoneNumber',
+          )
+          .leftJoin('so.customer', 'customer')
           .where('so.customer_id= customer.id')
           .andWhere(
             'so.creationDate >= :startDate AND so.creationDate <= :endDate',
