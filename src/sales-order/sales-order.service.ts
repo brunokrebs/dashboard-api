@@ -382,7 +382,7 @@ export class SalesOrderService {
           .leftJoin('soi.productVariation', 'pv')
           .leftJoin('pv.product', 'product')
           .where(
-            'so.creationDate >= :startDate AND so.creationDate <= :endDate',
+            "so.creationDate >= :startDate AND so.creationDate <= :endDate so.paymentDetails.paymentStatus='APPROVED'",
             {
               startDate,
               endDate,
@@ -404,13 +404,14 @@ export class SalesOrderService {
           .leftJoin('soi.productVariation', 'pv')
           .leftJoin('pv.product', 'product')
           .where(
-            'so.creationDate >= :startDate AND so.creationDate <= :endDate',
+            "so.creationDate >= :startDate AND so.creationDate <= :endDate AND so.paymentDetails.paymentStatus='APPROVED'",
             {
               startDate,
               endDate,
             },
           )
-          .groupBy('pv.id,product.title,so.creation_date')
+          .groupBy('pv.id,product.title')
+          .orderBy('product.title')
           .getRawMany();
 
         return this.mapProductReport(queryBuilder);
