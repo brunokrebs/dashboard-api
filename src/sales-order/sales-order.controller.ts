@@ -29,8 +29,8 @@ export class SalesOrderController {
 
   @Get()
   async findAll(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
     @Query('sortedBy') sortedBy: string,
     @Query('sortDirectionAscending') sortDirectionAscending: string,
     @Query('query') query: string,
@@ -98,8 +98,6 @@ export class SalesOrderController {
     @Query('startDate') startDate: any,
     @Query('endDate') endDate: any,
     @Query('groupBy') groupBy: string,
-    @Query('limit') limit: number = 10,
-    @Query('page') page: number = 1,
   ) {
     startDate = moment(startDate, 'YYYY-MM-DD');
     endDate = moment(endDate, 'YYYY-MM-DD');
@@ -107,10 +105,6 @@ export class SalesOrderController {
       startDate,
       endDate,
       groupBy,
-      {
-        page,
-        limit,
-      },
     );
     return {
       items: items,
@@ -127,8 +121,8 @@ export class SalesOrderController {
 
   @Get('/confirmed-sales-orders')
   async getConfirmedSalesOrders(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
     @Query('sortedBy') sortedBy: string,
     @Query('sortDirectionAscending') sortDirectionAscending: string,
     @Query('query') query: string,

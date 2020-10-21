@@ -327,22 +327,16 @@ export class SalesOrderService {
     return queryBuilder;
   }
 
-  async getReportGroupBy(
-    startDate: Moment,
-    endDate: Moment,
-    groupBy: string,
-    options: IPaginationOpts,
-  ) {
-    let response: any;
+  async getReportGroupBy(startDate: Moment, endDate: Moment, groupBy: string) {
     switch (groupBy) {
       case 'CUSTOMER': {
-        const queryBuilder = await this.salesOrderRepository
+        const reportByCustomerResult = await this.salesOrderRepository
           .createQueryBuilder('so')
           .select(
-            'SUM(so.paymentDetails.total) as total,customer.id,customer.name, customer.email, customer.phoneNumber',
+            'SUM(so.paymentDetails.total) as total, customer.id, customer.name, customer.email, customer.phoneNumber',
           )
           .leftJoin('so.customer', 'customer')
-          .where('so.customer_id= customer.id')
+          .where('so.customer = customer.id')
           .andWhere(
             'so.creationDate >= :startDate AND so.creationDate <= :endDate',
             {
@@ -351,23 +345,22 @@ export class SalesOrderService {
             },
           )
           .groupBy(
-            'customer.name,customer.email,customer.phone_number,customer.id',
+            'customer.name, customer.email, customer.phone_number, customer.id',
           )
+          .orderBy('total', 'DESC')
           .getRawMany();
-        return this.mapCustomerReport(queryBuilder);
+        return this.mapCustomerReport(reportByCustomerResult);
       }
     }
   }
 
-  mapCustomerReport(data: any) {
-    return data.map((data: any) => {
-      return {
-        id: Number.parseInt(data.id),
-        name: data.name,
-        phoneNumber: data.phone_number,
-        email: data.email,
-        total: Number.parseFloat(data.total),
-      };
-    });
+  mapCustomerReport(rows: any) {
+    return rows.map((row: any) => ({
+      id: Number.parseInt(row.id),
+      name: row.name,
+      phoneNumber: row.phone_number,
+      email: row.email,
+      total: Number.parseFloat(row.total),
+    }));
   }
 }
