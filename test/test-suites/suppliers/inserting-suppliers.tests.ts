@@ -11,7 +11,7 @@ describe('inserting suppliers', () => {
     await cleanUpDatabase();
   });
 
-  it.only('should be able to insert supplier', async () => {
+  it('should be able to insert supplier', async () => {
     const supplier = {
       cnpj: '30.926.829/0001-80',
       name: 'LB Comércio de Joias LTDA',
