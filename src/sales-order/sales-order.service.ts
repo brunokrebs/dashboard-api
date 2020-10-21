@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import randomize from 'randomatic';
-import moment from 'moment';
+import moment, { Moment } from 'moment';
 
 import { SaleOrder } from './entities/sale-order.entity';
 import { Repository, Brackets } from 'typeorm';
@@ -21,6 +21,7 @@ import { Pagination, paginate } from 'nestjs-typeorm-paginate';
 import { isNullOrUndefined } from '../util/numeric-transformer';
 import { SaleOrderBlingStatus } from './entities/sale-order-bling-status.enum';
 import { BlingService } from '../bling/bling.service';
+import { Customer } from 'src/customers/customer.entity';
 
 @Injectable()
 export class SalesOrderService {
@@ -324,5 +325,42 @@ export class SalesOrderService {
       .orderBy('so.approvalDate', 'DESC')
       .getMany();
     return queryBuilder;
+  }
+
+  async getReportGroupBy(startDate: Moment, endDate: Moment, groupBy: string) {
+    switch (groupBy) {
+      case 'CUSTOMER': {
+        const reportByCustomerResult = await this.salesOrderRepository
+          .createQueryBuilder('so')
+          .select(
+            'SUM(so.paymentDetails.total) as total, customer.id, customer.name, customer.email, customer.phoneNumber',
+          )
+          .leftJoin('so.customer', 'customer')
+          .where('so.customer = customer.id')
+          .andWhere(
+            'so.creationDate >= :startDate AND so.creationDate <= :endDate',
+            {
+              startDate,
+              endDate,
+            },
+          )
+          .groupBy(
+            'customer.name, customer.email, customer.phone_number, customer.id',
+          )
+          .orderBy('total', 'DESC')
+          .getRawMany();
+        return this.mapCustomerReport(reportByCustomerResult);
+      }
+    }
+  }
+
+  mapCustomerReport(rows: any) {
+    return rows.map((row: any) => ({
+      id: Number.parseInt(row.id),
+      name: row.name,
+      phoneNumber: row.phone_number,
+      email: row.email,
+      total: Number.parseFloat(row.total),
+    }));
   }
 }
