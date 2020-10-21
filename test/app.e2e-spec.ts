@@ -51,4 +51,5 @@ describe('AppController (e2e)', () => {
   require('./test-suites/sales-order/querying-sale-orders/querying-sale-orders.tests');
   require('./test-suites/sales-order/update-payment-status/update-payment-status.tests');
   require('./test-suites/sales-order/update-inventory/update-inventory.tests');
+  require('./test-suites/suppliers/inserting-suppliers.tests');
 });
