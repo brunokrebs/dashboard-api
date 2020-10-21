@@ -367,7 +367,7 @@ export class SalesOrderService {
               endDate,
             },
           )
-          .groupBy('product.id,so.creation_date')
+          .groupBy('product.id')
           .orderBy('product.title')
           .getRawMany();
         return this.mapProductReport(queryBuilder);
