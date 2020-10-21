@@ -327,16 +327,7 @@ export class SalesOrderService {
     return queryBuilder;
   }
 
-<<<<<<< HEAD
   async getReportGroupBy(startDate: Moment, endDate: Moment, groupBy: string) {
-=======
-  async getReportGroupBy(
-    startDate: Moment,
-    endDate: Moment,
-    groupBy: string,
-    options: IPaginationOpts,
-  ) {
->>>>>>> select de relatório pegando só os dados necessarios
     switch (groupBy) {
       case 'CUSTOMER': {
         const reportByCustomerResult = await this.salesOrderRepository
@@ -370,15 +361,15 @@ export class SalesOrderService {
           .leftJoin('soi.productVariation', 'pv')
           .leftJoin('pv.product', 'product')
           .where(
-            'so.creationDate >= :startDate AND so.creationDate <= :endDate',
+            "so.creationDate >= :startDate AND so.creationDate <= :endDate AND so.paymentDetails.paymentStatus='APPROVED'",
             {
               startDate,
               endDate,
             },
           )
           .groupBy('product.id,so.creation_date')
+          .orderBy('product.title')
           .getRawMany();
-
         return this.mapProductReport(queryBuilder);
       }
     }
@@ -394,13 +385,13 @@ export class SalesOrderService {
     }));
   }
 
-  mapProductReport(data: any) {
-    return data.map(data => {
+  mapProductReport(rows: any) {
+    return rows.map(row => {
       return {
-        id: data.id,
-        title: data.title,
-        sku: data.sku,
-        sellingPrice: data.selling_price,
+        id: row.id,
+        title: row.title,
+        sku: row.sku,
+        sellingPrice: row.selling_price,
       };
     });
   }
