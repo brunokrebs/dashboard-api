@@ -10,15 +10,33 @@ export class SupplierService {
     private supplierRepository: Repository<Supplier>,
   ) {}
 
-  save(supplier: Supplier): Promise<Supplier> {
-    return this.supplierRepository.save(supplier);
-  }
-
-  getByCNPJ(cnpj: string): Promise<Supplier> {
+  findByCNPJ(cnpj: string): Promise<Supplier> {
     return this.supplierRepository.findOne({
       where: {
         cnpj: cnpj,
       },
     });
+  }
+
+  findById(id: number): Promise<Supplier> {
+    return this.supplierRepository.findOne(id);
+  }
+
+  async findOrCreate(supplier: Supplier): Promise<Supplier> {
+    const existingSupplier = await this.findByCNPJ(
+      supplier.cnpj.replace(/\D/g, ''),
+    );
+    if (existingSupplier) return Promise.resolve(existingSupplier);
+    return this.save(supplier);
+  }
+
+  save(supplier: Supplier): Promise<Supplier> {
+    supplier.cnpj = supplier.cnpj?.replace(/\D/g, '');
+    return this.supplierRepository.save(supplier);
+  }
+
+  update(id: number, supplier: Supplier): Promise<Supplier> {
+    supplier.id = id;
+    return this.save(supplier);
   }
 }

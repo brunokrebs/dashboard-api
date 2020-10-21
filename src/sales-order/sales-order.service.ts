@@ -21,7 +21,6 @@ import { Pagination, paginate } from 'nestjs-typeorm-paginate';
 import { isNullOrUndefined } from '../util/numeric-transformer';
 import { SaleOrderBlingStatus } from './entities/sale-order-bling-status.enum';
 import { BlingService } from '../bling/bling.service';
-import { Customer } from 'src/customers/customer.entity';
 
 @Injectable()
 export class SalesOrderService {
