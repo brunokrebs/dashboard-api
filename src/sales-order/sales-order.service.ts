@@ -426,7 +426,7 @@ export class SalesOrderService {
 
   mapProductVariationReport(rows: any) {
     return rows.map(row => ({
-      productSku: row.productSku,
+      productSku: row.productsku,
       sku: row.sku,
       title: row.title,
       description: row.description,
