@@ -373,28 +373,6 @@ export class SalesOrderService {
           .getRawMany();
         return this.mapProductReport(queryBuilder);
       }
-      case 'PRODUCT': {
-        const queryBuilder = await this.salesOrderItemRepository
-          .createQueryBuilder('soi')
-          .select([
-            'product.id,product.title,product.sku,product.selling_price',
-          ])
-          .leftJoin('soi.saleOrder', 'so')
-          .leftJoin('soi.productVariation', 'pv')
-          .leftJoin('pv.product', 'product')
-          .where(
-            "so.creationDate >= :startDate AND so.creationDate <= :endDate so.paymentDetails.paymentStatus='APPROVED'",
-            {
-              startDate,
-              endDate,
-            },
-          )
-          .groupBy('product.id,so.creation_date')
-          .getRawMany();
-
-        return this.mapProductReport(queryBuilder);
-      }
-
       case 'PRODUCT_VARIATION': {
         const queryBuilder = await this.salesOrderItemRepository
           .createQueryBuilder('soi')
