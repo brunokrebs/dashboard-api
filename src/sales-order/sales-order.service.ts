@@ -416,6 +416,38 @@ export class SalesOrderService {
 
         return this.mapProductReport(queryBuilder);
       }
+
+      case 'APPROVAL_DATE': {
+        const selectedSales = await this.salesOrderRepository
+          .createQueryBuilder('so')
+          .select([
+            'SUM(total), DATE(so.approval_date) approvalDate, count(1), so.payment_type',
+          ])
+          .where(`so.paymentDetails.paymentStatus='APPROVED'`)
+          .andWhere(
+            `so.creationDate >= :startDate AND so.creationDate <= :endDate`,
+            {
+              startDate,
+              endDate,
+            },
+          )
+          .groupBy('approvalDate, so.payment_type')
+          .orderBy('approvalDate', 'DESC')
+          .getRawMany();
+        //console.log(selectedSales);
+        const dates = Array.from(
+          new Set(selectedSales.map(s => s.approvalDate)),
+        );
+        dates.map(date => {
+          return selectedSales
+            .filter(sale => {
+              return sale.approvalDate.getTime() === date.getTime();
+            })
+            .reduce((total, sale) => (total += 1), 0);
+        });
+
+        return selectedSales;
+      }
     }
   }
 
