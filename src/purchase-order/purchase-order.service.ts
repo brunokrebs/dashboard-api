@@ -8,6 +8,8 @@ import { InventoryService } from '../inventory/inventory.service';
 import { BlingService } from '../bling/bling.service';
 import { SupplierService } from '../supplier/supplier.service';
 import { Supplier } from '../supplier/supplier.entity';
+import { InventoryMovementDTO } from '../inventory/inventory-movement.dto';
+import { ProductsService } from '../products/products.service';
 
 @Injectable()
 export class PurchaseOrderService {
@@ -17,6 +19,7 @@ export class PurchaseOrderService {
     @InjectRepository(PurchaseOrderItem)
     private purchaseOrderItemRepository: Repository<PurchaseOrderItem>,
     private inventoryService: InventoryService,
+    private productsService: ProductsService,
     private supplierService: SupplierService,
     private blingService: BlingService,
   ) {}
@@ -25,29 +28,69 @@ export class PurchaseOrderService {
     const blingPurchaseOrders = await this.blingService.loadPurchaseOrders();
     const persistedSuppliers = await this.syncSuppliers(blingPurchaseOrders);
 
-    const purchaseOrders = blingPurchaseOrders.map(bpo => {
-      return this.mapPurchaseOrderFromBling(bpo, persistedSuppliers);
+    const persistJobs = blingPurchaseOrders.map(bpo => {
+      return this.persistPurchaseOrderFromBling(bpo, persistedSuppliers);
     });
-
-    await Promise.all(
-      purchaseOrders.map(p => this.purchaseOrderRepository.save(p)),
-    );
+    await Promise.all(persistJobs);
   }
 
-  private mapPurchaseOrderFromBling(
+  private async persistPurchaseOrderFromBling(
     blingPurchaseOrder: any,
     persistedSuppliers: Supplier[],
-  ): PurchaseOrder {
+  ) {
+    // 1. finding the supplier
     const supplier = persistedSuppliers.find(
       s => s.cnpj === blingPurchaseOrder.fornecedor.cpfcnpj.replace(/\D/g, ''),
     );
-    return {
-      referenceCode: null,
-      items: null,
-      discount: null,
-      shippingPrice: null,
-      supplier,
+
+    // 2. loading product variations listed on the Bling purchase order
+    const skus = blingPurchaseOrder.itens.map(({ item }) => item.codigo);
+    const productVariations = await this.productsService.findVariationsBySkus(
+      skus,
+    );
+
+    // 3. creating the purchase order details
+    const purchaseOrder: PurchaseOrder = {
+      referenceCode: blingPurchaseOrder.numeropedido,
+      creationDate: new Date(),
+      completionate: null,
+      supplier: supplier,
+      discount: parseFloat(blingPurchaseOrder.desconto.replace(',', '.')),
+      shippingPrice: blingPurchaseOrder.transporte.frete,
+      items: [],
     };
+
+    // 4. saving the purchase order
+    const persistedOrder = await this.purchaseOrderRepository.save(
+      purchaseOrder,
+    );
+
+    // 5. mapping the purchase order items
+    const purchaseOrderItems: PurchaseOrderItem[] = blingPurchaseOrder.itens.map(
+      ({ item }) => ({
+        productVariation: productVariations.find(pv => pv.sku === item.codigo),
+        purchaseOrder: persistedOrder,
+        price: item.valor,
+        amount: item.qtde,
+        ipi: 0,
+      }),
+    );
+
+    // 6. saving the items
+    await this.purchaseOrderItemRepository.save(purchaseOrderItems);
+
+    // 7. defining the movements
+    const movements: InventoryMovementDTO[] = purchaseOrderItems.map(poi => ({
+      sku: poi.productVariation.sku,
+      amount: poi.amount,
+      description: `Movimentação gerada pela ordem de compra ${persistedOrder.referenceCode}.`,
+    }));
+
+    // 8. persisting the movements to make sure inventory is up to date
+    const insertMovementJobs = movements.map(movement =>
+      this.inventoryService.saveMovement(movement),
+    );
+    await Promise.all(insertMovementJobs);
   }
 
   private async syncSuppliers(purchaseOrders) {
