@@ -28,6 +28,8 @@ export class SaleOrderItem extends BaseEntity {
   })
   price: number;
 
+  // discount applied on each item
+  // total = (price * amount) - (discount * amount)
   @Column({
     name: 'discount',
     precision: 2,

@@ -21,7 +21,6 @@ import { Pagination, paginate } from 'nestjs-typeorm-paginate';
 import { isNullOrUndefined } from '../util/numeric-transformer';
 import { SaleOrderBlingStatus } from './entities/sale-order-bling-status.enum';
 import { BlingService } from '../bling/bling.service';
-import { Customer } from 'src/customers/customer.entity';
 
 @Injectable()
 export class SalesOrderService {
@@ -328,6 +327,7 @@ export class SalesOrderService {
   }
 
   async getReportGroupBy(startDate: Moment, endDate: Moment, groupBy: string) {
+    const paymentStatus = PaymentStatus.APPROVED;
     switch (groupBy) {
       case 'CUSTOMER': {
         const reportByCustomerResult = await this.salesOrderRepository
@@ -344,6 +344,7 @@ export class SalesOrderService {
               endDate,
             },
           )
+          .andWhere(`so.paymentDetails.paymentStatus = 'APPROVED'`)
           .groupBy(
             'customer.name, customer.email, customer.phone_number, customer.id',
           )
@@ -355,68 +356,24 @@ export class SalesOrderService {
         const queryBuilder = await this.salesOrderItemRepository
           .createQueryBuilder('soi')
           .select([
-            'product.id,product.title,product.sku,product.selling_price',
+            'product.id, product.title, product.sku, ' +
+              'SUM(soi.amount) as amount, SUM((soi.price * soi.amount) - (soi.discount * soi.amount)) as total',
           ])
           .leftJoin('soi.saleOrder', 'so')
           .leftJoin('soi.productVariation', 'pv')
           .leftJoin('pv.product', 'product')
           .where(
-            "so.creationDate >= :startDate AND so.creationDate <= :endDate AND so.paymentDetails.paymentStatus='APPROVED'",
+            "so.creationDate >= :startDate AND so.creationDate <= :endDate AND so.paymentDetails.paymentStatus = 'APPROVED'",
             {
               startDate,
               endDate,
             },
           )
           .groupBy('product.id')
-          .orderBy('product.title')
+          .orderBy('total', 'DESC')
           .getRawMany();
         return this.mapProductReport(queryBuilder);
       }
-      case 'PRODUCT': {
-        const queryBuilder = await this.salesOrderItemRepository
-          .createQueryBuilder('soi')
-          .select([
-            'product.id,product.title,product.sku,product.selling_price',
-          ])
-          .leftJoin('soi.saleOrder', 'so')
-          .leftJoin('soi.productVariation', 'pv')
-          .leftJoin('pv.product', 'product')
-          .where(
-            "so.creationDate >= :startDate AND so.creationDate <= :endDate so.paymentDetails.paymentStatus='APPROVED'",
-            {
-              startDate,
-              endDate,
-            },
-          )
-          .groupBy('product.id,so.creation_date')
-          .getRawMany();
-
-        return this.mapProductReport(queryBuilder);
-      }
-
-      case 'PRODUCT_VARIATION': {
-        const queryBuilder = await this.salesOrderItemRepository
-          .createQueryBuilder('soi')
-          .select([
-            'pv.id,product.title,pv.description,pv.sku,pv.selling_price',
-          ])
-          .leftJoin('soi.saleOrder', 'so')
-          .leftJoin('soi.productVariation', 'pv')
-          .leftJoin('pv.product', 'product')
-          .where(
-            "so.creationDate >= :startDate AND so.creationDate <= :endDate AND so.paymentDetails.paymentStatus='APPROVED'",
-            {
-              startDate,
-              endDate,
-            },
-          )
-          .groupBy('pv.id,product.title')
-          .orderBy('product.title')
-          .getRawMany();
-
-        return this.mapProductReport(queryBuilder);
-      }
-
       case 'APPROVAL_DATE': {
         const selectedSales = await this.salesOrderRepository
           .createQueryBuilder('so')
@@ -434,7 +391,7 @@ export class SalesOrderService {
           .groupBy('approvalDate, so.payment_type')
           .orderBy('approvalDate', 'DESC')
           .getRawMany();
-        //console.log(selectedSales);
+
         const dates = Array.from(
           new Set(selectedSales.map(s => s.approvalDate)),
         );
@@ -447,6 +404,31 @@ export class SalesOrderService {
         });
 
         return selectedSales;
+      }
+      case 'PRODUCT_VARIATION': {
+        const reportResults = await this.salesOrderItemRepository
+          .createQueryBuilder('soi')
+          .select([
+            'p.sku as productSku',
+            'pv.sku as sku',
+            'p.title as title',
+            'pv.description as description',
+            'SUM(soi.amount) as amount',
+            'SUM((soi.price * soi.amount) - (soi.discount * soi.amount)) as total',
+          ])
+          .leftJoin('soi.saleOrder', 'so')
+          .leftJoin('soi.productVariation', 'pv')
+          .leftJoin('pv.product', 'p')
+          .where('so.creationDate >= :startDate', { startDate })
+          .andWhere('so.creationDate <= :endDate', { endDate })
+          .andWhere('so.paymentDetails.paymentStatus = :paymentStatus', {
+            paymentStatus,
+          })
+          .groupBy('pv.id, p.sku, p.title')
+          .orderBy('total', 'DESC')
+          .getRawMany();
+
+        return this.mapProductVariationReport(reportResults);
       }
     }
   }
@@ -467,9 +449,20 @@ export class SalesOrderService {
         id: row.id,
         title: row.title,
         sku: row.sku,
-        sellingPrice: row.selling_price,
-        description: row.description,
+        amount: row.amount,
+        total: row.total,
       };
     });
+  }
+
+  mapProductVariationReport(rows: any) {
+    return rows.map(row => ({
+      productSku: row.productsku,
+      sku: row.sku,
+      title: row.title,
+      description: row.description,
+      amount: row.amount,
+      total: row.total,
+    }));
   }
 }

@@ -27,6 +27,11 @@ import { MarketplacesModule } from './marketplaces/marketplaces.module';
 import { KeyValuePair } from './key-value-pair/key-value-pair.entity';
 import { KeyValuePairModule } from './key-value-pair/key-value-pair.module';
 import { ChartModule } from './chart/chart.module';
+import { PurchaseOrder } from './purchase-order/purchase-order.entity';
+import { PurchaseOrderItem } from './purchase-order/purchase-order-item.entity';
+import { PurchaseOrderModule } from './purchase-order/purchase-order.module';
+import { Supplier } from './supplier/supplier.entity';
+import { SupplierModule } from './supplier/supplier.module';
 
 @Module({
   imports: [
@@ -42,6 +47,8 @@ import { ChartModule } from './chart/chart.module';
         Inventory,
         InventoryMovement,
         KeyValuePair,
+        PurchaseOrder,
+        PurchaseOrderItem,
         Product,
         ProductComposition,
         ProductVariation,
@@ -50,6 +57,7 @@ import { ChartModule } from './chart/chart.module';
         User,
         SaleOrder,
         SaleOrderItem,
+        Supplier,
         Tag,
       ],
       synchronize: false,
@@ -73,10 +81,13 @@ import { ChartModule } from './chart/chart.module';
     InventoryModule,
     CustomersModule,
     SalesOrderModule,
+    SupplierModule,
+    PurchaseOrderModule,
     BlingModule,
     MarketplacesModule,
     KeyValuePairModule,
     ChartModule,
+    SupplierModule,
   ],
   controllers: [],
   providers: [],
