@@ -238,9 +238,12 @@ export class BlingService {
   }
 
   async loadPurchaseOrders() {
+    const today = moment().format('DD/MM/YYYY');
+    const sevenDaysAgo = moment()
+      .subtract(14, 'days')
+      .format('DD/MM/YYYY');
     const loadRequest = await this.httpService.get(
-      'https://bling.com.br/Api/v2/pedidoscompra/json/?filters=dataEmissao[10/09/2020 TO 20/10/2020]; situacao[1]&apikey=' +
-        process.env.BLING_APIKEY,
+      `https://bling.com.br/Api/v2/pedidoscompra/json/?filters=dataEmissao[${sevenDaysAgo} TO ${today}]; situacao[1]&apikey=${process.env.BLING_APIKEY}`,
     );
 
     const response = await loadRequest.toPromise();

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Cron } from '@nestjs/schedule';
 
 import { PurchaseOrderItem } from './purchase-order-item.entity';
 import { PurchaseOrder } from './purchase-order.entity';
@@ -24,7 +25,8 @@ export class PurchaseOrderService {
     private blingService: BlingService,
   ) {}
 
-  async loadPurchaseOrdersFromBling() {
+  @Cron('0 30 22 * * *')
+  async syncPurchaseOrdersWithBling() {
     const blingPurchaseOrders = await this.blingService.loadPurchaseOrders();
     const persistedSuppliers = await this.syncSuppliers(blingPurchaseOrders);
 
@@ -38,34 +40,43 @@ export class PurchaseOrderService {
     blingPurchaseOrder: any,
     persistedSuppliers: Supplier[],
   ) {
-    // 1. finding the supplier
+    // checking if the purchase order has already been created
+    const alreadyExists = await this.purchaseOrderRepository.findOne({
+      referenceCode: blingPurchaseOrder.numeropedido,
+    });
+
+    if (alreadyExists) {
+      return;
+    }
+
+    // finding the supplier
     const supplier = persistedSuppliers.find(
       s => s.cnpj === blingPurchaseOrder.fornecedor.cpfcnpj.replace(/\D/g, ''),
     );
 
-    // 2. loading product variations listed on the Bling purchase order
+    // loading product variations listed on the Bling purchase order
     const skus = blingPurchaseOrder.itens.map(({ item }) => item.codigo);
     const productVariations = await this.productsService.findVariationsBySkus(
       skus,
     );
 
-    // 3. creating the purchase order details
+    // creating the purchase order details
     const purchaseOrder: PurchaseOrder = {
       referenceCode: blingPurchaseOrder.numeropedido,
       creationDate: new Date(),
-      completionate: null,
+      completionate: new Date(),
       supplier: supplier,
       discount: parseFloat(blingPurchaseOrder.desconto.replace(',', '.')),
       shippingPrice: blingPurchaseOrder.transporte.frete,
       items: [],
     };
 
-    // 4. saving the purchase order
+    // saving the purchase order
     const persistedOrder = await this.purchaseOrderRepository.save(
       purchaseOrder,
     );
 
-    // 5. mapping the purchase order items
+    // mapping the purchase order items
     const purchaseOrderItems: PurchaseOrderItem[] = blingPurchaseOrder.itens.map(
       ({ item }) => ({
         productVariation: productVariations.find(pv => pv.sku === item.codigo),
@@ -76,17 +87,17 @@ export class PurchaseOrderService {
       }),
     );
 
-    // 6. saving the items
+    // saving the items
     await this.purchaseOrderItemRepository.save(purchaseOrderItems);
 
-    // 7. defining the movements
+    // defining the movements
     const movements: InventoryMovementDTO[] = purchaseOrderItems.map(poi => ({
       sku: poi.productVariation.sku,
       amount: poi.amount,
       description: `Movimentação gerada pela ordem de compra ${persistedOrder.referenceCode}.`,
     }));
 
-    // 8. persisting the movements to make sure inventory is up to date
+    // persisting the movements to make sure inventory is up to date
     const insertMovementJobs = movements.map(movement =>
       this.inventoryService.saveMovement(movement),
     );
