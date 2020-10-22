@@ -327,6 +327,7 @@ export class SalesOrderService {
   }
 
   async getReportGroupBy(startDate: Moment, endDate: Moment, groupBy: string) {
+    const paymentStatus = PaymentStatus.APPROVED;
     switch (groupBy) {
       case 'CUSTOMER': {
         const reportByCustomerResult = await this.salesOrderRepository
@@ -374,26 +375,29 @@ export class SalesOrderService {
         return this.mapProductReport(queryBuilder);
       }
       case 'PRODUCT_VARIATION': {
-        const queryBuilder = await this.salesOrderItemRepository
+        const reportResults = await this.salesOrderItemRepository
           .createQueryBuilder('soi')
           .select([
-            'pv.id,product.title,pv.description,pv.sku,pv.selling_price',
+            'p.sku as productSku',
+            'pv.sku as sku',
+            'p.title as title',
+            'pv.description as description',
+            'SUM(soi.amount) as amount',
+            'SUM((soi.price * soi.amount) - (soi.discount * soi.amount)) as total',
           ])
           .leftJoin('soi.saleOrder', 'so')
           .leftJoin('soi.productVariation', 'pv')
-          .leftJoin('pv.product', 'product')
-          .where(
-            "so.creationDate >= :startDate AND so.creationDate <= :endDate AND so.paymentDetails.paymentStatus='APPROVED'",
-            {
-              startDate,
-              endDate,
-            },
-          )
-          .groupBy('pv.id,product.title')
-          .orderBy('product.title')
+          .leftJoin('pv.product', 'p')
+          .where('so.creationDate >= :startDate', { startDate })
+          .andWhere('so.creationDate <= :endDate', { endDate })
+          .andWhere('so.paymentDetails.paymentStatus = :paymentStatus', {
+            paymentStatus,
+          })
+          .groupBy('pv.id, p.sku, p.title')
+          .orderBy('total', 'DESC')
           .getRawMany();
 
-        return this.mapProductReport(queryBuilder);
+        return this.mapProductVariationReport(reportResults);
       }
     }
   }
@@ -418,5 +422,16 @@ export class SalesOrderService {
         total: row.total,
       };
     });
+  }
+
+  mapProductVariationReport(rows: any) {
+    return rows.map(row => ({
+      productSku: row.productSku,
+      sku: row.sku,
+      title: row.title,
+      description: row.description,
+      amount: row.amount,
+      total: row.total,
+    }));
   }
 }
