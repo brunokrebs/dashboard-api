@@ -11,7 +11,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "migrate": "ts-node ./node_modules/typeorm/cli.js migration:run",
     "migrate-tests": "TYPEORM_DATABASE=digituz-dashboard-test ts-node ./node_modules/typeorm/cli.js migration:run",
-    "start": "nest start",
+    "start": "TZ=America/Sao_Paulo nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
