@@ -354,7 +354,8 @@ export class SalesOrderService {
         const queryBuilder = await this.salesOrderItemRepository
           .createQueryBuilder('soi')
           .select([
-            'product.id,product.title,product.sku,product.selling_price',
+            'product.id, product.title, product.sku, ' +
+              'SUM(soi.amount) as amount, SUM((soi.price * soi.amount) - (soi.discount * soi.amount)) as total',
           ])
           .leftJoin('soi.saleOrder', 'so')
           .leftJoin('soi.productVariation', 'pv')
@@ -367,7 +368,7 @@ export class SalesOrderService {
             },
           )
           .groupBy('product.id')
-          .orderBy('product.title')
+          .orderBy('total', 'DESC')
           .getRawMany();
         return this.mapProductReport(queryBuilder);
       }
@@ -390,7 +391,8 @@ export class SalesOrderService {
         id: row.id,
         title: row.title,
         sku: row.sku,
-        sellingPrice: row.selling_price,
+        amount: row.amount,
+        total: row.total,
       };
     });
   }
