@@ -343,6 +343,7 @@ export class SalesOrderService {
               endDate,
             },
           )
+          .andWhere(`so.paymentDetails.paymentStatus = 'APPROVED'`)
           .groupBy(
             'customer.name, customer.email, customer.phone_number, customer.id',
           )
@@ -361,7 +362,7 @@ export class SalesOrderService {
           .leftJoin('soi.productVariation', 'pv')
           .leftJoin('pv.product', 'product')
           .where(
-            "so.creationDate >= :startDate AND so.creationDate <= :endDate AND so.paymentDetails.paymentStatus='APPROVED'",
+            "so.creationDate >= :startDate AND so.creationDate <= :endDate AND so.paymentDetails.paymentStatus = 'APPROVED'",
             {
               startDate,
               endDate,
