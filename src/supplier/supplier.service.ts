@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Pagination, paginate } from 'nestjs-typeorm-paginate';
+import { IPaginationOpts } from 'src/pagination/pagination';
 import { In, Repository } from 'typeorm';
 import { Supplier } from './supplier.entity';
 
@@ -9,6 +11,44 @@ export class SupplierService {
     @InjectRepository(Supplier)
     private supplierRepository: Repository<Supplier>,
   ) {}
+
+  async paginate(options: IPaginationOpts): Promise<Pagination<Supplier>> {
+    const queryBuilder = this.supplierRepository.createQueryBuilder('s');
+    let sortDirection;
+    let sortNulls;
+    let orderColumn = '';
+
+    switch (options.sortedBy?.trim()) {
+      case undefined:
+      case null:
+      case '':
+        orderColumn = 'name';
+        break;
+      case 'name':
+        orderColumn = 'name';
+        break;
+      case 'cnpj':
+        orderColumn = 'cnpj';
+        break;
+      default:
+        orderColumn = options.sortedBy;
+    }
+    switch (options.sortDirectionAscending) {
+      case undefined:
+      case null:
+      case true:
+        sortDirection = 'ASC';
+        sortNulls = 'NULLS FIRST';
+        break;
+      default:
+        sortDirection = 'DESC';
+        sortNulls = 'NULLS LAST';
+    }
+
+    queryBuilder.orderBy(orderColumn, sortDirection, sortNulls);
+    queryBuilder.getMany();
+    return paginate<Supplier>(queryBuilder, options);
+  }
 
   findByCNPJ(cnpj: string): Promise<Supplier> {
     return this.supplierRepository.findOne({
