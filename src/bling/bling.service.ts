@@ -236,4 +236,26 @@ export class BlingService {
     });
     await Promise.all(updateVariationsJobs);
   }
+
+  async loadPurchaseOrders() {
+    const today = moment().format('DD/MM/YYYY');
+    const sevenDaysAgo = moment()
+      .subtract(14, 'days')
+      .format('DD/MM/YYYY');
+    const loadRequest = await this.httpService.get(
+      `https://bling.com.br/Api/v2/pedidoscompra/json/?filters=dataEmissao[${sevenDaysAgo} TO ${today}]; situacao[1]&apikey=${process.env.BLING_APIKEY}`,
+    );
+
+    const response = await loadRequest.toPromise();
+
+    if (!response?.data?.retorno?.pedidoscompra) {
+      throw new Error('Error while loading purchase orders from Bling.');
+    }
+
+    return response.data.retorno.pedidoscompra.flatMap(item => {
+      return item.map(pc => {
+        return pc.pedidocompra;
+      });
+    });
+  }
 }
