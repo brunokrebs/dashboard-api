@@ -343,12 +343,35 @@ export class SalesOrderService {
               endDate,
             },
           )
+          .andWhere(`so.paymentDetails.paymentStatus = 'APPROVED'`)
           .groupBy(
             'customer.name, customer.email, customer.phone_number, customer.id',
           )
           .orderBy('total', 'DESC')
           .getRawMany();
         return this.mapCustomerReport(reportByCustomerResult);
+      }
+      case 'PRODUCT': {
+        const queryBuilder = await this.salesOrderItemRepository
+          .createQueryBuilder('soi')
+          .select([
+            'product.id, product.title, product.sku, ' +
+              'SUM(soi.amount) as amount, SUM((soi.price * soi.amount) - (soi.discount * soi.amount)) as total',
+          ])
+          .leftJoin('soi.saleOrder', 'so')
+          .leftJoin('soi.productVariation', 'pv')
+          .leftJoin('pv.product', 'product')
+          .where(
+            "so.creationDate >= :startDate AND so.creationDate <= :endDate AND so.paymentDetails.paymentStatus = 'APPROVED'",
+            {
+              startDate,
+              endDate,
+            },
+          )
+          .groupBy('product.id')
+          .orderBy('total', 'DESC')
+          .getRawMany();
+        return this.mapProductReport(queryBuilder);
       }
     }
   }
@@ -361,5 +384,17 @@ export class SalesOrderService {
       email: row.email,
       total: Number.parseFloat(row.total),
     }));
+  }
+
+  mapProductReport(rows: any) {
+    return rows.map(row => {
+      return {
+        id: row.id,
+        title: row.title,
+        sku: row.sku,
+        amount: row.amount,
+        total: row.total,
+      };
+    });
   }
 }
