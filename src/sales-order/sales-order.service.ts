@@ -374,6 +374,46 @@ export class SalesOrderService {
           .getRawMany();
         return this.mapProductReport(queryBuilder);
       }
+      case 'APPROVAL_DATE': {
+        const reportResults = await this.salesOrderRepository
+          .createQueryBuilder('so')
+          .select([
+            'DATE(so.approval_date) as approvalDate',
+            'so.payment_type as paymentType',
+            'count(1) as count',
+            'SUM(total) as total',
+          ])
+          .where(`so.paymentDetails.paymentStatus = :paymentStatus`, {
+            paymentStatus,
+          })
+          .andWhere(`so.creationDate >= :startDate`, { startDate })
+          .andWhere(`so.creationDate <= :endDate`, { endDate })
+          .groupBy('approvalDate, so.payment_type')
+          .orderBy('approvalDate', 'DESC')
+          .getRawMany();
+
+        return reportResults
+          .map(s => s.approvaldate)
+          .map(date => {
+            const slip = reportResults.find(
+              s =>
+                s.paymenttype === PaymentType.BANK_SLIP &&
+                s.approvaldate === date,
+            );
+            const card = reportResults.find(
+              s =>
+                s.paymenttype === PaymentType.CREDIT_CARD &&
+                s.approvaldate === date,
+            );
+            return {
+              approvalDate: date,
+              bankSlip: slip ? Number.parseFloat(slip.total) : 0,
+              bankSlipCount: slip ? Number.parseInt(slip.count) : 0,
+              card: card ? Number.parseFloat(card.total) : 0,
+              cardCount: card ? Number.parseInt(card.count) : 0,
+            };
+          });
+      }
       case 'PRODUCT_VARIATION': {
         const reportResults = await this.salesOrderItemRepository
           .createQueryBuilder('soi')
@@ -426,7 +466,7 @@ export class SalesOrderService {
 
   mapProductVariationReport(rows: any) {
     return rows.map(row => ({
-      productSku: row.productSku,
+      productSku: row.productsku,
       sku: row.sku,
       title: row.title,
       description: row.description,
