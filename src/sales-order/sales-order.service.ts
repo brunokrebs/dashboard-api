@@ -392,27 +392,32 @@ export class SalesOrderService {
           .orderBy('approvalDate', 'DESC')
           .getRawMany();
 
-        return reportResults
-          .map(s => s.approvaldate)
-          .map(date => {
-            const slip = reportResults.find(
-              s =>
-                s.paymenttype === PaymentType.BANK_SLIP &&
-                s.approvaldate === date,
-            );
-            const card = reportResults.find(
-              s =>
-                s.paymenttype === PaymentType.CREDIT_CARD &&
-                s.approvaldate === date,
-            );
-            return {
-              approvalDate: date,
-              bankSlip: slip ? Number.parseFloat(slip.total) : 0,
-              bankSlipCount: slip ? Number.parseInt(slip.count) : 0,
-              card: card ? Number.parseFloat(card.total) : 0,
-              cardCount: card ? Number.parseInt(card.count) : 0,
-            };
-          });
+        const datesInMs = reportResults.map(s => s.approvaldate.getTime());
+        return (
+          datesInMs
+            // removing duplicates
+            .filter((dateInMs, idx) => datesInMs.indexOf(dateInMs) === idx)
+            // groupby results by date
+            .map(dateInMs => {
+              const slip = reportResults.find(
+                s =>
+                  s.paymenttype === PaymentType.BANK_SLIP &&
+                  s.approvaldate.getTime() === dateInMs,
+              );
+              const card = reportResults.find(
+                s =>
+                  s.paymenttype === PaymentType.CREDIT_CARD &&
+                  s.approvaldate.getTime() === dateInMs,
+              );
+              return {
+                approvalDate: new Date(dateInMs),
+                bankSlip: slip ? Number.parseFloat(slip.total) : 0,
+                bankSlipCount: slip ? Number.parseInt(slip.count) : 0,
+                card: card ? Number.parseFloat(card.total) : 0,
+                cardCount: card ? Number.parseInt(card.count) : 0,
+              };
+            })
+        );
       }
       case 'PRODUCT_VARIATION': {
         const reportResults = await this.salesOrderItemRepository
