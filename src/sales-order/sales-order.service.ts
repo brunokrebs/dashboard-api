@@ -375,35 +375,44 @@ export class SalesOrderService {
         return this.mapProductReport(queryBuilder);
       }
       case 'APPROVAL_DATE': {
-        const selectedSales = await this.salesOrderRepository
+        const reportResults = await this.salesOrderRepository
           .createQueryBuilder('so')
           .select([
-            'SUM(total), DATE(so.approval_date) approvalDate, count(1), so.payment_type',
+            'DATE(so.approval_date) as approvalDate',
+            'so.payment_type as paymentType',
+            'count(1) as count',
+            'SUM(total) as total',
           ])
-          .where(`so.paymentDetails.paymentStatus='APPROVED'`)
-          .andWhere(
-            `so.creationDate >= :startDate AND so.creationDate <= :endDate`,
-            {
-              startDate,
-              endDate,
-            },
-          )
+          .where(`so.paymentDetails.paymentStatus = :paymentStatus`, {
+            paymentStatus,
+          })
+          .andWhere(`so.creationDate >= :startDate`, { startDate })
+          .andWhere(`so.creationDate <= :endDate`, { endDate })
           .groupBy('approvalDate, so.payment_type')
           .orderBy('approvalDate', 'DESC')
           .getRawMany();
 
-        const dates = Array.from(
-          new Set(selectedSales.map(s => s.approvalDate)),
-        );
-        dates.map(date => {
-          return selectedSales
-            .filter(sale => {
-              return sale.approvalDate.getTime() === date.getTime();
-            })
-            .reduce((total, sale) => (total += 1), 0);
-        });
-
-        return selectedSales;
+        return reportResults
+          .map(s => s.approvaldate)
+          .map(date => {
+            const slip = reportResults.find(
+              s =>
+                s.paymenttype === PaymentType.BANK_SLIP &&
+                s.approvaldate === date,
+            );
+            const card = reportResults.find(
+              s =>
+                s.paymenttype === PaymentType.CREDIT_CARD &&
+                s.approvaldate === date,
+            );
+            return {
+              approvalDate: date,
+              bankSlip: slip ? Number.parseFloat(slip.total) : 0,
+              bankSlipCount: slip ? Number.parseInt(slip.count) : 0,
+              card: card ? Number.parseFloat(card.total) : 0,
+              cardCount: card ? Number.parseInt(card.count) : 0,
+            };
+          });
       }
       case 'PRODUCT_VARIATION': {
         const reportResults = await this.salesOrderItemRepository
