@@ -485,6 +485,7 @@ export class SalesOrderService {
   async exportXls(groupBy: string, startDate: Moment, endDate: Moment) {
     const paymentStatus = PaymentStatus.APPROVED;
     let xlsxValue: any;
+    let wscols = [];
     switch (groupBy) {
       case 'CUSTOMER': {
         const reportResults = await this.salesOrderRepository
@@ -511,6 +512,7 @@ export class SalesOrderService {
           .orderBy('total', 'DESC')
           .getRawMany();
         xlsxValue = reportResults;
+        wscols = [{ wch: 40 }, { wch: 40 }, { wch: 25 }, { wch: 20 }];
         break;
       }
       case 'PRODUCT': {
@@ -535,6 +537,7 @@ export class SalesOrderService {
           .orderBy('total', 'DESC')
           .getRawMany();
         xlsxValue = reportResults;
+        wscols = [{ wch: 15 }, { wch: 60 }, { wch: 10 }, { wch: 10 }];
         break;
       }
       case 'PRODUCT_VARIATION': {
@@ -560,6 +563,13 @@ export class SalesOrderService {
           .getRawMany();
 
         xlsxValue = reportResults;
+        wscols = [
+          { wch: 15 },
+          { wch: 60 },
+          { wch: 25 },
+          { wch: 10 },
+          { wch: 10 },
+        ];
         break;
       }
       case 'APPROVAL_DATE': {
@@ -608,6 +618,13 @@ export class SalesOrderService {
                 : 0,
             };
           });
+        wscols = [
+          { wch: 15 },
+          { wch: 7 },
+          { wch: 20 },
+          { wch: 5 },
+          { wch: 20 },
+        ];
         break;
       }
     }
@@ -617,14 +634,6 @@ export class SalesOrderService {
       CreatedDate: new Date(),
     };
     const workSheet = XLSX.utils.json_to_sheet(xlsxValue);
-
-    const wscols = [
-      { wch: 10 }, // "width por characters"
-      { wch: 20 },
-      { wch: 50 },
-      { wch: 25 },
-      { wch: 10 },
-    ];
 
     workSheet['!cols'] = wscols;
     XLSX.utils.book_append_sheet(wb, workSheet, 'Vendas');
