@@ -25,12 +25,19 @@ export class SuppliersController {
     @Query('limit') limit = 10,
     @Query('sortedBy') sortedBy: string,
     @Query('sortDirectionAscending') sortDirectionAscending: string,
+    @Query('query') query: string,
   ): Promise<Pagination<Supplier>> {
     return this.supplierService.paginate({
       page,
       limit,
       sortedBy,
       sortDirectionAscending: parseBoolean(sortDirectionAscending),
+      queryParams: [
+        {
+          key: 'query',
+          value: query,
+        },
+      ],
     });
   }
 

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Pagination, paginate } from 'nestjs-typeorm-paginate';
 import { IPaginationOpts } from 'src/pagination/pagination';
-import { In, Repository } from 'typeorm';
+import { Brackets, In, Repository } from 'typeorm';
 import { Supplier } from './supplier.entity';
 
 @Injectable()
@@ -43,9 +43,35 @@ export class SupplierService {
         sortDirection = 'DESC';
         sortNulls = 'NULLS LAST';
     }
+
     const queryBuilder = this.supplierRepository
       .createQueryBuilder('s')
       .orderBy(orderColumn, sortDirection, sortNulls);
+
+    options.queryParams
+      .filter(queryParam => {
+        return (
+          queryParam !== null &&
+          queryParam.value !== null &&
+          queryParam.value !== undefined
+        );
+      })
+      .forEach(queryParam => {
+        switch (queryParam.key) {
+          case 'query':
+            queryBuilder.andWhere(
+              new Brackets(qb => {
+                qb.where(`lower(s.name) like lower(:query)`, {
+                  query: `%${queryParam.value.toString()}%`,
+                }).orWhere(`lower(s.cnpj) like lower(:query)`, {
+                  query: `%${queryParam.value.toString()}%`,
+                });
+              }),
+            );
+            break;
+        }
+      });
+
     return paginate<Supplier>(queryBuilder, options);
   }
 
