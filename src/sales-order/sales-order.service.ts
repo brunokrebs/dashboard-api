@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import randomize from 'randomatic';
 import moment, { Moment } from 'moment';
+import * as XLSX from 'xlsx';
 
 import { SaleOrder } from './entities/sale-order.entity';
 import { Repository, Brackets } from 'typeorm';
@@ -21,6 +22,7 @@ import { Pagination, paginate } from 'nestjs-typeorm-paginate';
 import { isNullOrUndefined } from '../util/numeric-transformer';
 import { SaleOrderBlingStatus } from './entities/sale-order-bling-status.enum';
 import { BlingService } from '../bling/bling.service';
+import { report } from 'process';
 
 @Injectable()
 export class SalesOrderService {
@@ -478,5 +480,155 @@ export class SalesOrderService {
       amount: row.amount,
       total: row.total,
     }));
+  }
+
+  async exportXls(groupBy: string, startDate: Moment, endDate: Moment) {
+    const paymentStatus = PaymentStatus.APPROVED;
+    let xlsxValue: any;
+    switch (groupBy) {
+      case 'CUSTOMER': {
+        const reportResults = await this.salesOrderRepository
+          .createQueryBuilder('so')
+          .select(
+            'customer.name as nome, customer.email as email,' +
+              'customer.phone_number as Telefone ,SUM(so.paymentDetails.total) as total',
+          )
+          .leftJoin('so.customer', 'customer')
+          .where('so.customer = customer.id')
+          .andWhere(
+            'so.creationDate >= :startDate AND so.creationDate <= :endDate',
+            {
+              startDate,
+              endDate,
+            },
+          )
+          .andWhere('so.paymentDetails.paymentStatus = :paymentStatus', {
+            paymentStatus,
+          })
+          .groupBy(
+            'customer.name, customer.email, customer.phone_number, customer.id',
+          )
+          .orderBy('total', 'DESC')
+          .getRawMany();
+        xlsxValue = reportResults;
+        break;
+      }
+      case 'PRODUCT': {
+        const reportResults = await this.salesOrderItemRepository
+          .createQueryBuilder('soi')
+          .select([
+            'product.sku as sku,product.title as nome,' +
+              'SUM(soi.amount) as quantidade, TRUNC(SUM((soi.price * soi.amount) - (soi.discount * soi.amount)),2) as Total',
+          ])
+          .leftJoin('soi.saleOrder', 'so')
+          .leftJoin('soi.productVariation', 'pv')
+          .leftJoin('pv.product', 'product')
+          .where(
+            'so.creationDate >= :startDate AND so.creationDate <= :endDate AND so.paymentDetails.paymentStatus = :paymentStatus',
+            {
+              startDate,
+              endDate,
+              paymentStatus,
+            },
+          )
+          .groupBy('product.id')
+          .orderBy('total', 'DESC')
+          .getRawMany();
+        xlsxValue = reportResults;
+        break;
+      }
+      case 'PRODUCT_VARIATION': {
+        const reportResults = await this.salesOrderItemRepository
+          .createQueryBuilder('soi')
+          .select([
+            'p.sku as SKU',
+            'p.title as Produto',
+            'pv.description as Descrição',
+            'SUM(soi.amount) as Quantidade',
+            'TRUNC(SUM((soi.price * soi.amount) - (soi.discount * soi.amount)),2) as Total',
+          ])
+          .leftJoin('soi.saleOrder', 'so')
+          .leftJoin('soi.productVariation', 'pv')
+          .leftJoin('pv.product', 'p')
+          .where('so.creationDate >= :startDate', { startDate })
+          .andWhere('so.creationDate <= :endDate', { endDate })
+          .andWhere('so.paymentDetails.paymentStatus = :paymentStatus', {
+            paymentStatus,
+          })
+          .groupBy('pv.id, p.sku, p.title')
+          .orderBy('total', 'DESC')
+          .getRawMany();
+
+        xlsxValue = reportResults;
+        break;
+      }
+      case 'APPROVAL_DATE': {
+        const reportResults = await this.salesOrderRepository
+          .createQueryBuilder('so')
+          .select([
+            'DATE(so.approval_date) as approvalDate',
+            'so.payment_type as paymentType',
+            'count(1) as count',
+            'SUM(total) as total',
+          ])
+          .where(`so.paymentDetails.paymentStatus = :paymentStatus`, {
+            paymentStatus,
+          })
+          .andWhere(`so.creationDate >= :startDate`, { startDate })
+          .andWhere(`so.creationDate <= :endDate`, { endDate })
+          .groupBy('approvalDate, so.payment_type')
+          .orderBy('approvalDate', 'DESC')
+          .getRawMany();
+
+        const datesInMs = reportResults.map(s => s.approvaldate.getTime());
+        xlsxValue = datesInMs
+          // removing duplicates
+          .filter((dateInMs, idx) => datesInMs.indexOf(dateInMs) === idx)
+          // groupby results by date
+          .map(dateInMs => {
+            const slip = reportResults.find(
+              s =>
+                s.paymenttype === PaymentType.BANK_SLIP &&
+                s.approvaldate.getTime() === dateInMs,
+            );
+            const card = reportResults.find(
+              s =>
+                s.paymenttype === PaymentType.CREDIT_CARD &&
+                s.approvaldate.getTime() === dateInMs,
+            );
+            return {
+              'Data de Aprovação': new Date(dateInMs),
+              Boletos: slip ? Number.parseInt(slip.count) : 0,
+              'Valor total dos Boletos': slip
+                ? Number.parseFloat(slip.total)
+                : 0,
+              Cartão: card ? Number.parseInt(card.count) : 0,
+              'Valor total dos Cartões': card
+                ? Number.parseFloat(card.total)
+                : 0,
+            };
+          });
+        break;
+      }
+    }
+    const wb = XLSX.utils.book_new();
+    wb.Props = {
+      Title: 'Relatório de Vendas',
+      CreatedDate: new Date(),
+    };
+    const workSheet = XLSX.utils.json_to_sheet(xlsxValue);
+
+    const wscols = [
+      { wch: 10 }, // "width por characters"
+      { wch: 20 },
+      { wch: 50 },
+      { wch: 25 },
+      { wch: 10 },
+    ];
+
+    workSheet['!cols'] = wscols;
+    XLSX.utils.book_append_sheet(wb, workSheet, 'Vendas');
+
+    return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
   }
 }

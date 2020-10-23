@@ -9,9 +9,12 @@ import {
   Query,
   UseGuards,
   Delete,
+  HttpStatus,
+  Res,
 } from '@nestjs/common';
 import { Pagination } from 'nestjs-typeorm-paginate';
 import moment from 'moment';
+import { Response } from 'express';
 
 import { SaleOrderDTO } from './sale-order.dto';
 import { SalesOrderService } from './sales-order.service';
@@ -117,6 +120,23 @@ export class SalesOrderController {
       },
       links: { first: '', previous: '', next: '', last: '' },
     };
+  }
+
+  @Get('/report/xls')
+  async exportXls(
+    @Query('startDate') startDate: any,
+    @Query('endDate') endDate: any,
+    @Query('groupBy') grouBy = 'CUSTOMER',
+    @Res() res: Response,
+  ) {
+    startDate = moment(startDate, 'YYYY-MM-DD');
+    endDate = moment(endDate, 'YYYY-MM-DD');
+    const buff = await this.salesOrderService.exportXls(
+      grouBy,
+      startDate,
+      endDate,
+    );
+    res.status(HttpStatus.OK).send(buff);
   }
 
   @Get('/confirmed-sales-orders')
