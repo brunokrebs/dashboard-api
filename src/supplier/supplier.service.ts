@@ -13,7 +13,6 @@ export class SupplierService {
   ) {}
 
   async paginate(options: IPaginationOpts): Promise<Pagination<Supplier>> {
-    const queryBuilder = this.supplierRepository.createQueryBuilder('s');
     let sortDirection;
     let sortNulls;
     let orderColumn = '';
@@ -44,9 +43,9 @@ export class SupplierService {
         sortDirection = 'DESC';
         sortNulls = 'NULLS LAST';
     }
-
-    queryBuilder.orderBy(orderColumn, sortDirection, sortNulls);
-    queryBuilder.getMany();
+    const queryBuilder = this.supplierRepository
+      .createQueryBuilder('s')
+      .orderBy(orderColumn, sortDirection, sortNulls);
     return paginate<Supplier>(queryBuilder, options);
   }
 

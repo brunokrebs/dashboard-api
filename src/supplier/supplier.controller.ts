@@ -26,7 +26,7 @@ export class SuppliersController {
     @Query('sortedBy') sortedBy: string,
     @Query('sortDirectionAscending') sortDirectionAscending: string,
   ): Promise<Pagination<Supplier>> {
-    return await this.supplierService.paginate({
+    return this.supplierService.paginate({
       page,
       limit,
       sortedBy,
