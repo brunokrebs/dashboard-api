@@ -23,6 +23,7 @@ import { UpdateSaleOrderStatusDTO } from './update-sale-order-status.dto';
 import { PaymentStatus } from './entities/payment-status.enum';
 import { parseBoolean } from '../util/parsers';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { stringList } from 'aws-sdk/clients/datapipeline';
 
 @Controller('sales-order')
 @UseGuards(JwtAuthGuard)
@@ -104,10 +105,10 @@ export class SalesOrderController {
   ) {
     startDate = moment(startDate, 'YYYY-MM-DD');
     endDate = moment(endDate, 'YYYY-MM-DD');
-    const items = await this.salesOrderService.getReportGroupBy(
+    const items = await this.salesOrderService.groupByQueries(
+      groupBy,
       startDate,
       endDate,
-      groupBy,
     );
     return {
       items: items,
@@ -122,19 +123,20 @@ export class SalesOrderController {
     };
   }
 
-  @Get('/report/xls')
+  @Get('/report/xlsx')
   async exportXls(
     @Query('startDate') startDate: any,
     @Query('endDate') endDate: any,
-    @Query('groupBy') grouBy = 'CUSTOMER',
+    @Query('groupBy') grouBy: string,
     @Res() res: Response,
   ) {
     startDate = moment(startDate, 'YYYY-MM-DD');
     endDate = moment(endDate, 'YYYY-MM-DD');
-    const buff = await this.salesOrderService.exportXls(
+    const buff = await this.salesOrderService.groupByQueries(
       grouBy,
       startDate,
       endDate,
+      'xlsx',
     );
     res.status(HttpStatus.OK).send(buff);
   }

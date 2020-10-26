@@ -22,7 +22,6 @@ import { Pagination, paginate } from 'nestjs-typeorm-paginate';
 import { isNullOrUndefined } from '../util/numeric-transformer';
 import { SaleOrderBlingStatus } from './entities/sale-order-bling-status.enum';
 import { BlingService } from '../bling/bling.service';
-import { report } from 'process';
 
 @Injectable()
 export class SalesOrderService {
@@ -328,123 +327,19 @@ export class SalesOrderService {
     return queryBuilder;
   }
 
-  async getReportGroupBy(startDate: Moment, endDate: Moment, groupBy: string) {
-    const paymentStatus = PaymentStatus.APPROVED;
+  async getReportGroupBy(groupBy: string, data: any) {
     switch (groupBy) {
       case 'CUSTOMER': {
-        const reportByCustomerResult = await this.salesOrderRepository
-          .createQueryBuilder('so')
-          .select(
-            'SUM(so.paymentDetails.total) as total, customer.id, customer.name, customer.email, customer.phoneNumber',
-          )
-          .leftJoin('so.customer', 'customer')
-          .where('so.customer = customer.id')
-          .andWhere(
-            'so.creationDate >= :startDate AND so.creationDate <= :endDate',
-            {
-              startDate,
-              endDate,
-            },
-          )
-          .andWhere(`so.paymentDetails.paymentStatus = 'APPROVED'`)
-          .groupBy(
-            'customer.name, customer.email, customer.phone_number, customer.id',
-          )
-          .orderBy('total', 'DESC')
-          .getRawMany();
-        return this.mapCustomerReport(reportByCustomerResult);
+        return this.mapCustomerReport(data);
       }
       case 'PRODUCT': {
-        const queryBuilder = await this.salesOrderItemRepository
-          .createQueryBuilder('soi')
-          .select([
-            'product.id, product.title, product.sku, ' +
-              'SUM(soi.amount) as amount, SUM((soi.price * soi.amount) - (soi.discount * soi.amount)) as total',
-          ])
-          .leftJoin('soi.saleOrder', 'so')
-          .leftJoin('soi.productVariation', 'pv')
-          .leftJoin('pv.product', 'product')
-          .where(
-            "so.creationDate >= :startDate AND so.creationDate <= :endDate AND so.paymentDetails.paymentStatus = 'APPROVED'",
-            {
-              startDate,
-              endDate,
-            },
-          )
-          .groupBy('product.id')
-          .orderBy('total', 'DESC')
-          .getRawMany();
-        return this.mapProductReport(queryBuilder);
+        return this.mapProductReport(data);
       }
       case 'APPROVAL_DATE': {
-        const reportResults = await this.salesOrderRepository
-          .createQueryBuilder('so')
-          .select([
-            'DATE(so.approval_date) as approvalDate',
-            'so.payment_type as paymentType',
-            'count(1) as count',
-            'SUM(total) as total',
-          ])
-          .where(`so.paymentDetails.paymentStatus = :paymentStatus`, {
-            paymentStatus,
-          })
-          .andWhere(`so.creationDate >= :startDate`, { startDate })
-          .andWhere(`so.creationDate <= :endDate`, { endDate })
-          .groupBy('approvalDate, so.payment_type')
-          .orderBy('approvalDate', 'DESC')
-          .getRawMany();
-
-        const datesInMs = reportResults.map(s => s.approvaldate.getTime());
-        return (
-          datesInMs
-            // removing duplicates
-            .filter((dateInMs, idx) => datesInMs.indexOf(dateInMs) === idx)
-            // groupby results by date
-            .map(dateInMs => {
-              const slip = reportResults.find(
-                s =>
-                  s.paymenttype === PaymentType.BANK_SLIP &&
-                  s.approvaldate.getTime() === dateInMs,
-              );
-              const card = reportResults.find(
-                s =>
-                  s.paymenttype === PaymentType.CREDIT_CARD &&
-                  s.approvaldate.getTime() === dateInMs,
-              );
-              return {
-                approvalDate: new Date(dateInMs),
-                bankSlip: slip ? Number.parseFloat(slip.total) : 0,
-                bankSlipCount: slip ? Number.parseInt(slip.count) : 0,
-                card: card ? Number.parseFloat(card.total) : 0,
-                cardCount: card ? Number.parseInt(card.count) : 0,
-              };
-            })
-        );
+        return data;
       }
       case 'PRODUCT_VARIATION': {
-        const reportResults = await this.salesOrderItemRepository
-          .createQueryBuilder('soi')
-          .select([
-            'p.sku as productSku',
-            'pv.sku as sku',
-            'p.title as title',
-            'pv.description as description',
-            'SUM(soi.amount) as amount',
-            'SUM((soi.price * soi.amount) - (soi.discount * soi.amount)) as total',
-          ])
-          .leftJoin('soi.saleOrder', 'so')
-          .leftJoin('soi.productVariation', 'pv')
-          .leftJoin('pv.product', 'p')
-          .where('so.creationDate >= :startDate', { startDate })
-          .andWhere('so.creationDate <= :endDate', { endDate })
-          .andWhere('so.paymentDetails.paymentStatus = :paymentStatus', {
-            paymentStatus,
-          })
-          .groupBy('pv.id, p.sku, p.title')
-          .orderBy('total', 'DESC')
-          .getRawMany();
-
-        return this.mapProductVariationReport(reportResults);
+        return this.mapProductVariationReport(data);
       }
     }
   }
@@ -482,27 +377,128 @@ export class SalesOrderService {
     }));
   }
 
-  async exportXls(groupBy: string, startDate: Moment, endDate: Moment) {
-    const paymentStatus = PaymentStatus.APPROVED;
-    let xlsxValue: any;
+  async exportXls(groupBy: string, data: any) {
     let wscols = [];
     switch (groupBy) {
       case 'CUSTOMER': {
-        const reportResults = await this.salesOrderRepository
+        wscols = [{ wch: 40 }, { wch: 40 }, { wch: 25 }, { wch: 20 }];
+        break;
+      }
+      case 'PRODUCT': {
+        wscols = [{ wch: 15 }, { wch: 60 }, { wch: 10 }, { wch: 10 }];
+        break;
+      }
+      case 'PRODUCT_VARIATION': {
+        wscols = [
+          { wch: 15 },
+          { wch: 60 },
+          { wch: 25 },
+          { wch: 10 },
+          { wch: 10 },
+        ];
+        break;
+      }
+      case 'APPROVAL_DATE': {
+        wscols = [
+          { wch: 15 },
+          { wch: 7 },
+          { wch: 13 },
+          { wch: 16 },
+          { wch: 23 },
+        ];
+        break;
+      }
+    }
+    const wb = XLSX.utils.book_new();
+    wb.Props = {
+      Title: 'Relatório de Vendas',
+      CreatedDate: new Date(),
+    };
+    const workSheet = XLSX.utils.json_to_sheet(data);
+
+    workSheet['!cols'] = wscols;
+    XLSX.utils.book_append_sheet(wb, workSheet, 'Vendas');
+    return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  }
+
+  async groupByQueries(
+    grouBy: string,
+    startDate: Moment,
+    endDate: Moment,
+    whereRequisition?: string,
+  ) {
+    const paymentStatus = PaymentStatus.APPROVED;
+    let reportResults: any;
+    let customerSelect: string[];
+    let productSelect: string[];
+    let productVariationSelect: string[];
+    let approvalDate: string[];
+    if (whereRequisition === 'xlsx') {
+      customerSelect = [
+        'customer.name as nome',
+        'customer.email as email',
+        'customer.phone_number as Telefone',
+        'SUM(so.paymentDetails.total) as total',
+      ];
+      productSelect = [
+        'product.sku as sku',
+        'product.title as nome',
+        'SUM(soi.amount) as quantidade',
+        'ROUND(SUM((soi.price * soi.amount) - (soi.discount * soi.amount)), 2) as Total',
+      ];
+      productVariationSelect = [
+        'p.sku as SKU',
+        'p.title as Produto',
+        'pv.description as Descrição',
+        'SUM(soi.amount) as Quantidade',
+        'ROUND(SUM((soi.price * soi.amount) - (soi.discount * soi.amount)),2) as Total',
+      ];
+      approvalDate = [
+        'DATE(so.approval_date) as approvalDate',
+        'so.payment_type as paymentType',
+        'count(1) as count',
+        'SUM(total) as total',
+      ];
+    } else {
+      customerSelect = [
+        'customer.id as id',
+        'customer.name as name',
+        'customer.email as email',
+        'customer.phone_number',
+        'SUM(so.paymentDetails.total) as total',
+      ];
+      productSelect = [
+        'product.sku as sku',
+        'product.title as title',
+        'SUM(soi.amount) as amount',
+        'ROUND(SUM((soi.price * soi.amount) - (soi.discount * soi.amount)), 2) as Total',
+      ];
+      productVariationSelect = [
+        'p.sku as productSku',
+        'p.sku as SKU',
+        'p.title as title',
+        'pv.description as description',
+        'SUM(soi.amount) as amount',
+        'ROUND(SUM((soi.price * soi.amount) - (soi.discount * soi.amount)),2) as Total',
+      ];
+      approvalDate = [
+        'DATE(so.approval_date) as approvalDate',
+        'so.payment_type as paymentType',
+        'count(1) as count',
+        'SUM(total) as total',
+      ];
+    }
+    switch (grouBy) {
+      case 'CUSTOMER': {
+        reportResults = await this.salesOrderRepository
           .createQueryBuilder('so')
-          .select(
-            'customer.name as nome, customer.email as email,' +
-              'customer.phone_number as Telefone ,SUM(so.paymentDetails.total) as total',
-          )
+          .select(customerSelect)
           .leftJoin('so.customer', 'customer')
-          .where('so.customer = customer.id')
-          .andWhere(
-            'so.creationDate >= :startDate AND so.creationDate <= :endDate',
-            {
-              startDate,
-              endDate,
-            },
-          )
+          .where(`so.paymentDetails.paymentStatus = :paymentStatus`, {
+            paymentStatus,
+          })
+          .andWhere(`so.creationDate >= :startDate`, { startDate })
+          .andWhere(`so.creationDate <= :endDate`, { endDate })
           .andWhere('so.paymentDetails.paymentStatus = :paymentStatus', {
             paymentStatus,
           })
@@ -511,45 +507,29 @@ export class SalesOrderService {
           )
           .orderBy('total', 'DESC')
           .getRawMany();
-        xlsxValue = reportResults;
-        wscols = [{ wch: 40 }, { wch: 40 }, { wch: 25 }, { wch: 20 }];
         break;
       }
       case 'PRODUCT': {
-        const reportResults = await this.salesOrderItemRepository
+        reportResults = await this.salesOrderItemRepository
           .createQueryBuilder('soi')
-          .select([
-            'product.sku as sku,product.title as nome,' +
-              'SUM(soi.amount) as quantidade, TRUNC(SUM((soi.price * soi.amount) - (soi.discount * soi.amount)),2) as Total',
-          ])
+          .select(productSelect)
           .leftJoin('soi.saleOrder', 'so')
           .leftJoin('soi.productVariation', 'pv')
           .leftJoin('pv.product', 'product')
-          .where(
-            'so.creationDate >= :startDate AND so.creationDate <= :endDate AND so.paymentDetails.paymentStatus = :paymentStatus',
-            {
-              startDate,
-              endDate,
-              paymentStatus,
-            },
-          )
+          .where(`so.paymentDetails.paymentStatus = :paymentStatus`, {
+            paymentStatus,
+          })
+          .andWhere(`so.creationDate >= :startDate`, { startDate })
+          .andWhere(`so.creationDate <= :endDate`, { endDate })
           .groupBy('product.id')
           .orderBy('total', 'DESC')
           .getRawMany();
-        xlsxValue = reportResults;
-        wscols = [{ wch: 15 }, { wch: 60 }, { wch: 10 }, { wch: 10 }];
         break;
       }
       case 'PRODUCT_VARIATION': {
-        const reportResults = await this.salesOrderItemRepository
+        reportResults = await this.salesOrderItemRepository
           .createQueryBuilder('soi')
-          .select([
-            'p.sku as SKU',
-            'p.title as Produto',
-            'pv.description as Descrição',
-            'SUM(soi.amount) as Quantidade',
-            'TRUNC(SUM((soi.price * soi.amount) - (soi.discount * soi.amount)),2) as Total',
-          ])
+          .select(productVariationSelect)
           .leftJoin('soi.saleOrder', 'so')
           .leftJoin('soi.productVariation', 'pv')
           .leftJoin('pv.product', 'p')
@@ -561,26 +541,12 @@ export class SalesOrderService {
           .groupBy('pv.id, p.sku, p.title')
           .orderBy('total', 'DESC')
           .getRawMany();
-
-        xlsxValue = reportResults;
-        wscols = [
-          { wch: 15 },
-          { wch: 60 },
-          { wch: 25 },
-          { wch: 10 },
-          { wch: 10 },
-        ];
         break;
       }
       case 'APPROVAL_DATE': {
-        const reportResults = await this.salesOrderRepository
+        reportResults = await this.salesOrderRepository
           .createQueryBuilder('so')
-          .select([
-            'DATE(so.approval_date) as approvalDate',
-            'so.payment_type as paymentType',
-            'count(1) as count',
-            'SUM(total) as total',
-          ])
+          .select(approvalDate)
           .where(`so.paymentDetails.paymentStatus = :paymentStatus`, {
             paymentStatus,
           })
@@ -591,7 +557,7 @@ export class SalesOrderService {
           .getRawMany();
 
         const datesInMs = reportResults.map(s => s.approvaldate.getTime());
-        xlsxValue = datesInMs
+        reportResults = datesInMs
           // removing duplicates
           .filter((dateInMs, idx) => datesInMs.indexOf(dateInMs) === idx)
           // groupby results by date
@@ -606,38 +572,33 @@ export class SalesOrderService {
                 s.paymenttype === PaymentType.CREDIT_CARD &&
                 s.approvaldate.getTime() === dateInMs,
             );
-            return {
-              'Data de Aprovação': new Date(dateInMs),
-              Boletos: slip ? Number.parseInt(slip.count) : 0,
-              'Valor total dos Boletos': slip
-                ? Number.parseFloat(slip.total)
-                : 0,
-              Cartão: card ? Number.parseInt(card.count) : 0,
-              'Valor total dos Cartões': card
-                ? Number.parseFloat(card.total)
-                : 0,
-            };
+            if (whereRequisition !== 'xlsx') {
+              return {
+                approvalDate: new Date(dateInMs),
+                bankSlip: slip ? Number.parseFloat(slip.total) : 0,
+                bankSlipCount: slip ? Number.parseInt(slip.count) : 0,
+                card: card ? Number.parseFloat(card.total) : 0,
+                cardCount: card ? Number.parseInt(card.count) : 0,
+              };
+            } else {
+              return {
+                'Data de Aprovação': new Date(dateInMs),
+                Boletos: slip ? Number.parseFloat(slip.total) : 0,
+                'Qted. Boletos': slip ? Number.parseInt(slip.count) : 0,
+                'Cartão de Credito': card ? Number.parseFloat(card.total) : 0,
+                'Qted. de Vendas no Credito': card
+                  ? Number.parseInt(card.count)
+                  : 0,
+              };
+            }
           });
-        wscols = [
-          { wch: 15 },
-          { wch: 7 },
-          { wch: 20 },
-          { wch: 5 },
-          { wch: 20 },
-        ];
         break;
       }
     }
-    const wb = XLSX.utils.book_new();
-    wb.Props = {
-      Title: 'Relatório de Vendas',
-      CreatedDate: new Date(),
-    };
-    const workSheet = XLSX.utils.json_to_sheet(xlsxValue);
-
-    workSheet['!cols'] = wscols;
-    XLSX.utils.book_append_sheet(wb, workSheet, 'Vendas');
-
-    return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    if (whereRequisition === 'xlsx') {
+      return this.exportXls(grouBy, reportResults);
+    } else {
+      return this.getReportGroupBy(grouBy, reportResults);
+    }
   }
 }
