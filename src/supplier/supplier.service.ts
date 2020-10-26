@@ -21,8 +21,6 @@ export class SupplierService {
       case undefined:
       case null:
       case '':
-        orderColumn = 'name';
-        break;
       case 'name':
         orderColumn = 'name';
         break;
@@ -32,6 +30,7 @@ export class SupplierService {
       default:
         orderColumn = options.sortedBy;
     }
+
     switch (options.sortDirectionAscending) {
       case undefined:
       case null:
