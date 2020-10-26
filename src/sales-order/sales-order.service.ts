@@ -327,19 +327,19 @@ export class SalesOrderService {
     return queryBuilder;
   }
 
-  async getReportGroupBy(groupBy: string, data: any) {
+  async getReportGroupBy(groupBy: string, dataReport: any) {
     switch (groupBy) {
       case 'CUSTOMER': {
-        return this.mapCustomerReport(data);
+        return this.mapCustomerReport(dataReport);
       }
       case 'PRODUCT': {
-        return this.mapProductReport(data);
+        return this.mapProductReport(dataReport);
       }
       case 'APPROVAL_DATE': {
-        return data;
+        return dataReport;
       }
       case 'PRODUCT_VARIATION': {
-        return this.mapProductVariationReport(data);
+        return this.mapProductVariationReport(dataReport);
       }
     }
   }
@@ -377,7 +377,7 @@ export class SalesOrderService {
     }));
   }
 
-  async exportXls(groupBy: string, data: any) {
+  async exportXls(groupBy: string, dataReport: any) {
     let wscols = [];
     switch (groupBy) {
       case 'CUSTOMER': {
@@ -414,7 +414,7 @@ export class SalesOrderService {
       Title: 'Relatório de Vendas',
       CreatedDate: new Date(),
     };
-    const workSheet = XLSX.utils.json_to_sheet(data);
+    const workSheet = XLSX.utils.json_to_sheet(dataReport);
 
     workSheet['!cols'] = wscols;
     XLSX.utils.book_append_sheet(wb, workSheet, 'Vendas');
