@@ -66,6 +66,7 @@ export class ShopifyService {
   async syncProducts() {
     const products = await this.productsService.findAll();
     console.log(`${products.length} produtos encontrados`);
+
     const syncJobs = products.map((product, idx) => {
       return new Promise(res => {
         setTimeout(async () => {

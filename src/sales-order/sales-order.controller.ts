@@ -23,7 +23,6 @@ import { UpdateSaleOrderStatusDTO } from './update-sale-order-status.dto';
 import { PaymentStatus } from './entities/payment-status.enum';
 import { parseBoolean } from '../util/parsers';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { stringList } from 'aws-sdk/clients/datapipeline';
 
 @Controller('sales-order')
 @UseGuards(JwtAuthGuard)
