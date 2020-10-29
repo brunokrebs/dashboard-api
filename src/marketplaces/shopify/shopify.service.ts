@@ -3,6 +3,7 @@ import Shopify, { IProductVariant } from 'shopify-api-node';
 import { Product } from '../../products/entities/product.entity';
 import { categoryDescription } from '../../products/entities/product-category.enum';
 import { ProductsService } from '../../products/products.service';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class ShopifyService {
@@ -10,9 +11,9 @@ export class ShopifyService {
 
   constructor(private productsService: ProductsService) {
     this.shopify = new Shopify({
-      shopName: 'frida-kahlo-loja-oficial',
-      apiKey: '8a0409e54fa50f6e15a744fd24036971',
-      password: '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',
+      shopName: process.env.SHOP_NAME,
+      apiKey: process.env.APIKEY,
+      password: process.env.SHOP_PASSWORD,
     });
   }
 
@@ -29,6 +30,7 @@ export class ShopifyService {
       images: product.productImages.map(image => ({
         src: image.image.originalFileURL,
       })),
+      status: product.isActive ? 'active' : 'archived',
       published: product.isActive,
       variants: product.productVariations.map(variation => ({
         option1: variation.description,
@@ -63,6 +65,7 @@ export class ShopifyService {
     });
   }
 
+  @Cron('0 */10 * * *')
   async syncProducts() {
     const products = await this.productsService.findAll();
     console.log(`${products.length} produtos encontrados`);
@@ -84,29 +87,31 @@ export class ShopifyService {
       const { productVariations } = product;
       return [...productVariations];
     });
-
     allVariations.map((pv, idx) => {
       return new Promise(res => {
         setTimeout(async () => {
           // 4. save shopify ids
-          await this.productsService.updateVariationProperty(pv.id, {
-            shopifyId: pv.shopifyId,
-            shopifyInventoryId: pv.shopifyInventoryId,
-          });
+          try {
+            await this.productsService.updateVariationProperty(pv.id, {
+              shopifyId: pv.shopifyId,
+              shopifyInventoryId: pv.shopifyInventoryId,
+            });
 
-          // 5. update inventory on Shopify
-          await this.shopify.inventoryLevel.set({
-            location_id: 53361180827,
-            inventory_item_id: parseInt(pv.shopifyInventoryId.toString()),
-            available: pv.currentPosition,
-          });
-
-          console.log(`${pv.sku} inventory updated on shopify`);
-
-          res();
+            // 5. update inventory on Shopify
+            await this.shopify.inventoryLevel.set({
+              location_id: process.env.LOCATION_ID,
+              inventory_item_id: parseInt(pv.shopifyInventoryId.toString()),
+              available: pv.currentPosition,
+            });
+            console.log(`${pv.sku} inventory updated on shopify`);
+            res();
+          } catch (error) {
+            console.log(pv.sku);
+          }
         }, 550 * idx);
       });
     });
     await Promise.all(allVariations);
+    console.log('finished updating inventory');
   }
 }
