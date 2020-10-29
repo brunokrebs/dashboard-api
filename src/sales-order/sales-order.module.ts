@@ -8,6 +8,7 @@ import { ProductsModule } from '../products/products.module';
 import { CustomersModule } from '../customers/customers.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { BlingModule } from '../bling/bling.module';
+import { SalesOrderReportsService } from './sales-order-reports.service';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { BlingModule } from '../bling/bling.module';
     InventoryModule,
     TypeOrmModule.forFeature([SaleOrder, SaleOrderItem]),
   ],
-  providers: [SalesOrderService],
+  providers: [SalesOrderService, SalesOrderReportsService],
   controllers: [SalesOrderController],
   exports: [SalesOrderService],
 })
