@@ -434,12 +434,6 @@ export class SalesOrderService {
     let productVariationSelect: string[];
     let approvalDate: string[];
     if (whereRequisition === 'xlsx') {
-      customerSelect = [
-        'customer.name as nome',
-        'customer.email as email',
-        'customer.phone_number as Telefone',
-        'SUM(so.paymentDetails.total) as total',
-      ];
       productSelect = [
         'product.sku as sku',
         'product.title as nome',
@@ -460,13 +454,6 @@ export class SalesOrderService {
         'SUM(total) as total',
       ];
     } else {
-      customerSelect = [
-        'customer.id as id',
-        'customer.name as name',
-        'customer.email as email',
-        'customer.phone_number',
-        'SUM(so.paymentDetails.total) as total',
-      ];
       productSelect = [
         'product.sku as sku',
         'product.title as title',
@@ -490,23 +477,6 @@ export class SalesOrderService {
     }
     switch (grouBy) {
       case 'CUSTOMER': {
-        reportResults = await this.salesOrderRepository
-          .createQueryBuilder('so')
-          .select(customerSelect)
-          .leftJoin('so.customer', 'customer')
-          .where(`so.paymentDetails.paymentStatus = :paymentStatus`, {
-            paymentStatus,
-          })
-          .andWhere(`so.creationDate >= :startDate`, { startDate })
-          .andWhere(`so.creationDate <= :endDate`, { endDate })
-          .andWhere('so.paymentDetails.paymentStatus = :paymentStatus', {
-            paymentStatus,
-          })
-          .groupBy(
-            'customer.name, customer.email, customer.phone_number, customer.id',
-          )
-          .orderBy('total', 'DESC')
-          .getRawMany();
         break;
       }
       case 'PRODUCT': {

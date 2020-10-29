@@ -23,13 +23,16 @@ import { UpdateSaleOrderStatusDTO } from './update-sale-order-status.dto';
 import { PaymentStatus } from './entities/payment-status.enum';
 import { parseBoolean } from '../util/parsers';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { stringList } from 'aws-sdk/clients/datapipeline';
+import { SalesOrderReportsService } from './sales-order-reports.service';
 
 @Controller('sales-order')
 @UseGuards(JwtAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class SalesOrderController {
-  constructor(private salesOrderService: SalesOrderService) {}
+  constructor(
+    private salesOrderService: SalesOrderService,
+    private salesOrderReportsService: SalesOrderReportsService,
+  ) {}
 
   @Get()
   async findAll(
@@ -102,14 +105,23 @@ export class SalesOrderController {
     @Query('startDate') startDate: any,
     @Query('endDate') endDate: any,
     @Query('groupBy') groupBy: string,
+    @Query('xlsx') xlsx: string,
+    @Res() res: Response,
   ) {
     startDate = moment(startDate, 'YYYY-MM-DD');
     endDate = moment(endDate, 'YYYY-MM-DD');
-    const items = await this.salesOrderService.groupByQueries(
+
+    const asXLSX = parseBoolean(xlsx);
+
+    const result = await this.salesOrderReportsService.generateReport(
       groupBy,
       startDate,
       endDate,
+      asXLSX,
     );
+
+    if (asXLSX) res.status(HttpStatus.OK).send(result);
+
     return {
       items: items,
       meta: {
