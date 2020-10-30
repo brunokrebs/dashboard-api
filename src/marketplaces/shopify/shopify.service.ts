@@ -11,9 +11,9 @@ export class ShopifyService {
 
   constructor(private productsService: ProductsService) {
     this.shopify = new Shopify({
-      shopName: process.env.SHOP_NAME,
-      apiKey: process.env.APIKEY,
-      password: process.env.SHOP_PASSWORD,
+      shopName: process.env.SHOPIFY_NAME,
+      apiKey: process.env.SHOPIFY_API_KEY,
+      password: process.env.SHOPIFY_PASSWORD,
     });
   }
 
@@ -99,7 +99,7 @@ export class ShopifyService {
 
             // 5. update inventory on Shopify
             await this.shopify.inventoryLevel.set({
-              location_id: process.env.LOCATION_ID,
+              location_id: process.env.SHOPIFY_LOCATION_ID,
               inventory_item_id: parseInt(pv.shopifyInventoryId.toString()),
               available: pv.currentPosition,
             });
