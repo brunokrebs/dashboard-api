@@ -100,10 +100,10 @@ TYPEORM_MIGRATIONS=src/db-migrations/*.ts
 TYPEORM_MIGRATIONS_DIR=src/db-migrations
 
 #shopify
-SHOP_NAME=digituz-shopfy
-APIKEY=3064dee4738a01adbb4d46cecf3426a4
-SHOP_PASSWORD='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'
-LOCATION_ID=57328992418
+SHOPIFY_NAME=digituz-shopfy
+SHOPIFY_API_KEY=3064dee4738a01adbb4d46cecf3426a4
+SHOPIFY_PASSWORD='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'
+SHOPIFY_LOCATION_ID=57328992418
 ```
 
 Then, you can run as follows:
