@@ -25,7 +25,7 @@ export class PurchaseOrderService {
     private blingService: BlingService,
   ) {}
 
-  @Cron('0 45 22 * * *')
+  @Cron('0 45 20 * * *')
   async syncPurchaseOrdersWithBling() {
     const blingPurchaseOrders = await this.blingService.loadPurchaseOrders();
     const persistedSuppliers = await this.syncSuppliers(blingPurchaseOrders);
