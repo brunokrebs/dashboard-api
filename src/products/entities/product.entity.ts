@@ -151,4 +151,12 @@ export class Product extends BaseEntity {
     nullable: true,
   })
   mercadoLivreCategoryId?: string;
+
+  @Column({
+    name: 'thumbnail',
+    type: 'varchar',
+    length: 400,
+    nullable: false,
+  })
+  thumbnail?: string;
 }
