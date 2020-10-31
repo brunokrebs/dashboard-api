@@ -42,14 +42,14 @@ export class InventoryService {
     switch (options.sortedBy?.trim()) {
       case undefined:
       case null:
+      case 'title':
+        orderColumn = 'p.title';
+        break;
       case 'sku':
         orderColumn = 'pv.sku';
         break;
       case 'currentPosition':
         orderColumn = 'i.currentPosition';
-        break;
-      case 'title':
-        orderColumn = 'p.title';
         break;
       default:
         orderColumn = options.sortedBy;
