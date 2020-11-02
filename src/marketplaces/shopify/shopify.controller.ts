@@ -9,6 +9,6 @@ export class ShopifyController {
 
   @Post('/')
   async save(): Promise<void> {
-    return this.shopifyService.syncProducts();
+    return this.shopifyService.syncOrders();
   }
 }

@@ -325,4 +325,8 @@ export class SalesOrderService {
       .getMany();
     return queryBuilder;
   }
+
+  async getBySku(sku: string) {
+    return await this.salesOrderItemRepository.findOne({ where: { sku } });
+  }
 }

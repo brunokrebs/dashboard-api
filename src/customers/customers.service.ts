@@ -69,6 +69,10 @@ export class CustomersService {
     });
   }
 
+  findByEmail(email: string) {
+    return this.customerRepository.findOne({ email });
+  }
+
   async findOrCreate(customer: Customer): Promise<Customer> {
     const existingCustomer = await this.findByCPF(
       customer.cpf.replace(/\D/g, ''),

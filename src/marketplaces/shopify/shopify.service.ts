@@ -4,12 +4,23 @@ import { Product } from '../../products/entities/product.entity';
 import { categoryDescription } from '../../products/entities/product-category.enum';
 import { ProductsService } from '../../products/products.service';
 import { Cron } from '@nestjs/schedule';
-
+import { SaleOrderDTO } from '../../sales-order/sale-order.dto';
+import { SaleOrderItemDTO } from '../../sales-order/sale-order-item.dto';
+import { SalesOrderService } from '../../sales-order/sales-order.service';
+import { Customer } from '../../customers/customer.entity';
+import { CustomersService } from 'src/customers/customers.service';
+import { PaymentType } from 'src/sales-order/entities/payment-type.enum';
+import { PaymentStatus } from 'src/sales-order/entities/payment-status.enum';
+import { ShippingType } from 'src/sales-order/entities/shipping-type.enum';
 @Injectable()
 export class ShopifyService {
   private shopify: Shopify;
 
-  constructor(private productsService: ProductsService) {
+  constructor(
+    private productsService: ProductsService,
+    private salesOrderService: SalesOrderService,
+    private customerService: CustomersService,
+  ) {
     this.shopify = new Shopify({
       shopName: process.env.SHOPIFY_NAME,
       apiKey: process.env.SHOPIFY_API_KEY,
@@ -114,5 +125,103 @@ export class ShopifyService {
     });
     await Promise.all(allVariations);
     console.log('finished updating inventory');
+  }
+
+  async syncOrders() {
+    await this.shopify.order
+      .list({ limit: 5 })
+      .then(orders => {
+        const transactions = orders.map(async order => {
+          await this.syncOrder(order);
+        });
+
+        return { orders, transactions };
+      })
+      .catch(err => console.error(err));
+  }
+
+  async syncOrder(order: Shopify.IOrder) {
+    let existingCustomer: Customer = await this.customerService.findByEmail(
+      order.customer.email,
+    );
+
+    if (!existingCustomer) {
+      const customer: Customer = {
+        cpf: null,
+        email: order.customer.email,
+        name: order.shipping_address.name,
+        //id: 4183801462946,
+      };
+      existingCustomer = await this.customerService.save(customer);
+    }
+
+    const salesOrderItems: SaleOrderItemDTO[] = this.convertSalesOrderItems(
+      order.line_items,
+    );
+    const paymentStatus = this.convertPaymentStatus(order.financial_status);
+    const shippingType = this.convertShippingType(order.shipping_lines);
+    const adress = order.shipping_address.address1.split(',');
+
+    const saleOrder: SaleOrderDTO = {
+      referenceCode: order.id.toString(),
+      customer: existingCustomer,
+      items: salesOrderItems,
+      installments: 1,
+      total:
+        Number.parseFloat(order.total_price) +
+        Number.parseFloat(order.total_discounts),
+      discount: Number.parseFloat(order.total_discounts),
+      paymentType: PaymentType.CREDIT_CARD,
+      paymentStatus,
+      shippingType,
+      shippingPrice: Number.parseFloat(
+        order.total_shipping_price_set.shop_money.amount.toString(),
+      ),
+      customerName: order.shipping_address.name,
+      shippingStreetAddress: adress[0],
+      shippingStreetNumber: adress[1],
+      shippingStreetNumber2: order.shipping_address.address2,
+      shippingNeighborhood: null,
+      shippingCity: order.shipping_address.city,
+      shippingState: order.shipping_address.province,
+      shippingZipAddress: order.shipping_address.zip,
+    };
+    console.log(this.salesOrderService.save(saleOrder));
+  }
+
+  private convertPaymentStatus(status: string) {
+    switch (status) {
+      case 'pending':
+        return PaymentStatus.IN_PROCESS;
+      case 'authorized':
+        return PaymentStatus.APPROVED;
+      case 'partially_paid':
+        return PaymentStatus.IN_PROCESS;
+      case 'paid':
+        return PaymentStatus.APPROVED;
+      case 'partially_refunded:':
+        return PaymentStatus.CANCELLED;
+      case 'refunded':
+        return PaymentStatus.CANCELLED;
+      case 'voided':
+        return PaymentStatus.CANCELLED;
+    }
+  }
+
+  private convertShippingType(shippingLines: Shopify.IOrderShippingLine[]) {
+    return ShippingType.PAC;
+  }
+
+  private convertSalesOrderItems(items: Shopify.IOrderLineItem[]) {
+    const allItems: SaleOrderItemDTO[] = items.map(item => {
+      return {
+        sku: item.sku,
+        completeDescription: item.variant_title,
+        price: Number.parseFloat(item.price),
+        amount: item.quantity,
+        discount: Number.parseInt(item.total_discount),
+      };
+    });
+    return allItems;
   }
 }
