@@ -77,7 +77,7 @@ export class ShopifyService {
     });
   }
 
-  @Cron('0 10 * * * *')
+  @Cron('0 */10 * * * *')
   async syncProducts() {
     const products = await this.productsService.findAll();
     console.log(`${products.length} produtos encontrados`);
@@ -128,7 +128,7 @@ export class ShopifyService {
     console.log('finished updating inventory');
   }
 
-  @Cron('2 * * * * *')
+  @Cron('0 */10 * * * *')
   async syncOrders() {
     await this.shopify.order
       .list({ limit: 5 })
