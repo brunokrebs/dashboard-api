@@ -4,14 +4,15 @@ import { Product } from '../../products/entities/product.entity';
 import { categoryDescription } from '../../products/entities/product-category.enum';
 import { ProductsService } from '../../products/products.service';
 import { Cron } from '@nestjs/schedule';
+import cep from 'cep-promise';
 import { SaleOrderDTO } from '../../sales-order/sale-order.dto';
 import { SaleOrderItemDTO } from '../../sales-order/sale-order-item.dto';
 import { SalesOrderService } from '../../sales-order/sales-order.service';
 import { Customer } from '../../customers/customer.entity';
-import { CustomersService } from 'src/customers/customers.service';
-import { PaymentType } from 'src/sales-order/entities/payment-type.enum';
-import { PaymentStatus } from 'src/sales-order/entities/payment-status.enum';
-import { ShippingType } from 'src/sales-order/entities/shipping-type.enum';
+import { CustomersService } from '../../customers/customers.service';
+import { PaymentType } from '../../sales-order/entities/payment-type.enum';
+import { PaymentStatus } from '../../sales-order/entities/payment-status.enum';
+import { ShippingType } from '../../sales-order/entities/shipping-type.enum';
 @Injectable()
 export class ShopifyService {
   private shopify: Shopify;
@@ -76,7 +77,7 @@ export class ShopifyService {
     });
   }
 
-  @Cron('0 */10 * * *')
+  @Cron('0 10 * * * *')
   async syncProducts() {
     const products = await this.productsService.findAll();
     console.log(`${products.length} produtos encontrados`);
@@ -127,12 +128,13 @@ export class ShopifyService {
     console.log('finished updating inventory');
   }
 
+  @Cron('2 * * * * *')
   async syncOrders() {
     await this.shopify.order
       .list({ limit: 5 })
       .then(orders => {
         const transactions = orders.map(async order => {
-          await this.syncOrder(order);
+          return await this.syncOrder(order);
         });
 
         return { orders, transactions };
@@ -147,10 +149,9 @@ export class ShopifyService {
 
     if (!existingCustomer) {
       const customer: Customer = {
-        cpf: null,
+        cpf: '',
         email: order.customer.email,
         name: order.shipping_address.name,
-        //id: 4183801462946,
       };
       existingCustomer = await this.customerService.save(customer);
     }
@@ -158,11 +159,16 @@ export class ShopifyService {
     const salesOrderItems: SaleOrderItemDTO[] = this.convertSalesOrderItems(
       order.line_items,
     );
+
     const paymentStatus = this.convertPaymentStatus(order.financial_status);
     const shippingType = this.convertShippingType(order.shipping_lines);
-    const adress = order.shipping_address.address1.split(',');
+    const address = order.shipping_address.address1.split(',');
+    const addressNeighborhood = await cep(
+      order.shipping_address.zip.replace(/\D/g, ''),
+    );
+    const shippingNeighborhood = addressNeighborhood.neighborhood;
 
-    const saleOrder: SaleOrderDTO = {
+    let saleOrder: SaleOrderDTO = {
       referenceCode: order.id.toString(),
       customer: existingCustomer,
       items: salesOrderItems,
@@ -178,18 +184,30 @@ export class ShopifyService {
         order.total_shipping_price_set.shop_money.amount.toString(),
       ),
       customerName: order.shipping_address.name,
-      shippingStreetAddress: adress[0],
-      shippingStreetNumber: adress[1],
+      shippingStreetAddress: address[0],
+      shippingStreetNumber: address[1],
       shippingStreetNumber2: order.shipping_address.address2,
-      shippingNeighborhood: null,
+      shippingNeighborhood,
       shippingCity: order.shipping_address.city,
-      shippingState: order.shipping_address.province,
+      shippingState: order.shipping_address.province_code,
       shippingZipAddress: order.shipping_address.zip,
     };
-    console.log(this.salesOrderService.save(saleOrder));
+
+    const existingSaleOrder = await this.salesOrderService.getByReferenceCode(
+      order.id.toString(),
+    );
+    if (existingSaleOrder) {
+      saleOrder = {
+        id: existingSaleOrder.id,
+        ...saleOrder,
+      };
+    }
+    console.log(order.id, order.financial_status);
+    await this.salesOrderService.save(saleOrder);
   }
 
   private convertPaymentStatus(status: string) {
+    // TODO verificar estatus
     switch (status) {
       case 'pending':
         return PaymentStatus.IN_PROCESS;
@@ -199,7 +217,7 @@ export class ShopifyService {
         return PaymentStatus.IN_PROCESS;
       case 'paid':
         return PaymentStatus.APPROVED;
-      case 'partially_refunded:':
+      case 'partially_refunded':
         return PaymentStatus.CANCELLED;
       case 'refunded':
         return PaymentStatus.CANCELLED;

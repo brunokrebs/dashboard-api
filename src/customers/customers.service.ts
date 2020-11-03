@@ -69,7 +69,7 @@ export class CustomersService {
     });
   }
 
-  findByEmail(email: string) {
+  findByEmail(email: string): Promise<Customer> {
     return this.customerRepository.findOne({ email });
   }
 
