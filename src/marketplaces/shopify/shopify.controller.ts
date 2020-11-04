@@ -8,6 +8,7 @@ import { SaleOrderDTO } from '../../sales-order/sale-order.dto';
 import { SalesOrderService } from '../../sales-order/sales-order.service';
 import { PaymentStatus } from '../../sales-order/entities/payment-status.enum';
 import { ShopifyGuard } from './shopify.guard';
+
 @Controller('shopify')
 @UseGuards(ShopifyGuard)
 export class ShopifyController {
@@ -16,9 +17,39 @@ export class ShopifyController {
     private salesOrderService: SalesOrderService,
   ) {}
 
-  async createSaleOrder(order: any, update: boolean) {
-    const customer = await this.shopifyService.verifyCustomer(order.customer);
-    const salesOrderItems: SaleOrderItemDTO[] = this.shopifyService.convertSalesOrderItems(
+  @Post('/create-sale-order')
+  async createSaleOrde(
+    @Res() res: Response,
+    @Req() req: Request,
+  ): Promise<void> {
+    const order = JSON.parse(req.body);
+    console.log(order);
+    const saleOrder = await this.createSaleOrder(order, false);
+    await this.salesOrderService.save(saleOrder);
+    res.send('OK');
+  }
+
+  @Post('/update-sale-order')
+  async updateSaleOrde(@Res() res: Response, @Req() req: Request) {
+    const order = JSON.parse(req.body);
+    if (order.cancelled_at) {
+      await this.salesOrderService.updateStatus(
+        order.id,
+        PaymentStatus.CANCELLED,
+      );
+    } else {
+      const saleOrder = await this.createSaleOrder(order, true);
+      await this.salesOrderService.save(saleOrder);
+    }
+    res.send('OK');
+  }
+
+  private async createSaleOrder(order: any, update: boolean) {
+    const customer = await this.shopifyService.existingCustomer(
+      order.customer,
+      order.default_address.company,
+    );
+    const salesOrderItems: SaleOrderItemDTO[] = this.shopifyService.salesOrderItems(
       order.line_items,
     );
     const paymentStatus = this.shopifyService.convertPaymentStatus(
@@ -28,6 +59,7 @@ export class ShopifyController {
       order.shipping_lines,
     );
     const address = order.shipping_address.address1.split(',');
+    const number = order.shipping_address.address1.replace(/\D/gim, '');
     const addressNeighborhood = await cep(
       order.shipping_address.zip.replace(/\D/g, ''),
     );
@@ -50,7 +82,7 @@ export class ShopifyController {
       ),
       customerName: order.shipping_address.name,
       shippingStreetAddress: address[0],
-      shippingStreetNumber: address[1],
+      shippingStreetNumber: number,
       shippingStreetNumber2: order.shipping_address.address2,
       shippingNeighborhood,
       shippingCity: order.shipping_address.city,
@@ -69,31 +101,5 @@ export class ShopifyController {
       };
     }
     return saleOrder;
-  }
-
-  @Post('/create-sale-order')
-  async createSaleOrde(
-    @Res() res: Response,
-    @Req() req: Request,
-  ): Promise<void> {
-    const order = JSON.parse(req.body);
-    const saleOrder = await this.createSaleOrder(order, false);
-    await this.salesOrderService.save(saleOrder);
-    res.send('OK');
-  }
-
-  @Post('/update-sale-order')
-  async updateSaleOrde(@Res() res: Response, @Req() req: Request) {
-    const order = JSON.parse(req.body);
-    if (order.cancelled_at !== null) {
-      await this.salesOrderService.updateStatus(
-        order.id,
-        PaymentStatus.CANCELLED,
-      );
-    } else {
-      const saleOrder = await this.createSaleOrder(order, true);
-      await this.salesOrderService.save(saleOrder);
-    }
-    res.send('OK');
   }
 }

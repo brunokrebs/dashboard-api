@@ -125,20 +125,20 @@ export class ShopifyService {
     console.log('finished updating inventory');
   }
 
-  async verifyCustomer(customer: any): Promise<Customer> {
-    let existingCustomer: Customer = await this.customerService.findByEmail(
+  async existingCustomer(customer: any, cpf: string = ''): Promise<Customer> {
+    const existingCustomer: Customer = await this.customerService.findByEmail(
       customer.email,
     );
 
-    if (!existingCustomer) {
-      const newCustomer: Customer = {
-        cpf: '',
-        email: customer.email,
-        name: customer.firstname + customer.last_name,
-      };
-      return await this.customerService.save(newCustomer);
+    if (existingCustomer) {
+      return existingCustomer;
     }
-    return existingCustomer;
+    const newCustomer: Customer = {
+      cpf: cpf.replace(/\D/g, ''),
+      email: customer.email,
+      name: customer.firstname + customer.last_name,
+    };
+    return await this.customerService.save(newCustomer);
   }
 
   convertPaymentStatus(status: string) {
@@ -165,7 +165,7 @@ export class ShopifyService {
     return ShippingType.PAC;
   }
 
-  convertSalesOrderItems(items: Shopify.IOrderLineItem[]) {
+  salesOrderItems(items: Shopify.IOrderLineItem[]) {
     const allItems: SaleOrderItemDTO[] = items.map(item => {
       return {
         sku: item.sku,

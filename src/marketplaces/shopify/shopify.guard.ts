@@ -12,13 +12,11 @@ export class ShopifyGuard implements CanActivate {
     const hmacShopify = req.get('x-shopify-hmac-sha256');
 
     const rawBody: Buffer = req.body;
-    let digest = crypto
+    const digest = crypto
       .createHmac('sha256', process.env.SHOPIFY_WEBHOOK_VALIDATOR)
       .update(rawBody)
       .digest('base64');
 
-    if (hmacShopify === digest) {
-      return true;
-    }
+    return hmacShopify === digest;
   }
 }

@@ -66,11 +66,11 @@ import { SupplierModule } from './supplier/supplier.module';
       cli: {
         migrationsDir: 'src/db-migrations',
       },
-      logging: !!process.env.LOG_SQL_QUERIES,
+      /* logging: !!process.env.LOG_SQL_QUERIES,
       ssl: process.env.NODE_ENV !== 'development' &&
         process.env.NODE_ENV !== 'test' && {
           rejectUnauthorized: false,
-        },
+        }, */
     }),
     ScheduleModule.forRoot(),
     ProductsModule,
