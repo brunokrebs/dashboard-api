@@ -167,7 +167,7 @@ export class ShopifyService {
   }
 
   salesOrderItems(items: Shopify.IOrderLineItem[]) {
-    const allItems: SaleOrderItemDTO[] = items.map(item => {
+    return items.map(item => {
       return {
         sku: item.sku,
         completeDescription: item.variant_title,
@@ -176,6 +176,5 @@ export class ShopifyService {
         discount: Number.parseInt(item.total_discount),
       };
     });
-    return allItems;
   }
 }
