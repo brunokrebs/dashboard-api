@@ -4,22 +4,19 @@ import { Product } from '../../products/entities/product.entity';
 import { categoryDescription } from '../../products/entities/product-category.enum';
 import { ProductsService } from '../../products/products.service';
 import { Cron } from '@nestjs/schedule';
-import cep from 'cep-promise';
-import { SaleOrderDTO } from '../../sales-order/sale-order.dto';
 import { SaleOrderItemDTO } from '../../sales-order/sale-order-item.dto';
 import { SalesOrderService } from '../../sales-order/sales-order.service';
 import { Customer } from '../../customers/customer.entity';
 import { CustomersService } from '../../customers/customers.service';
-import { PaymentType } from '../../sales-order/entities/payment-type.enum';
 import { PaymentStatus } from '../../sales-order/entities/payment-status.enum';
 import { ShippingType } from '../../sales-order/entities/shipping-type.enum';
+
 @Injectable()
 export class ShopifyService {
   private shopify: Shopify;
 
   constructor(
     private productsService: ProductsService,
-    private salesOrderService: SalesOrderService,
     private customerService: CustomersService,
   ) {
     this.shopify = new Shopify({
@@ -128,85 +125,23 @@ export class ShopifyService {
     console.log('finished updating inventory');
   }
 
-  @Cron('0 */10 * * * *')
-  async syncOrders() {
-    await this.shopify.order
-      .list({ limit: 5 })
-      .then(orders => {
-        const transactions = orders.map(async order => {
-          return await this.syncOrder(order);
-        });
-
-        return { orders, transactions };
-      })
-      .catch(err => console.error(err));
-  }
-
-  async syncOrder(order: Shopify.IOrder) {
+  async verifyCustomer(customer: any): Promise<Customer> {
     let existingCustomer: Customer = await this.customerService.findByEmail(
-      order.customer.email,
+      customer.email,
     );
 
     if (!existingCustomer) {
-      const customer: Customer = {
+      const newCustomer: Customer = {
         cpf: '',
-        email: order.customer.email,
-        name: order.shipping_address.name,
+        email: customer.email,
+        name: customer.firstname + customer.last_name,
       };
-      existingCustomer = await this.customerService.save(customer);
+      return await this.customerService.save(newCustomer);
     }
-
-    const salesOrderItems: SaleOrderItemDTO[] = this.convertSalesOrderItems(
-      order.line_items,
-    );
-
-    const paymentStatus = this.convertPaymentStatus(order.financial_status);
-    const shippingType = this.convertShippingType(order.shipping_lines);
-    const address = order.shipping_address.address1.split(',');
-    const addressNeighborhood = await cep(
-      order.shipping_address.zip.replace(/\D/g, ''),
-    );
-    const shippingNeighborhood = addressNeighborhood.neighborhood;
-
-    let saleOrder: SaleOrderDTO = {
-      referenceCode: order.id.toString(),
-      customer: existingCustomer,
-      items: salesOrderItems,
-      installments: 1,
-      total:
-        Number.parseFloat(order.total_price) +
-        Number.parseFloat(order.total_discounts),
-      discount: Number.parseFloat(order.total_discounts),
-      paymentType: PaymentType.CREDIT_CARD,
-      paymentStatus,
-      shippingType,
-      shippingPrice: Number.parseFloat(
-        order.total_shipping_price_set.shop_money.amount.toString(),
-      ),
-      customerName: order.shipping_address.name,
-      shippingStreetAddress: address[0],
-      shippingStreetNumber: address[1],
-      shippingStreetNumber2: order.shipping_address.address2,
-      shippingNeighborhood,
-      shippingCity: order.shipping_address.city,
-      shippingState: order.shipping_address.province_code,
-      shippingZipAddress: order.shipping_address.zip,
-    };
-
-    const existingSaleOrder = await this.salesOrderService.getByReferenceCode(
-      order.id.toString(),
-    );
-    if (existingSaleOrder) {
-      saleOrder = {
-        id: existingSaleOrder.id,
-        ...saleOrder,
-      };
-    }
-    console.log(order.id, order.financial_status);
-    await this.salesOrderService.save(saleOrder);
+    return existingCustomer;
   }
 
-  private convertPaymentStatus(status: string) {
+  convertPaymentStatus(status: string) {
     // TODO verificar estatus
     switch (status) {
       case 'pending':
@@ -226,11 +161,11 @@ export class ShopifyService {
     }
   }
 
-  private convertShippingType(shippingLines: Shopify.IOrderShippingLine[]) {
+  convertShippingType(shippingLines: Shopify.IOrderShippingLine[]) {
     return ShippingType.PAC;
   }
 
-  private convertSalesOrderItems(items: Shopify.IOrderLineItem[]) {
+  convertSalesOrderItems(items: Shopify.IOrderLineItem[]) {
     const allItems: SaleOrderItemDTO[] = items.map(item => {
       return {
         sku: item.sku,
