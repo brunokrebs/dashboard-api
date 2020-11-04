@@ -14,7 +14,7 @@ export async function bootstrap(silentMode = false) {
 
   const app = await NestFactory.create(AppModule, { logger });
   app.use(helmet());
-  app.use(bodyParser.raw({ type: 'application/json' }));
+  app.use('/v1/shopify', bodyParser.raw({ type: 'application/json' }));
 
   if (
     process.env.NODE_ENV !== 'development' &&

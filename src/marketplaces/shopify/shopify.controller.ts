@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ShopifyService } from './shopify.service';
 import cep from 'cep-promise';
 import { Response, Request } from 'express';
@@ -72,21 +72,19 @@ export class ShopifyController {
   }
 
   @Post('/create-sale-order')
-  async webhookCreateSaleOrde(
+  async createSaleOrde(
     @Res() res: Response,
     @Req() req: Request,
   ): Promise<void> {
-    const order = req.body;
-    console.log(req.body);
-    //const saleOrder = await this.createSaleOrder(order, false);
-    //await this.salesOrderService.save(saleOrder);
+    const order = JSON.parse(req.body);
+    const saleOrder = await this.createSaleOrder(order, false);
+    await this.salesOrderService.save(saleOrder);
     res.send('OK');
   }
 
   @Post('/update-sale-order')
   async updateSaleOrde(@Res() res: Response, @Req() req: Request) {
-    const order = req.body;
-    console.log(order);
+    const order = JSON.parse(req.body);
     if (order.cancelled_at !== null) {
       await this.salesOrderService.updateStatus(
         order.id,
