@@ -23,7 +23,6 @@ export class ShopifyController {
     @Req() req: Request,
   ): Promise<void> {
     const order = JSON.parse(req.body);
-    console.log(order);
     const saleOrder = await this.createSaleOrder(order, false);
     await this.salesOrderService.save(saleOrder);
     res.send('OK');
@@ -47,7 +46,7 @@ export class ShopifyController {
   private async createSaleOrder(order: any, update: boolean) {
     const customer = await this.shopifyService.existingCustomer(
       order.customer,
-      order.default_address.company,
+      order.shipping_address.company,
     );
     const salesOrderItems: SaleOrderItemDTO[] = this.shopifyService.salesOrderItems(
       order.line_items,

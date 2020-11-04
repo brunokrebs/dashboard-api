@@ -125,9 +125,10 @@ export class ShopifyService {
     console.log('finished updating inventory');
   }
 
-  async existingCustomer(customer: any, cpf: string = ''): Promise<Customer> {
-    const existingCustomer: Customer = await this.customerService.findByEmail(
-      customer.email,
+  async existingCustomer(customer: any, cpf: string): Promise<Customer> {
+    cpf = cpf.replace(/\D/g, '');
+    const existingCustomer: Customer = await this.customerService.findByCPF(
+      cpf,
     );
 
     if (existingCustomer) {
