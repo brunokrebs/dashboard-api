@@ -1,14 +1,15 @@
-import { Controller, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ShopifyService } from './shopify.service';
-import crypto from 'crypto';
 import cep from 'cep-promise';
 import { Response, Request } from 'express';
 import { PaymentType } from '../../sales-order/entities/payment-type.enum';
 import { SaleOrderItemDTO } from '../../sales-order/sale-order-item.dto';
 import { SaleOrderDTO } from '../../sales-order/sale-order.dto';
 import { SalesOrderService } from '../../sales-order/sales-order.service';
-import { PaymentStatus } from 'src/sales-order/entities/payment-status.enum';
+import { PaymentStatus } from '../../sales-order/entities/payment-status.enum';
+import { ShopifyGuard } from './shopify.guard';
 @Controller('shopify')
+@UseGuards(ShopifyGuard)
 export class ShopifyController {
   constructor(
     private shopifyService: ShopifyService,
@@ -69,33 +70,22 @@ export class ShopifyController {
     }
     return saleOrder;
   }
-  verifyShopifyHook(hmacShopify: string, req: Request) {
-    const body = JSON.stringify(req.body);
-    let digest = crypto
-      .createHmac('sha256', process.env.SHOPIFY_WEBHOOK_VALIDATOR)
-      .update(body, 'utf8')
-      .digest('base64');
-    console.log(hmacShopify);
-    console.log(digest);
-  }
+
   @Post('/create-sale-order')
   async webhookCreateSaleOrde(
-    @Res() resp: Response,
+    @Res() res: Response,
     @Req() req: Request,
   ): Promise<void> {
-    const hmacShopify = req.get('x-shopify-hmac-sha256');
     const order = req.body;
-
-    const saleOrder = await this.createSaleOrder(order, false);
-    this.verifyShopifyHook(hmacShopify, req);
-    await this.salesOrderService.save(saleOrder);
-    resp.send('OK');
+    console.log(req.body);
+    //const saleOrder = await this.createSaleOrder(order, false);
+    //await this.salesOrderService.save(saleOrder);
+    res.send('OK');
   }
 
   @Post('/update-sale-order')
-  async updateSaleOrde(@Res() resp: Response, @Req() req: Request) {
+  async updateSaleOrde(@Res() res: Response, @Req() req: Request) {
     const order = req.body;
-    const saleOrder = await this.createSaleOrder(order, true);
     console.log(order);
     if (order.cancelled_at !== null) {
       await this.salesOrderService.updateStatus(
@@ -103,8 +93,9 @@ export class ShopifyController {
         PaymentStatus.CANCELLED,
       );
     } else {
+      const saleOrder = await this.createSaleOrder(order, true);
       await this.salesOrderService.save(saleOrder);
     }
-    resp.send('OK');
+    res.send('OK');
   }
 }
