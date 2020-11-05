@@ -163,7 +163,15 @@ export class ShopifyService {
   }
 
   convertShippingType(shippingLines: Shopify.IOrderShippingLine[]) {
-    return ShippingType.PAC;
+    const shippingCode = shippingLines.map(shippingLine => shippingLine.code);
+    switch (shippingCode[0]) {
+      case 'SEDEX':
+        return ShippingType.SEDEX;
+      case 'PAC':
+        return ShippingType.PAC;
+      case 'SAME DAY':
+        return ShippingType.SAME_DAY;
+    }
   }
 
   salesOrderItems(items: Shopify.IOrderLineItem[]) {
