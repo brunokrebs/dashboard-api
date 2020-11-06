@@ -11,6 +11,8 @@ import { SupplierService } from '../supplier/supplier.service';
 import { Supplier } from '../supplier/supplier.entity';
 import { InventoryMovementDTO } from '../inventory/inventory-movement.dto';
 import { ProductsService } from '../products/products.service';
+import { IPaginationOpts } from 'src/pagination/pagination';
+import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 
 @Injectable()
 export class PurchaseOrderService {
@@ -132,5 +134,10 @@ export class PurchaseOrderService {
 
     persistedSuppliers.push(...newSuppliers);
     return persistedSuppliers;
+  }
+
+  async paginate(options: IPaginationOpts): Promise<Pagination<PurchaseOrder>> {
+    const queryBuilder = this.purchaseOrderRepository.createQueryBuilder('po');
+    return paginate<PurchaseOrder>(queryBuilder, options);
   }
 }
