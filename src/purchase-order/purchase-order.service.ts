@@ -71,7 +71,7 @@ export class PurchaseOrderService {
     const purchaseOrder: PurchaseOrder = {
       referenceCode: blingPurchaseOrder.numeropedido,
       creationDate: new Date(),
-      completionate: new Date(),
+      completionDate: new Date(),
       supplier: supplier,
       discount: parseFloat(blingPurchaseOrder.desconto.replace(',', '.')),
       shippingPrice: blingPurchaseOrder.transporte.frete,
@@ -142,7 +142,46 @@ export class PurchaseOrderService {
   }
 
   async paginate(options: IPaginationOpts): Promise<Pagination<PurchaseOrder>> {
-    const queryBuilder = this.purchaseOrderRepository.createQueryBuilder('po');
+    let sortDirection;
+    let sortNulls;
+    let orderColumn = '';
+
+    switch (options.sortedBy?.trim()) {
+      case undefined:
+      case null:
+      case '':
+      case 'referenceCode':
+        orderColumn = 'reference_code';
+        break;
+      case 'creationDate':
+        orderColumn = 'creation_date';
+        break;
+      case 'discount':
+        orderColumn = 'discount';
+        break;
+      case 'shippingPrice':
+        orderColumn = 'shipping_price';
+        break;
+      default:
+        orderColumn = options.sortedBy;
+    }
+
+    switch (options.sortDirectionAscending) {
+      case undefined:
+      case null:
+      case true:
+        sortDirection = 'ASC';
+        sortNulls = 'NULLS FIRST';
+        break;
+      default:
+        sortDirection = 'DESC';
+        sortNulls = 'NULLS LAST';
+    }
+
+    const queryBuilder = this.purchaseOrderRepository
+      .createQueryBuilder('po')
+      .orderBy(orderColumn, sortDirection, sortNulls);
+
     return paginate<PurchaseOrder>(queryBuilder, options);
   }
 }

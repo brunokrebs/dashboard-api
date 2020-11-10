@@ -30,7 +30,7 @@ export class PurchaseOrder extends BaseEntity {
     unique: false,
     nullable: true,
   })
-  completionate?: Date;
+  completionDate?: Date;
 
   @ManyToOne(type => Supplier, {
     nullable: false,
@@ -61,4 +61,11 @@ export class PurchaseOrder extends BaseEntity {
     transformer: new NumericTransformer(),
   })
   shippingPrice: number;
+
+  @Column({
+    name: 'discount',
+    precision: 2,
+    transformer: new NumericTransformer(),
+  })
+  total?: Number;
 }
