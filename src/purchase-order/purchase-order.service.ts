@@ -179,4 +179,45 @@ export class PurchaseOrderService {
 
     return paginate<PurchaseOrder>(queryBuilder, options);
   }
+
+  async save(purchaseOrder: PurchaseOrder) {
+    const savedOrder = await this.purchaseOrderRepository.save(purchaseOrder);
+    const items: PurchaseOrderItem[] = purchaseOrder.items;
+    const purchaseOrderItems: PurchaseOrderItem[] = items.map(item => {
+      const newItem: PurchaseOrderItem = {
+        ...item,
+        purchaseOrder: savedOrder,
+        ipi: 0,
+      };
+      return newItem;
+    });
+    await this.purchaseOrderItemRepository.save(purchaseOrderItems);
+    return;
+  }
+
+  async findOne(id: string): Promise<PurchaseOrder> {
+    const order = await this.purchaseOrderRepository.findOne({
+      where: { id },
+      relations: ['supplier'],
+    });
+
+    const items: PurchaseOrderItem[] = await this.purchaseOrderItemRepository
+      .createQueryBuilder('poi')
+      .leftJoinAndSelect('poi.productVariation', 'pv')
+      .leftJoinAndSelect('pv.product', 'product')
+      .where('poi.purchase_order_id = :id', { id })
+      .getMany();
+
+    const purchaseOrderItems: PurchaseOrderItem[] = items.map(item => {
+      return {
+        price: item.price,
+        amount: item.amount,
+        productVariation: item.productVariation,
+        ipi: 0,
+      };
+    });
+    order.items = purchaseOrderItems;
+    console.log(order.supplier);
+    return order;
+  }
 }

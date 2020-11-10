@@ -1,7 +1,10 @@
 import {
+  Body,
   ClassSerializerInterceptor,
   Controller,
   Get,
+  Param,
+  Post,
   Query,
   UseGuards,
   UseInterceptors,
@@ -38,5 +41,17 @@ export class PurchaseOrderController {
         },
       ],
     });
+  }
+
+  @Post()
+  createPurchaseOrder(@Body() purchaseOrder: PurchaseOrder) {
+    return this.purchaseOrderService.save(purchaseOrder);
+  }
+
+  @Get(':referenceCode')
+  findOne(
+    @Param('referenceCode') referenceCode: string,
+  ): Promise<PurchaseOrder> {
+    return this.purchaseOrderService.findOne(referenceCode);
   }
 }
