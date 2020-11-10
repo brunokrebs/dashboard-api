@@ -65,7 +65,7 @@ export class ShopifyService {
     });
   }
 
-  @Cron('0 */10 * * *')
+  //@Cron('0 */10 * * *')
   async syncProducts() {
     const products = await this.productsService.findAll();
     console.log(`${products.length} produtos encontrados`);
