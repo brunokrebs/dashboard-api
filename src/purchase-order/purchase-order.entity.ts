@@ -63,7 +63,7 @@ export class PurchaseOrder extends BaseEntity {
   shippingPrice: number;
 
   @Column({
-    name: 'discount',
+    name: 'total',
     precision: 2,
     transformer: new NumericTransformer(),
   })

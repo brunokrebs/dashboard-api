@@ -502,6 +502,7 @@ export class ProductsService {
         return {
           parentSku: productVariation.product.sku,
           title: productVariation.product.title,
+          id: productVariation.id,
           sku: productVariation.sku,
           description: productVariation.description,
           sellingPrice: productVariation.sellingPrice,

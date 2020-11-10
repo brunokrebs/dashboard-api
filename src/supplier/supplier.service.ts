@@ -129,6 +129,7 @@ export class SupplierService {
     return Promise.resolve(
       suppliers.map(supplier => {
         return {
+          id: supplier.id,
           cnpj: supplier.cnpj,
           name: supplier.name,
         };
