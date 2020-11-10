@@ -41,6 +41,11 @@ export class SuppliersController {
     });
   }
 
+  @Get('findSuppliers')
+  findSuppliers(@Query('query') query: string): Promise<Supplier[]> {
+    return this.supplierService.findSuppliers(query);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: number): Promise<Supplier> {
     return this.supplierService.findById(id);
