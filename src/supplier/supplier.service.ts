@@ -111,4 +111,28 @@ export class SupplierService {
     supplier.id = id;
     return this.save(supplier);
   }
+
+  async findSuppliers(query: string): Promise<Supplier[]> {
+    const queryBuilder = this.supplierRepository
+      .createQueryBuilder('s')
+      .where('lower(s.cnpj) like lower(:query)', {
+        query: `%${query}%`,
+      })
+      .orWhere('lower(s.name) like lower(:query)', {
+        query: `%${query}%`,
+      })
+      .orderBy('s.name')
+      .orderBy('s.cnpj')
+      .limit(10);
+
+    const suppliers: Supplier[] = await queryBuilder.getMany();
+    return Promise.resolve(
+      suppliers.map(supplier => {
+        return {
+          cnpj: supplier.cnpj,
+          name: supplier.name,
+        };
+      }),
+    );
+  }
 }
