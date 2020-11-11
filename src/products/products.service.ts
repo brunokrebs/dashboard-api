@@ -322,6 +322,10 @@ export class ProductsService {
   }
 
   async save(productDTO: ProductDTO): Promise<Product> {
+    productDTO = {
+      sku: productDTO.sku.trim(),
+      ...productDTO,
+    };
     // perform some initial validation
     if (
       !productDTO.productVariations ||
