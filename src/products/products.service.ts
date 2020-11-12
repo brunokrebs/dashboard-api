@@ -604,7 +604,6 @@ export class ProductsService {
       .select('pv.sku')
       .where('pv.sku = :sku', { sku })
       .getOne();
-    console.log(variation);
     if (variation) return true;
 
     return false;
