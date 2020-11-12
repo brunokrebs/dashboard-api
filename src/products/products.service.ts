@@ -590,4 +590,8 @@ export class ProductsService {
       results.links,
     );
   }
+
+  findVariationBySku(sku: string) {
+    return this.productVariationsRepository.findOne({ where: { sku } });
+  }
 }
