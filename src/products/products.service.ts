@@ -595,21 +595,19 @@ export class ProductsService {
     );
   }
 
-  async findSku(sku: string) {
-    const product = await this.productsRepository
+  async findSku(sku: string, isProductVariation: Boolean) {
+    if (isProductVariation) {
+      return this.productVariationsRepository
+        .createQueryBuilder('pv')
+        .select('pv.sku')
+        .where('pv.sku = :sku', { sku })
+        .getOne();
+    }
+
+    return this.productsRepository
       .createQueryBuilder('p')
       .select('p.sku')
       .where('p.sku = :sku', { sku })
       .getOne();
-    if (product) return true;
-
-    const variation = await this.productVariationsRepository
-      .createQueryBuilder('pv')
-      .select('pv.sku')
-      .where('pv.sku = :sku', { sku })
-      .getOne();
-    if (variation) return true;
-
-    return false;
   }
 }
