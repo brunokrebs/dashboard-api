@@ -591,11 +591,12 @@ export class ProductsService {
     );
   }
 
-  findSkuVariation(sku: string) {
-    return this.productVariationsRepository.findOne({ where: { sku } });
-  }
-
-  findSku(sku: string) {
-    return this.productsRepository.findOne({ where: { sku } });
+  async findSku(sku: string) {
+    const product = await this.productsRepository.findOne({ where: { sku } });
+    if (product) return product;
+    const variation = this.productVariationsRepository.findOne({
+      where: { sku },
+    });
+    return variation;
   }
 }
