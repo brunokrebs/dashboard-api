@@ -592,11 +592,21 @@ export class ProductsService {
   }
 
   async findSku(sku: string) {
-    const product = await this.productsRepository.findOne({ where: { sku } });
-    if (product) return product;
-    const variation = this.productVariationsRepository.findOne({
-      where: { sku },
-    });
-    return variation;
+    const product = await this.productsRepository
+      .createQueryBuilder('p')
+      .select('p.sku')
+      .where('p.sku = :sku', { sku })
+      .getOne();
+    if (product) return true;
+
+    const variation = await this.productVariationsRepository
+      .createQueryBuilder('pv')
+      .select('pv.sku')
+      .where('pv.sku = :sku', { sku })
+      .getOne();
+    console.log(variation);
+    if (variation) return true;
+
+    return false;
   }
 }
