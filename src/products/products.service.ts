@@ -591,7 +591,11 @@ export class ProductsService {
     );
   }
 
-  findVariationBySku(sku: string) {
+  findSkuVariation(sku: string) {
     return this.productVariationsRepository.findOne({ where: { sku } });
+  }
+
+  findSku(sku: string) {
+    return this.productsRepository.findOne({ where: { sku } });
   }
 }
