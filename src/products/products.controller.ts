@@ -65,8 +65,13 @@ export class ProductsController {
   }
 
   @Get('/variations/:sku')
-  findOneProductVariation(@Param('sku') sku: string) {
-    return this.productsService.findVariationBySku(sku);
+  findOneProductVariationSku(@Param('sku') sku: string) {
+    return this.productsService.findSkuVariation(sku);
+  }
+
+  @Get('/product/:sku')
+  findOneProductSku(@Param('sku') sku: string) {
+    return this.productsService.findSku(sku);
   }
 
   @Get(':sku')
