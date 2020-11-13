@@ -595,19 +595,21 @@ export class ProductsService {
     );
   }
 
-  async findSku(sku: string, isProductVariation: Boolean) {
+  async isSkuAvailable(sku: string, isProductVariation: boolean) {
     if (isProductVariation) {
-      return this.productVariationsRepository
+      const existingSKU = await this.productVariationsRepository
         .createQueryBuilder('pv')
         .select('pv.sku')
         .where('pv.sku = :sku', { sku })
         .getOne();
+      return !!existingSKU;
     }
 
-    return this.productsRepository
+    const existingSKU = await this.productsRepository
       .createQueryBuilder('p')
       .select('p.sku')
       .where('p.sku = :sku', { sku })
       .getOne();
+    return !!existingSKU;
   }
 }

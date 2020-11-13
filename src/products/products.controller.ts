@@ -65,11 +65,11 @@ export class ProductsController {
   }
 
   @Get('/is-sku-available')
-  findOneProductSku(
+  isSkuAvailable(
     @Query('sku') sku: string,
-    @Query('product-variation') isProductVariation: Boolean,
+    @Query('is-product-variation') isProductVariation: boolean,
   ) {
-    return this.productsService.findSku(sku, isProductVariation);
+    return this.productsService.isSkuAvailable(sku, isProductVariation);
   }
 
   @Get(':sku')
