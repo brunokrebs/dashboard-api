@@ -42,14 +42,17 @@ To copy the backup, you can issue the following command:
 docker exec -i -t digituz-dashboard-postgres /bin/bash
 
 # change the host details below, if needed
-PGSSLMODE=require
 pg_dump --host dashboard-database-do-user-132679-0.b.db.ondigitalocean.com \
   --port=25060 \
-  --user brunokrebs \
-  --no-owner \
-  --no-privileges \
-  --format=custom \
-  digituz > /tmp/digituz-bkp.pgsql
+  -U brunokrebs \
+  -Fc digituz > /tmp/digituz-bkp.pgsql
+
+psql --user digituz-dashboard postgres
+
+# destroy and recreate the database
+drop database "digituz-dashboard";
+create database "digituz-dashboard";
+exit;
 
 pg_restore --no-privileges --no-owner --user digituz-dashboard -d digituz-dashboard -1 /tmp/digituz-bkp.pgsql
 ```

@@ -40,6 +40,7 @@ export class ProductsService {
   // x:0:0 (every hour)
   @Cron('0 0 * * * *')
   async syncProducts() {
+    if (process.env.NODE_ENV !== 'production') return;
     const products = await this.findAll();
     const productVariations = products.flatMap(p => {
       return p.productVariations.map(pv => ({
@@ -179,6 +180,7 @@ export class ProductsService {
     const insertVariationJobs = variations.map(variation => {
       return new Promise(async res => {
         variation.product = persistedProduct;
+        variation.sku.trim();
         await this.productVariationsRepository.save(variation);
         res();
       });
@@ -295,6 +297,7 @@ export class ProductsService {
       const newVersions = variationsToBeUpdated.map(variation => {
         const oldVersion = oldVariations.find(o => o.sku === variation.sku);
         variation.product = product;
+        variation.sku.trim();
         return {
           ...oldVersion,
           ...variation,
@@ -312,6 +315,7 @@ export class ProductsService {
 
     if (variationsToBeInserted) {
       variationsToBeInserted.forEach(variation => {
+        variation.sku.trim();
         variation.product = product;
       });
       const persistedVariations = await this.productVariationsRepository.save(
@@ -322,6 +326,10 @@ export class ProductsService {
   }
 
   async save(productDTO: ProductDTO): Promise<Product> {
+    productDTO = {
+      sku: productDTO.sku.trim(),
+      ...productDTO,
+    };
     // perform some initial validation
     if (
       !productDTO.productVariations ||
@@ -585,5 +593,23 @@ export class ProductsService {
       results.meta,
       results.links,
     );
+  }
+
+  async isSkuAvailable(sku: string, isProductVariation: boolean) {
+    if (isProductVariation) {
+      const existingSKU = await this.productVariationsRepository
+        .createQueryBuilder('pv')
+        .select('pv.sku')
+        .where('pv.sku = :sku', { sku })
+        .getOne();
+      return !!existingSKU;
+    }
+
+    const existingSKU = await this.productsRepository
+      .createQueryBuilder('p')
+      .select('p.sku')
+      .where('p.sku = :sku', { sku })
+      .getOne();
+    return !!existingSKU;
   }
 }
