@@ -87,7 +87,6 @@ import { SupplierModule } from './supplier/supplier.module';
     MarketplacesModule,
     KeyValuePairModule,
     ChartModule,
-    SupplierModule,
   ],
   controllers: [],
   providers: [],
