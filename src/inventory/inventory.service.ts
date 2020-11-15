@@ -103,6 +103,7 @@ export class InventoryService {
       .leftJoinAndSelect('i.productVariation', 'pv')
       .leftJoinAndSelect('pv.product', 'p')
       .where({ id })
+      .orderBy('m.created', 'DESC')
       .getOne();
   }
 
