@@ -18,10 +18,12 @@ export async function bootstrap(silentMode = false) {
     process.env.NODE_ENV !== 'development' &&
     process.env.NODE_ENV !== 'test'
   ) {
+    console.log('Enabling CORS for https://dashboard.digituz.com.br');
     app.enableCors({
       origin: 'https://dashboard.digituz.com.br',
     });
   }
+  console.log(`NODE_ENV = ${process.env.NODE_ENV}`);
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
   app.setGlobalPrefix('v1');
   await app.listen(3005);
