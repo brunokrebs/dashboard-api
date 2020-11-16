@@ -40,7 +40,11 @@ export class ProductsService {
   // x:0:0 (every hour)
   @Cron('0 0 * * * *')
   async syncProducts() {
-    if (process.env.NODE_ENV !== 'production') return;
+    if (
+      process.env.NODE_ENV === 'development' ||
+      process.env.NODE_ENV === 'test'
+    )
+      return;
     const products = await this.findAll();
     const productVariations = products.flatMap(p => {
       return p.productVariations.map(pv => ({
