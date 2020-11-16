@@ -67,7 +67,11 @@ export class ShopifyService {
 
   @Cron('0 */10 * * *')
   async syncProducts() {
-    if (process.env.NODE_ENV !== 'production') return;
+    if (
+      process.env.NODE_ENV === 'development' ||
+      process.env.NODE_ENV === 'test'
+    )
+      return;
     const products = await this.productsService.findAll();
     console.log(`${products.length} produtos encontrados`);
 
