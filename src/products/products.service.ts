@@ -198,6 +198,9 @@ export class ProductsService {
     }));
     if (productImages) {
       await this.productImagesRepository.save(productImages);
+      newProduct.thumbnail = productImages[0].image.thumbnailFileURL;
+    } else {
+      newProduct.thumbnail = null;
     }
 
     await this.createInventories(variations);
@@ -371,6 +374,7 @@ export class ProductsService {
       .execute();
 
     // recreate images (if needed)
+    let thumbnail = null;
     if (productDTO.productImages && productDTO.productImages.length > 0) {
       const { productImages } = productDTO;
       const newImagesId = productImages.map(pI => pI.imageId);
@@ -381,6 +385,7 @@ export class ProductsService {
         product: previousProductVersion,
       }));
       await this.productImagesRepository.save(newProductImages);
+      thumbnail = newProductImages[0].image.thumbnailFileURL;
     }
 
     let sellingPrice;
@@ -415,6 +420,7 @@ export class ProductsService {
       category: productDTO.category
         ? ProductCategory[productDTO.category]
         : null,
+      thumbnail: thumbnail,
     };
 
     const persistedProduct = await this.productsRepository.save(updatedProduct);
