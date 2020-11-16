@@ -106,6 +106,7 @@ export class ProductsService {
   }
 
   async findOneBySku(sku: string): Promise<Product> {
+    sku = sku.toUpperCase().trim();
     const product = await this.productsRepository.findOne({
       sku,
     });
@@ -184,7 +185,6 @@ export class ProductsService {
     const insertVariationJobs = variations.map(variation => {
       return new Promise(async res => {
         variation.product = persistedProduct;
-        variation.sku.trim();
         await this.productVariationsRepository.save(variation);
         res();
       });
@@ -304,7 +304,6 @@ export class ProductsService {
       const newVersions = variationsToBeUpdated.map(variation => {
         const oldVersion = oldVariations.find(o => o.sku === variation.sku);
         variation.product = product;
-        variation.sku.trim();
         return {
           ...oldVersion,
           ...variation,
@@ -322,7 +321,6 @@ export class ProductsService {
 
     if (variationsToBeInserted) {
       variationsToBeInserted.forEach(variation => {
-        variation.sku.trim();
         variation.product = product;
       });
       const persistedVariations = await this.productVariationsRepository.save(
@@ -333,10 +331,14 @@ export class ProductsService {
   }
 
   async save(productDTO: ProductDTO): Promise<Product> {
-    productDTO = {
-      sku: productDTO.sku.trim(),
-      ...productDTO,
-    };
+    productDTO.sku = productDTO.sku.toUpperCase().trim();
+    productDTO.productVariations = productDTO.productVariations.map(
+      variation => {
+        variation.sku = variation.sku.toUpperCase().trim();
+        return variation;
+      },
+    );
+
     // perform some initial validation
     if (
       !productDTO.productVariations ||
@@ -606,6 +608,7 @@ export class ProductsService {
   }
 
   async isSkuAvailable(sku: string, isProductVariation: boolean) {
+    sku = sku.toUpperCase().trim();
     if (isProductVariation) {
       const existingSKU = await this.productVariationsRepository
         .createQueryBuilder('pv')
