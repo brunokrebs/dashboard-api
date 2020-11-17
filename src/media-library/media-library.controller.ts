@@ -11,6 +11,7 @@ import {
   Delete,
   UseFilters,
   Query,
+  Put,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import execa from 'execa';
@@ -181,9 +182,12 @@ export class MediaLibraryController {
 
   @Delete(':imageId')
   async archiveImage(@Param('imageId') imageId: number): Promise<Image> {
-    const image = await this.imagesService.findById(imageId);
-    image.archived = !image.archived;
-    return this.imagesService.save(image);
+    return this.updateImageStatus(imageId);
+  }
+
+  @Put(':imageId')
+  async recoverImage(@Param('imageId') imageId: number): Promise<Image> {
+    return this.updateImageStatus(imageId);
   }
 
   @Delete(':imageId/tag/:tagLabel')
@@ -194,6 +198,12 @@ export class MediaLibraryController {
     const image = await this.imagesService.findById(imageId);
     image.tags = image.tags.filter(tag => tag.label !== tagLabel);
     image.numberOfTags = image.tags.length;
+    return this.imagesService.save(image);
+  }
+
+  private async updateImageStatus(imageId: number): Promise<Image> {
+    const image = await this.imagesService.findById(imageId);
+    image.archived = !image.archived;
     return this.imagesService.save(image);
   }
 }
