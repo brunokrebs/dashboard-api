@@ -200,7 +200,7 @@ export class ProductsService {
       order: productImage.order,
       product: persistedProduct,
     }));
-    if (productImages.length > 0) {
+    if (productImages?.length > 0) {
       await this.productImagesRepository.save(productImages);
       newProduct.thumbnail = productImages[0].image.thumbnailFileURL;
     } else {
