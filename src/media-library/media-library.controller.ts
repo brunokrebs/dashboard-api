@@ -182,7 +182,7 @@ export class MediaLibraryController {
   @Delete(':imageId')
   async archiveImage(@Param('imageId') imageId: number): Promise<Image> {
     const image = await this.imagesService.findById(imageId);
-    image.archived = true;
+    image.archived = !image.archived;
     return this.imagesService.save(image);
   }
 
