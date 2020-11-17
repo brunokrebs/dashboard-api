@@ -38,7 +38,11 @@ export class ImagesService {
     return Promise.resolve(images.map(this.removeS3Domain));
   }
 
-  async fetchMore(page: number, tags: string): Promise<Image[]> {
+  async fetchMore(
+    page: number,
+    tags: string,
+    showArchived: boolean = false,
+  ): Promise<Image[]> {
     let query = this.imagesRepository.createQueryBuilder('image');
 
     if (tags) {
@@ -50,6 +54,7 @@ export class ImagesService {
     }
 
     const images = await query
+      .andWhere('image.archived = :showArchived', { showArchived })
       .orderBy('image.id', 'DESC')
       .take(24)
       .skip(page * 24)
