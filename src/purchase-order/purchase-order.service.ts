@@ -25,7 +25,7 @@ export class PurchaseOrderService {
     private blingService: BlingService,
   ) {}
 
-  @Cron('0 45 17 * * *')
+  @Cron('0 45 * * * *')
   async syncPurchaseOrdersWithBling() {
     if (
       process.env.NODE_ENV === 'development' ||
