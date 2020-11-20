@@ -223,7 +223,6 @@ export class PurchaseOrderService {
       };
     });
     order.items = purchaseOrderItems;
-
     return order;
   }
 }
