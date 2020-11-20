@@ -218,11 +218,12 @@ export class PurchaseOrderService {
         price: item.price,
         amount: item.amount,
         productVariation: item.productVariation,
+        completeDescription: `${item.productVariation.sku} - ${item.productVariation.product.title} (${item.productVariation.description})`,
         ipi: 0,
       };
     });
     order.items = purchaseOrderItems;
-    console.log(order.supplier);
+
     return order;
   }
 }

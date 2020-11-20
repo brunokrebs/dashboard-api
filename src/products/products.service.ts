@@ -38,11 +38,7 @@ export class ProductsService {
   ) {}
 
   // x:0:0 (every hour)
-<<<<<<< HEAD
-  @Cron('0 */30 * * * *')
-=======
   //@Cron('0 0 * * * *')
->>>>>>> creation migrate
   async syncProducts() {
     if (
       process.env.NODE_ENV === 'development' ||
