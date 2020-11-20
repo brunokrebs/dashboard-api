@@ -81,6 +81,9 @@ export class CustomersService {
     customer.cpf = customer.cpf?.replace(/\D/g, '');
     customer.phoneNumber = customer.phoneNumber?.replace(/\D/g, '');
     customer.zipAddress = customer.zipAddress?.replace(/\D/g, '');
+    if (customer.birthday === '') {
+      customer.birthday = null;
+    }
     return this.customerRepository.save(customer);
   }
 

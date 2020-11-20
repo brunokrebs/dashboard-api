@@ -1,4 +1,10 @@
-import { Entity, ManyToOne, JoinColumn, Column } from 'typeorm';
+import {
+  Entity,
+  ManyToOne,
+  JoinColumn,
+  Column,
+  CreateDateColumn,
+} from 'typeorm';
 import { BaseEntity } from '../util/base-entity';
 import { Inventory } from './inventory.entity';
 import { SaleOrder } from '../sales-order/entities/sale-order.entity';
@@ -22,4 +28,7 @@ export class InventoryMovement extends BaseEntity {
 
   @Column()
   description: string;
+
+  @CreateDateColumn({ type: 'timestamp with time zone' })
+  created?: Date;
 }

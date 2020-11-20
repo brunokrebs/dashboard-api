@@ -38,8 +38,13 @@ export class ProductsService {
   ) {}
 
   // x:0:0 (every hour)
-  //@Cron('0 0 * * * *')
+  @Cron('0 */30 * * * *')
   async syncProducts() {
+    if (
+      process.env.NODE_ENV === 'development' ||
+      process.env.NODE_ENV === 'test'
+    )
+      return;
     const products = await this.findAll();
     const productVariations = products.flatMap(p => {
       return p.productVariations.map(pv => ({
@@ -101,6 +106,7 @@ export class ProductsService {
   }
 
   async findOneBySku(sku: string): Promise<Product> {
+    sku = sku.toUpperCase().trim();
     const product = await this.productsRepository.findOne({
       sku,
     });
@@ -194,8 +200,11 @@ export class ProductsService {
       order: productImage.order,
       product: persistedProduct,
     }));
-    if (productImages) {
+    if (productImages?.length > 0) {
       await this.productImagesRepository.save(productImages);
+      newProduct.thumbnail = productImages[0].image.thumbnailFileURL;
+    } else {
+      newProduct.thumbnail = null;
     }
 
     await this.createInventories(variations);
@@ -322,6 +331,14 @@ export class ProductsService {
   }
 
   async save(productDTO: ProductDTO): Promise<Product> {
+    productDTO.sku = productDTO.sku.toUpperCase().trim();
+    productDTO.productVariations = productDTO.productVariations.map(
+      variation => {
+        variation.sku = variation.sku.toUpperCase().trim();
+        return variation;
+      },
+    );
+
     // perform some initial validation
     if (
       !productDTO.productVariations ||
@@ -363,6 +380,7 @@ export class ProductsService {
       .execute();
 
     // recreate images (if needed)
+    let thumbnail = null;
     if (productDTO.productImages && productDTO.productImages.length > 0) {
       const { productImages } = productDTO;
       const newImagesId = productImages.map(pI => pI.imageId);
@@ -373,6 +391,7 @@ export class ProductsService {
         product: previousProductVersion,
       }));
       await this.productImagesRepository.save(newProductImages);
+      thumbnail = newProductImages[0].image.thumbnailFileURL;
     }
 
     let sellingPrice;
@@ -407,6 +426,7 @@ export class ProductsService {
       category: productDTO.category
         ? ProductCategory[productDTO.category]
         : null,
+      thumbnail: thumbnail,
     };
 
     const persistedProduct = await this.productsRepository.save(updatedProduct);
@@ -586,5 +606,24 @@ export class ProductsService {
       results.meta,
       results.links,
     );
+  }
+
+  async isSkuAvailable(sku: string, isProductVariation: boolean) {
+    sku = sku.toUpperCase().trim();
+    if (isProductVariation) {
+      const existingSKU = await this.productVariationsRepository
+        .createQueryBuilder('pv')
+        .select('pv.sku')
+        .where('pv.sku = :sku', { sku })
+        .getOne();
+      return !!existingSKU;
+    }
+
+    const existingSKU = await this.productsRepository
+      .createQueryBuilder('p')
+      .select('p.sku')
+      .where('p.sku = :sku', { sku })
+      .getOne();
+    return !!existingSKU;
   }
 }

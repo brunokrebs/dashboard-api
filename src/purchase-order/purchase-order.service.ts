@@ -27,8 +27,13 @@ export class PurchaseOrderService {
     private blingService: BlingService,
   ) {}
 
-  //@Cron('0 45 22 * * *')
+  @Cron('0 45 * * * *')
   async syncPurchaseOrdersWithBling() {
+    if (
+      process.env.NODE_ENV === 'development' ||
+      process.env.NODE_ENV === 'test'
+    )
+      return;
     const blingPurchaseOrders = await this.blingService.loadPurchaseOrders();
     const persistedSuppliers = await this.syncSuppliers(blingPurchaseOrders);
 

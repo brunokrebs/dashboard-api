@@ -64,6 +64,14 @@ export class ProductsController {
     });
   }
 
+  @Get('/is-sku-available')
+  isSkuAvailable(
+    @Query('sku') sku: string,
+    @Query('is-product-variation') isProductVariation: boolean,
+  ) {
+    return this.productsService.isSkuAvailable(sku, isProductVariation);
+  }
+
   @Get(':sku')
   findOne(@Param('sku') sku: string): Promise<Product> {
     return this.productsService.findOneBySku(sku);

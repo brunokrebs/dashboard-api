@@ -25,9 +25,9 @@ export class InventoryController {
   constructor(private inventoryService: InventoryService) {}
 
   @Get()
-  async findAll(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+  async listInventories(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
     @Query('sortedBy') sortedBy: string,
     @Query('sortDirectionAscending') sortDirectionAscending: string,
     @Query('query') query: string,
@@ -56,6 +56,7 @@ export class InventoryController {
             title: inventory.productVariation.product.title,
             description: inventory.productVariation.description,
             currentPosition: inventory.productVariation.currentPosition,
+            thumbnail: inventory.productVariation.product.thumbnail,
           },
           currentPosition: inventory.currentPosition,
         };
