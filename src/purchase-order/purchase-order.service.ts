@@ -13,7 +13,6 @@ import { InventoryMovementDTO } from '../inventory/inventory-movement.dto';
 import { ProductsService } from '../products/products.service';
 import { IPaginationOpts } from 'src/pagination/pagination';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
-
 @Injectable()
 export class PurchaseOrderService {
   constructor(
@@ -186,16 +185,28 @@ export class PurchaseOrderService {
   }
 
   async save(purchaseOrder: PurchaseOrder) {
-    const savedOrder = await this.purchaseOrderRepository.save(purchaseOrder);
-    const items: PurchaseOrderItem[] = purchaseOrder.items;
-    const purchaseOrderItems: PurchaseOrderItem[] = items.map(item => {
-      const newItem: PurchaseOrderItem = {
-        ...item,
-        purchaseOrder: savedOrder,
-        ipi: 0,
-      };
-      return newItem;
-    });
+    const persistedOrder = await this.purchaseOrderRepository.save(
+      purchaseOrder,
+    );
+    await this.purchaseOrderItemRepository
+      .createQueryBuilder()
+      .delete()
+      .from(PurchaseOrderItem)
+      .where(`purchase_order_id = :purchase_order_id`, {
+        purchase_order_id: purchaseOrder.id,
+      })
+      .execute();
+
+    const purchaseOrderItems: PurchaseOrderItem[] = purchaseOrder.items.map(
+      item => {
+        return {
+          ...item,
+          purchaseOrder: persistedOrder,
+          ipi: 0,
+        };
+      },
+    );
+
     await this.purchaseOrderItemRepository.save(purchaseOrderItems);
     return;
   }
