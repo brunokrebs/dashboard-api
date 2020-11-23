@@ -16,7 +16,6 @@ export class PurchaseOrderItem extends BaseEntity {
 
   @ManyToOne(type => PurchaseOrder, {
     nullable: false,
-    cascade: false,
   })
   @JoinColumn({ name: 'purchase_order_id' })
   purchaseOrder?: PurchaseOrder;

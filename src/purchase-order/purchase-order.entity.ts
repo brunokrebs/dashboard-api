@@ -42,7 +42,7 @@ export class PurchaseOrder extends BaseEntity {
   @OneToMany(
     type => PurchaseOrderItem,
     item => item.purchaseOrder,
-    { cascade: false },
+    { persistence: false },
   )
   items: PurchaseOrderItem[];
 
