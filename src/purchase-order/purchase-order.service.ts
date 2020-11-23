@@ -13,6 +13,7 @@ import { InventoryMovementDTO } from '../inventory/inventory-movement.dto';
 import { ProductsService } from '../products/products.service';
 import { IPaginationOpts } from 'src/pagination/pagination';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
+import { PurchaseOrderStatus } from './purchase-order.enum';
 @Injectable()
 export class PurchaseOrderService {
   constructor(
@@ -188,6 +189,7 @@ export class PurchaseOrderService {
     const persistedOrder = await this.purchaseOrderRepository.save(
       purchaseOrder,
     );
+
     await this.purchaseOrderItemRepository
       .createQueryBuilder()
       .delete()
@@ -208,6 +210,7 @@ export class PurchaseOrderService {
     );
 
     await this.purchaseOrderItemRepository.save(purchaseOrderItems);
+    this.purchaseOrderMoviment(purchaseOrder);
     return;
   }
 
@@ -235,5 +238,29 @@ export class PurchaseOrderService {
     });
     order.items = purchaseOrderItems;
     return order;
+  }
+
+  async purchaseOrderMoviment(purchaseOrder: PurchaseOrder) {
+    if (purchaseOrder.status === PurchaseOrderStatus.COMPLETED) {
+      const movements: InventoryMovementDTO[] = purchaseOrder.items.map(poi => {
+        return {
+          sku: poi.productVariation.sku,
+          amount: poi.amount,
+          description: `Movimentação gerada pela ordem de compra ${purchaseOrder.id}.`,
+        };
+      });
+      const insertMovementJobs = movements.map(movement =>
+        this.inventoryService.saveMovement(movement, null, null, purchaseOrder),
+      );
+      await Promise.all(insertMovementJobs);
+    } else if (purchaseOrder.status === PurchaseOrderStatus.CANCELLED) {
+      this.inventoryService.cleanUpMovements(null, purchaseOrder);
+    }
+    return;
+  }
+
+  isTheVariation(id: number, productVariation: any) {
+    if (id === productVariation) {
+    }
   }
 }

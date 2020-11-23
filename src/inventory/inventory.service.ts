@@ -14,6 +14,7 @@ import { SaleOrder } from '../sales-order/entities/sale-order.entity';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { Product } from '../products/entities/product.entity';
 import { ProductComposition } from '../products/entities/product-composition.entity';
+import { PurchaseOrder } from 'src/purchase-order/purchase-order.entity';
 
 @Injectable()
 export class InventoryService {
@@ -123,10 +124,21 @@ export class InventoryService {
       .getOne();
   }
 
-  async cleanUpMovements(saleOrder: SaleOrder) {
-    const movements = await this.inventoryMovementRepository.find({
-      saleOrder: saleOrder,
-    });
+  async cleanUpMovements(
+    saleOrder: SaleOrder,
+    purchaseOrder: PurchaseOrder = null,
+  ) {
+    let movements: InventoryMovement[];
+    if (purchaseOrder) {
+      movements = await this.inventoryMovementRepository.find({
+        purchaseOrder: purchaseOrder,
+      });
+    } else {
+      movements = await this.inventoryMovementRepository.find({
+        saleOrder: saleOrder,
+      });
+    }
+
     const removeMovementJobs = movements.map(movement => {
       return new Promise(async res => {
         const inventory = movement.inventory;
@@ -162,6 +174,7 @@ export class InventoryService {
     inventoryMovementDTO: InventoryMovementDTO,
     saleOrder?: SaleOrder,
     allowPositiveMovementForCompositeProducts?: boolean,
+    purchaseOrder?: PurchaseOrder,
   ): Promise<InventoryMovement> {
     // 1. check if this is a composite product
     if (
@@ -177,7 +190,7 @@ export class InventoryService {
         })
         .getOne();
 
-      if (product.productComposition.length > 0) {
+      if (product?.productComposition.length > 0) {
         throw new Error('Cannot increase inventory for composite produts');
       }
     }
@@ -186,6 +199,7 @@ export class InventoryService {
     const inventoryMovement = await this.moveProduct(
       inventoryMovementDTO,
       saleOrder,
+      purchaseOrder,
     );
 
     // 3. if this product is part of compositions, update them
@@ -203,6 +217,7 @@ export class InventoryService {
   private async moveProduct(
     inventoryMovementDTO: InventoryMovementDTO,
     saleOrder: SaleOrder,
+    purchaseOrder?: PurchaseOrder,
   ) {
     const inventory = await this.findBySku(inventoryMovementDTO.sku);
 
@@ -226,6 +241,7 @@ export class InventoryService {
       amount: inventoryMovementDTO.amount,
       description: inventoryMovementDTO.description,
       saleOrder: saleOrder,
+      purchaseOrder: purchaseOrder,
     };
 
     return await this.inventoryMovementRepository.save(movement);

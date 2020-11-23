@@ -68,4 +68,11 @@ export class PurchaseOrder extends BaseEntity {
     transformer: new NumericTransformer(),
   })
   total?: Number;
+
+  @Column({
+    name: 'status',
+    type: 'varchar',
+    length: 60,
+  })
+  status?: string;
 }
