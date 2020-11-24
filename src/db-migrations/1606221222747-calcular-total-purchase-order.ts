@@ -4,7 +4,7 @@ export class calcularTotalPurchaseOrder1606221222747
   implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `UPDATE purchase_order SET total = subquery.total FROM
+      `UPDATE purchase_order SET total = (subquery.total-purchase_order.discount) FROM
             (SELECT poi.purchase_order_id,sum(TRUNC(
                     price*amount,
                     2))as total   FROM purchase_order_item as poi 
