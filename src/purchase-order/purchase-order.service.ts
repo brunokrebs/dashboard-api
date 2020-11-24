@@ -144,25 +144,27 @@ export class PurchaseOrderService {
   async paginate(options: IPaginationOpts): Promise<Pagination<PurchaseOrder>> {
     const queryBuilder = this.purchaseOrderRepository.createQueryBuilder('po');
 
+    queryBuilder.leftJoinAndSelect('po.supplier', 's');
+
     let orderColumn = '';
     switch (options.sortedBy?.trim()) {
       case undefined:
       case null:
       case '':
       case 'referenceCode':
-        orderColumn = 'reference_code';
+        orderColumn = 'po.referenceCode';
         break;
       case 'creationDate':
-        orderColumn = 'creation_date';
+        orderColumn = 'po.creationDate';
         break;
       case 'total':
-        orderColumn = 'total';
+        orderColumn = 'po.total';
         break;
-      case 'shippingPrice':
-        orderColumn = 'shipping_price';
+      case 'supplier':
+        orderColumn = 's.name';
         break;
       default:
-        orderColumn = 'creation_date';
+        orderColumn = 'po.creationDate';
     }
 
     options.queryParams
@@ -178,16 +180,17 @@ export class PurchaseOrderService {
           case 'query':
             queryBuilder.andWhere(
               new Brackets(qb => {
-                qb.where(`lower(po.reference_code) like lower(:query)`, {
+                qb.where(`lower(po.referenceCode) like lower(:query)`, {
                   query: `%${queryParam.value.toString()}%`,
-                });
+                })
+                  .orWhere(`lower(s.name) like lower(:query)`, {
+                    query: `%${queryParam.value.toString()}%`,
+                  })
+                  .orWhere(`lower(s.cnpj) like lower(:query)`, {
+                    query: `%${queryParam.value.toString()}%`,
+                  });
               }),
             );
-            break;
-          case 'paymentStatus':
-            queryBuilder.andWhere(`so.paymentDetails.paymentStatus = :status`, {
-              status: queryParam.value,
-            });
             break;
         }
       });
