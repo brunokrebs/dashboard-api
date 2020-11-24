@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 
 import { PurchaseOrderItem } from './purchase-order-item.entity';
@@ -142,10 +142,9 @@ export class PurchaseOrderService {
   }
 
   async paginate(options: IPaginationOpts): Promise<Pagination<PurchaseOrder>> {
-    let sortDirection;
-    let sortNulls;
-    let orderColumn = '';
+    const queryBuilder = this.purchaseOrderRepository.createQueryBuilder('po');
 
+    let orderColumn = '';
     switch (options.sortedBy?.trim()) {
       case undefined:
       case null:
@@ -156,16 +155,45 @@ export class PurchaseOrderService {
       case 'creationDate':
         orderColumn = 'creation_date';
         break;
-      case 'discount':
-        orderColumn = 'discount';
+      case 'total':
+        orderColumn = 'total';
         break;
       case 'shippingPrice':
         orderColumn = 'shipping_price';
         break;
       default:
-        orderColumn = options.sortedBy;
+        orderColumn = 'creation_date';
     }
 
+    options.queryParams
+      .filter(queryParam => {
+        return (
+          queryParam !== null &&
+          queryParam.value !== null &&
+          queryParam.value !== undefined
+        );
+      })
+      .forEach(queryParam => {
+        switch (queryParam.key) {
+          case 'query':
+            queryBuilder.andWhere(
+              new Brackets(qb => {
+                qb.where(`lower(po.reference_code) like lower(:query)`, {
+                  query: `%${queryParam.value.toString()}%`,
+                });
+              }),
+            );
+            break;
+          case 'paymentStatus':
+            queryBuilder.andWhere(`so.paymentDetails.paymentStatus = :status`, {
+              status: queryParam.value,
+            });
+            break;
+        }
+      });
+
+    let sortDirection;
+    let sortNulls;
     switch (options.sortDirectionAscending) {
       case undefined:
       case null:
@@ -178,9 +206,7 @@ export class PurchaseOrderService {
         sortNulls = 'NULLS LAST';
     }
 
-    const queryBuilder = this.purchaseOrderRepository
-      .createQueryBuilder('po')
-      .orderBy(orderColumn, sortDirection, sortNulls);
+    queryBuilder.orderBy(orderColumn, sortDirection, sortNulls);
     return paginate<PurchaseOrder>(queryBuilder, options);
   }
 
