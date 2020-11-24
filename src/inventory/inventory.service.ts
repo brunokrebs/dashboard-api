@@ -70,6 +70,8 @@ export class InventoryService {
               new Brackets(qb => {
                 qb.where(`lower(pv.sku) like lower(:query)`, {
                   query: `%${queryParam.value.toString()}%`,
+                }).orWhere(`lower(p.title) like lower(:query)`, {
+                  query: `%${queryParam.value.toString()}%`,
                 });
               }),
             );
