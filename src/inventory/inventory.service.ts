@@ -129,7 +129,7 @@ export class InventoryService {
     purchaseOrder: PurchaseOrder = null,
   ) {
     let movements: InventoryMovement[];
-    if (purchaseOrder) {
+    if (!saleOrder) {
       movements = await this.inventoryMovementRepository.find({
         purchaseOrder: purchaseOrder,
       });

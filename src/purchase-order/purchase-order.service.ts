@@ -181,7 +181,6 @@ export class PurchaseOrderService {
     const queryBuilder = this.purchaseOrderRepository
       .createQueryBuilder('po')
       .orderBy(orderColumn, sortDirection, sortNulls);
-
     return paginate<PurchaseOrder>(queryBuilder, options);
   }
 
@@ -203,12 +202,13 @@ export class PurchaseOrderService {
       item => {
         return {
           ...item,
+          productVariation: item.productVariation,
           purchaseOrder: persistedOrder,
+          amount: item.amount,
           ipi: 0,
         };
       },
     );
-
     await this.purchaseOrderItemRepository.save(purchaseOrderItems);
     this.purchaseOrderMoviment(purchaseOrder);
     return;
@@ -232,6 +232,10 @@ export class PurchaseOrderService {
         price: item.price,
         amount: item.amount,
         productVariation: item.productVariation,
+        sku: item.productVariation.sku,
+        id: item.productVariation.id,
+        currentPosition: item.productVariation.currentPosition,
+        description: item.productVariation.description,
         completeDescription: `${item.productVariation.sku} - ${item.productVariation.product.title} (${item.productVariation.description})`,
         ipi: 0,
       };
@@ -252,15 +256,8 @@ export class PurchaseOrderService {
       const insertMovementJobs = movements.map(movement =>
         this.inventoryService.saveMovement(movement, null, null, purchaseOrder),
       );
-      await Promise.all(insertMovementJobs);
-    } else if (purchaseOrder.status === PurchaseOrderStatus.CANCELLED) {
-      this.inventoryService.cleanUpMovements(null, purchaseOrder);
+      return await Promise.all(insertMovementJobs);
     }
-    return;
-  }
-
-  isTheVariation(id: number, productVariation: any) {
-    if (id === productVariation) {
-    }
+    return await this.inventoryService.cleanUpMovements(null, purchaseOrder);
   }
 }
