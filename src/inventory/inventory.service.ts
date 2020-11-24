@@ -133,6 +133,18 @@ export class InventoryService {
       movements = await this.inventoryMovementRepository.find({
         purchaseOrder: purchaseOrder,
       });
+
+      purchaseOrder.items.map(async item => {
+        await this.productVariationRepository.update(
+          {
+            sku: item.productVariation.sku,
+          },
+          {
+            currentPosition:
+              item.productVariation.currentPosition - item.amount,
+          },
+        );
+      });
     } else {
       movements = await this.inventoryMovementRepository.find({
         saleOrder: saleOrder,
@@ -148,6 +160,7 @@ export class InventoryService {
         res();
       });
     });
+
     await Promise.all(removeMovementJobs);
   }
 

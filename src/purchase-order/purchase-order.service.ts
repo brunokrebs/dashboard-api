@@ -284,6 +284,9 @@ export class PurchaseOrderService {
       );
       return await Promise.all(insertMovementJobs);
     }
-    return await this.inventoryService.cleanUpMovements(null, purchaseOrder);
+    if (purchaseOrder.status === PurchaseOrderStatus.CANCELLED) {
+      return await this.inventoryService.cleanUpMovements(null, purchaseOrder);
+    }
+    return;
   }
 }
