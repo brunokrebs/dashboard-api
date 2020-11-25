@@ -65,7 +65,7 @@ export class ShopifyService {
     });
   }
 
-  //@Cron('0 */10 * * *')
+  @Cron('0 */10 * * *')
   async syncProducts() {
     if (
       process.env.NODE_ENV === 'development' ||

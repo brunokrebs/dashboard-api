@@ -38,7 +38,7 @@ export class ProductsService {
   ) {}
 
   // x:0:0 (every hour)
-  //@Cron('0 0 * * * *')
+  @Cron('0 0 * * * *')
   async syncProducts() {
     if (
       process.env.NODE_ENV === 'development' ||
