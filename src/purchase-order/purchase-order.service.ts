@@ -142,9 +142,9 @@ export class PurchaseOrderService {
   }
 
   async paginate(options: IPaginationOpts): Promise<Pagination<PurchaseOrder>> {
-    const queryBuilder = this.purchaseOrderRepository.createQueryBuilder('po');
-
-    queryBuilder.leftJoinAndSelect('po.supplier', 's');
+    const queryBuilder = this.purchaseOrderRepository
+      .createQueryBuilder('po')
+      .leftJoinAndSelect('po.supplier', 's');
 
     let orderColumn = '';
     switch (options.sortedBy?.trim()) {
@@ -239,8 +239,7 @@ export class PurchaseOrderService {
       },
     );
     await this.purchaseOrderItemRepository.save(purchaseOrderItems);
-    this.purchaseOrderMoviment(purchaseOrder);
-    return;
+    return this.persistPurchaseOrderMovements(purchaseOrder);
   }
 
   async findOne(id: string): Promise<PurchaseOrder> {
@@ -256,7 +255,7 @@ export class PurchaseOrderService {
       .where('poi.purchase_order_id = :id', { id })
       .getMany();
 
-    const purchaseOrderItems: PurchaseOrderItem[] = items.map(item => {
+    order.items = items.map(item => {
       return {
         price: item.price,
         amount: item.amount,
@@ -269,11 +268,10 @@ export class PurchaseOrderService {
         ipi: 0,
       };
     });
-    order.items = purchaseOrderItems;
     return order;
   }
 
-  async purchaseOrderMoviment(purchaseOrder: PurchaseOrder) {
+  async persistPurchaseOrderMovements(purchaseOrder: PurchaseOrder) {
     if (purchaseOrder.status === PurchaseOrderStatus.COMPLETED) {
       const movements: InventoryMovementDTO[] = purchaseOrder.items.map(poi => {
         return {
@@ -290,6 +288,5 @@ export class PurchaseOrderService {
     if (purchaseOrder.status === PurchaseOrderStatus.CANCELLED) {
       return await this.inventoryService.cleanUpMovements(null, purchaseOrder);
     }
-    return;
   }
 }

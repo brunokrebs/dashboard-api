@@ -192,7 +192,7 @@ export class InventoryService {
         })
         .getOne();
 
-      if (product?.productComposition.length > 0) {
+      if (product.productComposition.length > 0) {
         throw new Error('Cannot increase inventory for composite produts');
       }
     }
