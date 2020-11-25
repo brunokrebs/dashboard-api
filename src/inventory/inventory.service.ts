@@ -124,41 +124,30 @@ export class InventoryService {
       .getOne();
   }
 
-  async cleanUpMovements(
-    saleOrder: SaleOrder,
-    purchaseOrder: PurchaseOrder = null,
-  ) {
-    let movements: InventoryMovement[];
-    if (!saleOrder) {
-      movements = await this.inventoryMovementRepository.find({
-        purchaseOrder: purchaseOrder,
-      });
+  async cleanUpMovements(saleOrder?: SaleOrder, purchaseOrder?: PurchaseOrder) {
+    // finds all movements related to a sale order or a purchase order
+    const query = saleOrder ? { saleOrder } : { purchaseOrder };
+    const movements = await this.inventoryMovementRepository
+      .createQueryBuilder('im')
+      .leftJoinAndSelect('im.inventory', 'i')
+      .leftJoinAndSelect('i.productVariation', 'pv')
+      .where(query)
+      .getMany();
 
-      purchaseOrder.items.map(async item => {
-        await this.productVariationRepository.update(
-          {
-            sku: item.productVariation.sku,
-          },
-          {
-            currentPosition:
-              item.productVariation.currentPosition - item.amount,
-          },
-        );
-      });
-    } else {
-      movements = await this.inventoryMovementRepository.find({
-        saleOrder: saleOrder,
-      });
-    }
+    // removes movements and update current position
+    const removeMovementJobs = movements.map(async movement => {
+      // update current position on inventory
+      const inventory: Inventory = movement.inventory;
+      inventory.currentPosition -= movement.amount;
+      await this.inventoryRepository.save(inventory);
 
-    const removeMovementJobs = movements.map(movement => {
-      return new Promise(async res => {
-        const inventory = movement.inventory;
-        inventory.currentPosition -= movement.amount;
-        await this.inventoryRepository.save(inventory);
-        await this.inventoryMovementRepository.delete(movement.id);
-        res();
-      });
+      // update current position on product variation
+      const productVariation = inventory.productVariation;
+      productVariation.currentPosition -= movement.amount;
+      await this.productVariationRepository.save(productVariation);
+
+      // remove inventory movements
+      await this.inventoryMovementRepository.delete(movement.id);
     });
 
     await Promise.all(removeMovementJobs);
