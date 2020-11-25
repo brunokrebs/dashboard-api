@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Query,
   UseGuards,
   UseInterceptors,
@@ -53,5 +54,12 @@ export class PurchaseOrderController {
     @Param('referenceCode') referenceCode: string,
   ): Promise<PurchaseOrder> {
     return this.purchaseOrderService.findOne(referenceCode);
+  }
+
+  @Put()
+  updateStatus(@Body() pruchaseOrder: PurchaseOrder) {
+    return this.purchaseOrderService.persistPurchaseOrderMovements(
+      pruchaseOrder,
+    );
   }
 }

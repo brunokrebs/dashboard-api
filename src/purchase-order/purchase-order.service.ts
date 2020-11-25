@@ -144,7 +144,9 @@ export class PurchaseOrderService {
   async paginate(options: IPaginationOpts): Promise<Pagination<PurchaseOrder>> {
     const queryBuilder = this.purchaseOrderRepository
       .createQueryBuilder('po')
-      .leftJoinAndSelect('po.supplier', 's');
+      .leftJoinAndSelect('po.supplier', 's')
+      .leftJoinAndSelect('po.items', 'poi')
+      .leftJoinAndSelect('poi.productVariation', 'pv');
 
     let orderColumn = '';
     switch (options.sortedBy?.trim()) {
@@ -238,8 +240,7 @@ export class PurchaseOrderService {
         };
       },
     );
-    await this.purchaseOrderItemRepository.save(purchaseOrderItems);
-    return this.persistPurchaseOrderMovements(purchaseOrder);
+    return this.purchaseOrderItemRepository.save(purchaseOrderItems);
   }
 
   async findOne(id: string): Promise<PurchaseOrder> {
@@ -272,6 +273,15 @@ export class PurchaseOrderService {
   }
 
   async persistPurchaseOrderMovements(purchaseOrder: PurchaseOrder) {
+    await this.purchaseOrderRepository
+      .createQueryBuilder()
+      .update(PurchaseOrder)
+      .set({ status: purchaseOrder.status })
+      .where(`id = :id`, {
+        id: purchaseOrder.id,
+      })
+      .execute();
+
     if (purchaseOrder.status === PurchaseOrderStatus.COMPLETED) {
       const movements: InventoryMovementDTO[] = purchaseOrder.items.map(poi => {
         return {
@@ -285,8 +295,6 @@ export class PurchaseOrderService {
       );
       return await Promise.all(insertMovementJobs);
     }
-    if (purchaseOrder.status === PurchaseOrderStatus.CANCELLED) {
-      return await this.inventoryService.cleanUpMovements(null, purchaseOrder);
-    }
+    return await this.inventoryService.cleanUpMovements(null, purchaseOrder);
   }
 }
