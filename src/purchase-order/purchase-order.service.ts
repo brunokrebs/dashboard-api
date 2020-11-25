@@ -151,11 +151,11 @@ export class PurchaseOrderService {
       case undefined:
       case null:
       case '':
-      case 'referenceCode':
-        orderColumn = 'po.referenceCode';
-        break;
       case 'creationDate':
         orderColumn = 'po.creationDate';
+        break;
+      case 'referenceCode':
+        orderColumn = 'po.referenceCode';
         break;
       case 'total':
         orderColumn = 'po.total';
@@ -201,11 +201,11 @@ export class PurchaseOrderService {
       case undefined:
       case null:
       case true:
-        sortDirection = 'ASC';
+        sortDirection = 'DESC';
         sortNulls = 'NULLS FIRST';
         break;
       default:
-        sortDirection = 'DESC';
+        sortDirection = 'ASC';
         sortNulls = 'NULLS LAST';
     }
 
