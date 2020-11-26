@@ -1,0 +1,27 @@
+[
+  {
+    "id": null,
+    "referenceCode": "ref123",
+    "creationDate": "2020-11-25",
+    "completionDate": "2020-11-25",
+    "supplier": {
+      "id": null,
+      "cnpj": "27481049000160",
+      "name": "BK Sistemas de Informação LTDA"
+    },
+    "items": [
+      {
+        "productVariation": {
+          "id": null,
+          "sku": "A-09-15"
+        },
+        "price": 15.35,
+        "amount": 12
+      }
+    ],
+    "discount": 15,
+    "shippingPrice": 30,
+    "total": 234.56,
+    "status": "IN_PROCESS"
+  }
+]
