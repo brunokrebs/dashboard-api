@@ -37,8 +37,8 @@ export class ProductsService {
     private blingService: BlingService,
   ) {}
 
-  // x:0:0 (every hour)
-  @Cron('0 0 * * * *')
+  // every 30 min
+  @Cron('0 0/30 * * * *')
   async syncProducts() {
     if (
       process.env.NODE_ENV === 'development' ||
@@ -500,7 +500,6 @@ export class ProductsService {
         return {
           parentSku: productVariation.product.sku,
           title: productVariation.product.title,
-          id: productVariation.id,
           sku: productVariation.sku,
           description: productVariation.description,
           sellingPrice: productVariation.sellingPrice,
