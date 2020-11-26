@@ -37,8 +37,8 @@ export class ProductsService {
     private blingService: BlingService,
   ) {}
 
-  // x:0:0 (every hour)
-  @Cron('0 */30 * * * *')
+  // every 30 min
+  @Cron('0 0/30 * * * *')
   async syncProducts() {
     if (
       process.env.NODE_ENV === 'development' ||
@@ -185,6 +185,7 @@ export class ProductsService {
     const insertVariationJobs = variations.map(variation => {
       return new Promise(async res => {
         variation.product = persistedProduct;
+        variation.currentPosition = 0;
         await this.productVariationsRepository.save(variation);
         res();
       });
@@ -322,6 +323,7 @@ export class ProductsService {
     if (variationsToBeInserted) {
       variationsToBeInserted.forEach(variation => {
         variation.product = product;
+        variation.currentPosition = 0;
       });
       const persistedVariations = await this.productVariationsRepository.save(
         variationsToBeInserted,
