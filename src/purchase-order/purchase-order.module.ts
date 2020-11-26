@@ -9,6 +9,7 @@ import { PurchaseOrderItem } from './purchase-order-item.entity';
 import { PurchaseOrderService } from './purchase-order.service';
 import { PurchaseOrderController } from './purchase-order.controller';
 import { SupplierModule } from '../supplier/supplier.module';
+import { ProductVariation } from '../products/entities/product-variation.entity';
 
 @Module({
   imports: [
@@ -16,7 +17,11 @@ import { SupplierModule } from '../supplier/supplier.module';
     ProductsModule,
     InventoryModule,
     SupplierModule,
-    TypeOrmModule.forFeature([PurchaseOrder, PurchaseOrderItem]),
+    TypeOrmModule.forFeature([
+      PurchaseOrder,
+      PurchaseOrderItem,
+      ProductVariation,
+    ]),
   ],
   providers: [PurchaseOrderService],
   controllers: [PurchaseOrderController],

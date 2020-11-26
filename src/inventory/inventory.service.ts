@@ -14,7 +14,7 @@ import { SaleOrder } from '../sales-order/entities/sale-order.entity';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { Product } from '../products/entities/product.entity';
 import { ProductComposition } from '../products/entities/product-composition.entity';
-import { PurchaseOrder } from 'src/purchase-order/purchase-order.entity';
+import { PurchaseOrder } from '../purchase-order/purchase-order.entity';
 
 @Injectable()
 export class InventoryService {

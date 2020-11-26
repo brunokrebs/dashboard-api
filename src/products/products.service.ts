@@ -185,6 +185,7 @@ export class ProductsService {
     const insertVariationJobs = variations.map(variation => {
       return new Promise(async res => {
         variation.product = persistedProduct;
+        variation.currentPosition = 0;
         await this.productVariationsRepository.save(variation);
         res();
       });
@@ -322,6 +323,7 @@ export class ProductsService {
     if (variationsToBeInserted) {
       variationsToBeInserted.forEach(variation => {
         variation.product = product;
+        variation.currentPosition = 0;
       });
       const persistedVariations = await this.productVariationsRepository.save(
         variationsToBeInserted,

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Repository } from 'typeorm';
+import { Brackets, In, Repository } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 
 import { PurchaseOrderItem } from './purchase-order-item.entity';
@@ -11,9 +11,11 @@ import { SupplierService } from '../supplier/supplier.service';
 import { Supplier } from '../supplier/supplier.entity';
 import { InventoryMovementDTO } from '../inventory/inventory-movement.dto';
 import { ProductsService } from '../products/products.service';
-import { IPaginationOpts } from 'src/pagination/pagination';
+import { IPaginationOpts } from '../pagination/pagination';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { PurchaseOrderStatus } from './purchase-order.enum';
+import { ProductVariation } from '../products/entities/product-variation.entity';
+
 @Injectable()
 export class PurchaseOrderService {
   constructor(
@@ -21,6 +23,8 @@ export class PurchaseOrderService {
     private purchaseOrderRepository: Repository<PurchaseOrder>,
     @InjectRepository(PurchaseOrderItem)
     private purchaseOrderItemRepository: Repository<PurchaseOrderItem>,
+    @InjectRepository(ProductVariation)
+    private productVariationRepository: Repository<ProductVariation>,
     private inventoryService: InventoryService,
     private productsService: ProductsService,
     private supplierService: SupplierService,
@@ -229,12 +233,18 @@ export class PurchaseOrderService {
       .where(`purchase_order_id = :id`, { id })
       .execute();
 
+    const productVariations = await this.productVariationRepository.find({
+      sku: In(purchaseOrder.items.map(item => item.productVariation.sku)),
+    });
+
     const purchaseOrderItems = purchaseOrder.items.map(item => ({
       ...item,
-      productVariation: item.productVariation,
+      productVariation: productVariations.find(
+        pv => pv.sku === item.productVariation.sku,
+      ),
       purchaseOrder: persistedOrder,
       amount: item.amount,
-      ipi: 0, // TODO disponibilizar para alteração
+      ipi: item.ipi,
     }));
     return this.purchaseOrderItemRepository.save(purchaseOrderItems);
   }
@@ -257,11 +267,10 @@ export class PurchaseOrderService {
       amount: item.amount,
       productVariation: item.productVariation,
       sku: item.productVariation.sku,
-      id: item.productVariation.id,
       currentPosition: item.productVariation.currentPosition,
       description: item.productVariation.description,
       completeDescription: `${item.productVariation.sku} - ${item.productVariation.product.title} (${item.productVariation.description})`,
-      ipi: 0,
+      ipi: item.ipi,
     }));
     return order;
   }
@@ -270,11 +279,15 @@ export class PurchaseOrderService {
     // set the new status
     await this.purchaseOrderRepository.update(purchaseOrder.id, {
       status: purchaseOrder.status,
+      completionDate:
+        purchaseOrder.status === PurchaseOrderStatus.COMPLETED
+          ? new Date()
+          : null,
     });
 
     if (purchaseOrder.status !== PurchaseOrderStatus.COMPLETED) {
       // remove previous movements, if any
-      return this.inventoryService.cleanUpMovements(null, purchaseOrder);
+      await this.inventoryService.cleanUpMovements(null, purchaseOrder);
     } else {
       // create the new movements
       const insertMovementJobs = purchaseOrder.items
@@ -291,7 +304,7 @@ export class PurchaseOrderService {
             purchaseOrder,
           ),
         );
-      return Promise.all(insertMovementJobs);
+      await Promise.all(insertMovementJobs);
     }
   }
 }
