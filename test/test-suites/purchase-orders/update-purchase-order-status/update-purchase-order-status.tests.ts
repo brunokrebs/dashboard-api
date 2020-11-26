@@ -13,7 +13,7 @@ import { PurchaseOrderStatus } from '../../../../src/purchase-order/purchase-ord
 describe('updating purchasing order status', () => {
   let authorizedRequest: any;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     authorizedRequest = await getCredentials();
 
     await cleanUpDatabase();
@@ -56,7 +56,7 @@ describe('updating purchasing order status', () => {
     );
 
     // check if the movement was recorded
-    const positionAfterUpdate1 = getCurrentPosition(
+    const positionAfterUpdate1 = await getCurrentPosition(
       purchaseOrder.items[0].productVariation.sku,
     );
     expect(positionAfterUpdate1).toBe(
@@ -65,16 +65,13 @@ describe('updating purchasing order status', () => {
     expect(response).toBeDefined();
     expect(response.data).toBeDefined();
 
-    try {
-      await updateStatus(purchaseOrder, PurchaseOrderStatus.COMPLETED);
-      fail('Error');
-    } catch (err) {
-      // check if the movement was recorded
-      const positionAfterupdate2 = await getCurrentPosition(
-        purchaseOrder.items[0].productVariation.sku,
-      );
-      expect(positionAfterupdate2).toBe(positionAfterUpdate1);
-    }
+    await updateStatus(purchaseOrder, PurchaseOrderStatus.COMPLETED);
+
+    // check if the movement was recorded
+    const positionAfterupdate2 = await getCurrentPosition(
+      purchaseOrder.items[0].productVariation.sku,
+    );
+    expect(positionAfterupdate2).toBe(positionAfterUpdate1);
   });
 
   it('should remove movements after reopening order', async () => {

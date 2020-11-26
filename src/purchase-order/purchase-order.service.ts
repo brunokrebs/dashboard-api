@@ -288,9 +288,7 @@ export class PurchaseOrderService {
       .getOne();
 
     if (status === purchaseOrder.status) {
-      throw new Error(
-        'If the state of the product has not changed, there is no change in movements',
-      );
+      return;
     }
 
     // set the new status
