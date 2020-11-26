@@ -15,6 +15,7 @@ import { IPaginationOpts } from '../pagination/pagination';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { PurchaseOrderStatus } from './purchase-order.enum';
 import { ProductVariation } from '../products/entities/product-variation.entity';
+import { UpdatePurchaseOrderStatusDTO } from './update-purchase-order-status.dto';
 
 @Injectable()
 export class PurchaseOrderService {
@@ -275,17 +276,31 @@ export class PurchaseOrderService {
     return order;
   }
 
-  async updatePurchaseOrderMovements(purchaseOrder: PurchaseOrder) {
+  async updatePurchaseOrderMovements(
+    updatedPurchaseOrderStatus: UpdatePurchaseOrderStatusDTO,
+  ) {
+    const { referenceCode, status } = updatedPurchaseOrderStatus;
+    const purchaseOrder = await await this.purchaseOrderRepository
+      .createQueryBuilder('po')
+      .leftJoinAndSelect('po.items', 'poi')
+      .leftJoinAndSelect('poi.productVariation', 'pv')
+      .where(`po.reference_code = :referenceCode`, { referenceCode })
+      .getOne();
+
+    if (status === purchaseOrder.status) {
+      throw new Error(
+        'If the state of the product has not changed, there is no change in movements',
+      );
+    }
+
     // set the new status
     await this.purchaseOrderRepository.update(purchaseOrder.id, {
-      status: purchaseOrder.status,
+      status,
       completionDate:
-        purchaseOrder.status === PurchaseOrderStatus.COMPLETED
-          ? new Date()
-          : null,
+        status === PurchaseOrderStatus.COMPLETED ? new Date() : null,
     });
 
-    if (purchaseOrder.status !== PurchaseOrderStatus.COMPLETED) {
+    if (status !== PurchaseOrderStatus.COMPLETED) {
       // remove previous movements, if any
       await this.inventoryService.cleanUpMovements(null, purchaseOrder);
     } else {

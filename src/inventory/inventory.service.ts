@@ -178,6 +178,8 @@ export class InventoryService {
     allowPositiveMovementForCompositeProducts?: boolean,
     purchaseOrder?: PurchaseOrder,
   ): Promise<InventoryMovement> {
+    if (saleOrder && purchaseOrder)
+      throw new Error("Don't pass sale Order with purchase order");
     // 1. check if this is a composite product
     if (
       !allowPositiveMovementForCompositeProducts &&

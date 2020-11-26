@@ -15,6 +15,7 @@ import { parseBoolean } from '../util/parsers';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PurchaseOrder } from './purchase-order.entity';
 import { PurchaseOrderService } from './purchase-order.service';
+import { UpdatePurchaseOrderStatusDTO } from './update-purchase-order-status.dto';
 
 @Controller('purchase-orders')
 @UseGuards(JwtAuthGuard)
@@ -57,9 +58,11 @@ export class PurchaseOrderController {
   }
 
   @Put()
-  updateStatus(@Body() pruchaseOrder: PurchaseOrder) {
+  updateStatus(
+    @Body() updatePurchaseOrderStatus: UpdatePurchaseOrderStatusDTO,
+  ) {
     return this.purchaseOrderService.updatePurchaseOrderMovements(
-      pruchaseOrder,
+      updatePurchaseOrderStatus,
     );
   }
 }
