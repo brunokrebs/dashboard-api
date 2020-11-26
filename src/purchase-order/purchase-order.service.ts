@@ -76,6 +76,7 @@ export class PurchaseOrderService {
       discount: parseFloat(blingPurchaseOrder.desconto.replace(',', '.')),
       shippingPrice: blingPurchaseOrder.transporte.frete,
       items: [],
+      status: PurchaseOrderStatus.COMPLETED,
     };
 
     // saving the purchase order
@@ -220,26 +221,21 @@ export class PurchaseOrderService {
       purchaseOrder,
     );
 
+    const { id } = purchaseOrder;
     await this.purchaseOrderItemRepository
       .createQueryBuilder()
       .delete()
       .from(PurchaseOrderItem)
-      .where(`purchase_order_id = :purchase_order_id`, {
-        purchase_order_id: purchaseOrder.id,
-      })
+      .where(`purchase_order_id = :id`, { id })
       .execute();
 
-    const purchaseOrderItems: PurchaseOrderItem[] = purchaseOrder.items.map(
-      item => {
-        return {
-          ...item,
-          productVariation: item.productVariation,
-          purchaseOrder: persistedOrder,
-          amount: item.amount,
-          ipi: 0,
-        };
-      },
-    );
+    const purchaseOrderItems = purchaseOrder.items.map(item => ({
+      ...item,
+      productVariation: item.productVariation,
+      purchaseOrder: persistedOrder,
+      amount: item.amount,
+      ipi: 0, // TODO disponibilizar para alteração
+    }));
     return this.purchaseOrderItemRepository.save(purchaseOrderItems);
   }
 
@@ -256,45 +252,46 @@ export class PurchaseOrderService {
       .where('poi.purchase_order_id = :id', { id })
       .getMany();
 
-    order.items = items.map(item => {
-      return {
-        price: item.price,
-        amount: item.amount,
-        productVariation: item.productVariation,
-        sku: item.productVariation.sku,
-        id: item.productVariation.id,
-        currentPosition: item.productVariation.currentPosition,
-        description: item.productVariation.description,
-        completeDescription: `${item.productVariation.sku} - ${item.productVariation.product.title} (${item.productVariation.description})`,
-        ipi: 0,
-      };
-    });
+    order.items = items.map(item => ({
+      price: item.price,
+      amount: item.amount,
+      productVariation: item.productVariation,
+      sku: item.productVariation.sku,
+      id: item.productVariation.id,
+      currentPosition: item.productVariation.currentPosition,
+      description: item.productVariation.description,
+      completeDescription: `${item.productVariation.sku} - ${item.productVariation.product.title} (${item.productVariation.description})`,
+      ipi: 0,
+    }));
     return order;
   }
 
-  async persistPurchaseOrderMovements(purchaseOrder: PurchaseOrder) {
-    await this.purchaseOrderRepository
-      .createQueryBuilder()
-      .update(PurchaseOrder)
-      .set({ status: purchaseOrder.status })
-      .where(`id = :id`, {
-        id: purchaseOrder.id,
-      })
-      .execute();
+  async updatePurchaseOrderMovements(purchaseOrder: PurchaseOrder) {
+    // set the new status
+    await this.purchaseOrderRepository.update(purchaseOrder.id, {
+      status: purchaseOrder.status,
+    });
 
-    if (purchaseOrder.status === PurchaseOrderStatus.COMPLETED) {
-      const movements: InventoryMovementDTO[] = purchaseOrder.items.map(poi => {
-        return {
+    if (purchaseOrder.status !== PurchaseOrderStatus.COMPLETED) {
+      // remove previous movements, if any
+      return this.inventoryService.cleanUpMovements(null, purchaseOrder);
+    } else {
+      // create the new movements
+      const insertMovementJobs = purchaseOrder.items
+        .map(poi => ({
           sku: poi.productVariation.sku,
           amount: poi.amount,
           description: `Movimentação gerada pela ordem de compra ${purchaseOrder.id}.`,
-        };
-      });
-      const insertMovementJobs = movements.map(movement =>
-        this.inventoryService.saveMovement(movement, null, null, purchaseOrder),
-      );
-      return await Promise.all(insertMovementJobs);
+        }))
+        .map(movement =>
+          this.inventoryService.saveMovement(
+            movement,
+            null,
+            null,
+            purchaseOrder,
+          ),
+        );
+      return Promise.all(insertMovementJobs);
     }
-    return await this.inventoryService.cleanUpMovements(null, purchaseOrder);
   }
 }

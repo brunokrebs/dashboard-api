@@ -58,7 +58,7 @@ export class PurchaseOrderController {
 
   @Put()
   updateStatus(@Body() pruchaseOrder: PurchaseOrder) {
-    return this.purchaseOrderService.persistPurchaseOrderMovements(
+    return this.purchaseOrderService.updatePurchaseOrderMovements(
       pruchaseOrder,
     );
   }
