@@ -14,6 +14,7 @@ import { SaleOrder } from '../sales-order/entities/sale-order.entity';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { Product } from '../products/entities/product.entity';
 import { ProductComposition } from '../products/entities/product-composition.entity';
+import { PurchaseOrder } from '../purchase-order/purchase-order.entity';
 
 @Injectable()
 export class InventoryService {
@@ -70,6 +71,8 @@ export class InventoryService {
               new Brackets(qb => {
                 qb.where(`lower(pv.sku) like lower(:query)`, {
                   query: `%${queryParam.value.toString()}%`,
+                }).orWhere(`lower(p.title) like lower(:query)`, {
+                  query: `%${queryParam.value.toString()}%`,
                 });
               }),
             );
@@ -123,19 +126,32 @@ export class InventoryService {
       .getOne();
   }
 
-  async cleanUpMovements(saleOrder: SaleOrder) {
-    const movements = await this.inventoryMovementRepository.find({
-      saleOrder: saleOrder,
+  async cleanUpMovements(saleOrder?: SaleOrder, purchaseOrder?: PurchaseOrder) {
+    // finds all movements related to a sale order or a purchase order
+    const query = saleOrder ? { saleOrder } : { purchaseOrder };
+    const movements = await this.inventoryMovementRepository
+      .createQueryBuilder('im')
+      .leftJoinAndSelect('im.inventory', 'i')
+      .leftJoinAndSelect('i.productVariation', 'pv')
+      .where(query)
+      .getMany();
+
+    // removes movements and update current position
+    const removeMovementJobs = movements.map(async movement => {
+      // update current position on inventory
+      const inventory: Inventory = movement.inventory;
+      inventory.currentPosition -= movement.amount;
+      await this.inventoryRepository.save(inventory);
+
+      // update current position on product variation
+      const productVariation = inventory.productVariation;
+      productVariation.currentPosition -= movement.amount;
+      await this.productVariationRepository.save(productVariation);
+
+      // remove inventory movements
+      await this.inventoryMovementRepository.delete(movement.id);
     });
-    const removeMovementJobs = movements.map(movement => {
-      return new Promise(async res => {
-        const inventory = movement.inventory;
-        inventory.currentPosition -= movement.amount;
-        await this.inventoryRepository.save(inventory);
-        await this.inventoryMovementRepository.delete(movement.id);
-        res();
-      });
-    });
+
     await Promise.all(removeMovementJobs);
   }
 
@@ -162,7 +178,12 @@ export class InventoryService {
     inventoryMovementDTO: InventoryMovementDTO,
     saleOrder?: SaleOrder,
     allowPositiveMovementForCompositeProducts?: boolean,
+    purchaseOrder?: PurchaseOrder,
   ): Promise<InventoryMovement> {
+    if (saleOrder && purchaseOrder) {
+      throw new Error('Choose either a sales or a purchase order');
+    }
+
     // 1. check if this is a composite product
     if (
       !allowPositiveMovementForCompositeProducts &&
@@ -186,6 +207,7 @@ export class InventoryService {
     const inventoryMovement = await this.moveProduct(
       inventoryMovementDTO,
       saleOrder,
+      purchaseOrder,
     );
 
     // 3. if this product is part of compositions, update them
@@ -203,6 +225,7 @@ export class InventoryService {
   private async moveProduct(
     inventoryMovementDTO: InventoryMovementDTO,
     saleOrder: SaleOrder,
+    purchaseOrder?: PurchaseOrder,
   ) {
     const inventory = await this.findBySku(inventoryMovementDTO.sku);
 
@@ -226,6 +249,7 @@ export class InventoryService {
       amount: inventoryMovementDTO.amount,
       description: inventoryMovementDTO.description,
       saleOrder: saleOrder,
+      purchaseOrder: purchaseOrder,
     };
 
     return await this.inventoryMovementRepository.save(movement);

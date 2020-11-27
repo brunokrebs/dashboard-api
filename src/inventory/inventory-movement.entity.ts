@@ -8,6 +8,7 @@ import {
 import { BaseEntity } from '../util/base-entity';
 import { Inventory } from './inventory.entity';
 import { SaleOrder } from '../sales-order/entities/sale-order.entity';
+import { PurchaseOrder } from '../purchase-order/purchase-order.entity';
 
 @Entity()
 export class InventoryMovement extends BaseEntity {
@@ -28,6 +29,10 @@ export class InventoryMovement extends BaseEntity {
 
   @Column()
   description: string;
+
+  @ManyToOne(type => PurchaseOrder)
+  @JoinColumn({ name: 'purchase_order_id' })
+  purchaseOrder?: PurchaseOrder;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created?: Date;

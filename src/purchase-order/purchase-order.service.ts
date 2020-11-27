@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, In, Repository } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 
 import { PurchaseOrderItem } from './purchase-order-item.entity';
@@ -11,6 +11,11 @@ import { SupplierService } from '../supplier/supplier.service';
 import { Supplier } from '../supplier/supplier.entity';
 import { InventoryMovementDTO } from '../inventory/inventory-movement.dto';
 import { ProductsService } from '../products/products.service';
+import { IPaginationOpts } from '../pagination/pagination';
+import { paginate, Pagination } from 'nestjs-typeorm-paginate';
+import { PurchaseOrderStatus } from './purchase-order.enum';
+import { ProductVariation } from '../products/entities/product-variation.entity';
+import { UpdatePurchaseOrderStatusDTO } from './update-purchase-order-status.dto';
 
 @Injectable()
 export class PurchaseOrderService {
@@ -19,13 +24,15 @@ export class PurchaseOrderService {
     private purchaseOrderRepository: Repository<PurchaseOrder>,
     @InjectRepository(PurchaseOrderItem)
     private purchaseOrderItemRepository: Repository<PurchaseOrderItem>,
+    @InjectRepository(ProductVariation)
+    private productVariationRepository: Repository<ProductVariation>,
     private inventoryService: InventoryService,
     private productsService: ProductsService,
     private supplierService: SupplierService,
     private blingService: BlingService,
   ) {}
 
-  @Cron('0 45 17 * * *')
+  @Cron('0 45 * * * *')
   async syncPurchaseOrdersWithBling() {
     if (
       process.env.NODE_ENV === 'development' ||
@@ -69,11 +76,12 @@ export class PurchaseOrderService {
     const purchaseOrder: PurchaseOrder = {
       referenceCode: blingPurchaseOrder.numeropedido,
       creationDate: new Date(),
-      completionate: new Date(),
+      completionDate: new Date(),
       supplier: supplier,
       discount: parseFloat(blingPurchaseOrder.desconto.replace(',', '.')),
       shippingPrice: blingPurchaseOrder.transporte.frete,
       items: [],
+      status: PurchaseOrderStatus.COMPLETED,
     };
 
     // saving the purchase order
@@ -137,5 +145,179 @@ export class PurchaseOrderService {
 
     persistedSuppliers.push(...newSuppliers);
     return persistedSuppliers;
+  }
+
+  async paginate(options: IPaginationOpts): Promise<Pagination<PurchaseOrder>> {
+    const queryBuilder = this.purchaseOrderRepository
+      .createQueryBuilder('po')
+      .leftJoinAndSelect('po.supplier', 's')
+      .leftJoinAndSelect('po.items', 'poi')
+      .leftJoinAndSelect('poi.productVariation', 'pv');
+
+    let orderColumn = '';
+    switch (options.sortedBy?.trim()) {
+      case undefined:
+      case null:
+      case '':
+      case 'creationDate':
+        orderColumn = 'po.creationDate';
+        break;
+      case 'referenceCode':
+        orderColumn = 'po.referenceCode';
+        break;
+      case 'total':
+        orderColumn = 'po.total';
+        break;
+      case 'supplier':
+        orderColumn = 's.name';
+        break;
+      default:
+        orderColumn = 'po.creationDate';
+    }
+
+    options.queryParams
+      .filter(queryParam => {
+        return (
+          queryParam !== null &&
+          queryParam.value !== null &&
+          queryParam.value !== undefined
+        );
+      })
+      .forEach(queryParam => {
+        switch (queryParam.key) {
+          case 'query':
+            queryBuilder.andWhere(
+              new Brackets(qb => {
+                qb.where(`lower(po.referenceCode) like lower(:query)`, {
+                  query: `%${queryParam.value.toString()}%`,
+                })
+                  .orWhere(`lower(s.name) like lower(:query)`, {
+                    query: `%${queryParam.value.toString()}%`,
+                  })
+                  .orWhere(`lower(s.cnpj) like lower(:query)`, {
+                    query: `%${queryParam.value.toString()}%`,
+                  });
+              }),
+            );
+            break;
+        }
+      });
+
+    let sortDirection;
+    let sortNulls;
+    switch (options.sortDirectionAscending) {
+      case undefined:
+      case null:
+      case true:
+        sortDirection = 'DESC';
+        sortNulls = 'NULLS FIRST';
+        break;
+      default:
+        sortDirection = 'ASC';
+        sortNulls = 'NULLS LAST';
+    }
+
+    queryBuilder.orderBy(orderColumn, sortDirection, sortNulls);
+    return paginate<PurchaseOrder>(queryBuilder, options);
+  }
+
+  async save(purchaseOrder: PurchaseOrder) {
+    const persistedOrder = await this.purchaseOrderRepository.save(
+      purchaseOrder,
+    );
+
+    const { id } = purchaseOrder;
+    await this.purchaseOrderItemRepository
+      .createQueryBuilder()
+      .delete()
+      .from(PurchaseOrderItem)
+      .where(`purchase_order_id = :id`, { id })
+      .execute();
+
+    const productVariations = await this.productVariationRepository.find({
+      sku: In(purchaseOrder.items.map(item => item.productVariation.sku)),
+    });
+
+    const purchaseOrderItems = purchaseOrder.items.map(item => ({
+      ...item,
+      productVariation: productVariations.find(
+        pv => pv.sku === item.productVariation.sku,
+      ),
+      purchaseOrder: persistedOrder,
+      amount: item.amount,
+      ipi: item.ipi,
+    }));
+    return this.purchaseOrderItemRepository.save(purchaseOrderItems);
+  }
+
+  async findOne(id: string): Promise<PurchaseOrder> {
+    const order = await this.purchaseOrderRepository.findOne({
+      where: { id },
+      relations: ['supplier'],
+    });
+
+    const items: PurchaseOrderItem[] = await this.purchaseOrderItemRepository
+      .createQueryBuilder('poi')
+      .leftJoinAndSelect('poi.productVariation', 'pv')
+      .leftJoinAndSelect('pv.product', 'product')
+      .where('poi.purchase_order_id = :id', { id })
+      .getMany();
+
+    order.items = items.map(item => ({
+      price: item.price,
+      amount: item.amount,
+      productVariation: item.productVariation,
+      sku: item.productVariation.sku,
+      currentPosition: item.productVariation.currentPosition,
+      description: item.productVariation.description,
+      completeDescription: `${item.productVariation.sku} - ${item.productVariation.product.title} (${item.productVariation.description})`,
+      ipi: item.ipi,
+    }));
+    return order;
+  }
+
+  async updatePurchaseOrderMovements(
+    updatedPurchaseOrderStatus: UpdatePurchaseOrderStatusDTO,
+  ) {
+    const { referenceCode, status } = updatedPurchaseOrderStatus;
+    const purchaseOrder = await await this.purchaseOrderRepository
+      .createQueryBuilder('po')
+      .leftJoinAndSelect('po.items', 'poi')
+      .leftJoinAndSelect('poi.productVariation', 'pv')
+      .where(`po.reference_code = :referenceCode`, { referenceCode })
+      .getOne();
+
+    if (status === purchaseOrder.status) {
+      return;
+    }
+
+    // set the new status
+    await this.purchaseOrderRepository.update(purchaseOrder.id, {
+      status,
+      completionDate:
+        status === PurchaseOrderStatus.COMPLETED ? new Date() : null,
+    });
+
+    if (status !== PurchaseOrderStatus.COMPLETED) {
+      // remove previous movements, if any
+      await this.inventoryService.cleanUpMovements(null, purchaseOrder);
+    } else {
+      // create the new movements
+      const insertMovementJobs = purchaseOrder.items
+        .map(poi => ({
+          sku: poi.productVariation.sku,
+          amount: poi.amount,
+          description: `Movimentação gerada pela ordem de compra ${purchaseOrder.id}.`,
+        }))
+        .map(movement =>
+          this.inventoryService.saveMovement(
+            movement,
+            null,
+            null,
+            purchaseOrder,
+          ),
+        );
+      await Promise.all(insertMovementJobs);
+    }
   }
 }

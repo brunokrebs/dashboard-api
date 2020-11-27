@@ -4,6 +4,7 @@ import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 
 import { BaseEntity } from '../util/base-entity';
 import { PurchaseOrderItem } from './purchase-order-item.entity';
+import { PurchaseOrderStatus } from './purchase-order.enum';
 
 @Entity()
 export class PurchaseOrder extends BaseEntity {
@@ -30,7 +31,7 @@ export class PurchaseOrder extends BaseEntity {
     unique: false,
     nullable: true,
   })
-  completionate?: Date;
+  completionDate?: Date;
 
   @ManyToOne(type => Supplier, {
     nullable: false,
@@ -42,7 +43,7 @@ export class PurchaseOrder extends BaseEntity {
   @OneToMany(
     type => PurchaseOrderItem,
     item => item.purchaseOrder,
-    { cascade: false },
+    { persistence: false },
   )
   items: PurchaseOrderItem[];
 
@@ -61,4 +62,18 @@ export class PurchaseOrder extends BaseEntity {
     transformer: new NumericTransformer(),
   })
   shippingPrice: number;
+
+  @Column({
+    name: 'total',
+    precision: 2,
+    transformer: new NumericTransformer(),
+  })
+  total?: number;
+
+  @Column({
+    name: 'status',
+    type: 'varchar',
+    length: 60,
+  })
+  status?: PurchaseOrderStatus;
 }
