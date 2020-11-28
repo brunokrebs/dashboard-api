@@ -61,8 +61,6 @@ export class PurchaseOrderController {
   updateStatus(
     @Body() updatePurchaseOrderStatus: UpdatePurchaseOrderStatusDTO,
   ) {
-    return this.purchaseOrderService.updatePurchaseOrderMovements(
-      updatePurchaseOrderStatus,
-    );
+    return this.purchaseOrderService.updateStatus(updatePurchaseOrderStatus);
   }
 }

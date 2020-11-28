@@ -1,16 +1,26 @@
 import { ValidationPipe, LogLevel } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import {
+  initializeTransactionalContext,
+  patchTypeORMRepositoryWithBaseRepository,
+} from 'typeorm-transactional-cls-hooked';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 
 export async function bootstrap(silentMode = false) {
+  // define log level
   const logger: LogLevel[] = ['error', 'warn'];
   if (!silentMode) {
     logger.push('log');
     process.env.LOG_SQL_QUERIES = 'true';
   }
 
+  // supporting transactions
+  initializeTransactionalContext();
+  patchTypeORMRepositoryWithBaseRepository();
+
+  // build app instance
   const app = await NestFactory.create(AppModule, { logger });
   app.use(helmet());
 

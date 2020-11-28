@@ -80,6 +80,6 @@ export class InventoryController {
   async save(
     @Body() inventoryMovementDTO: InventoryMovementDTO,
   ): Promise<InventoryMovement> {
-    return this.inventoryService.saveMovement(inventoryMovementDTO);
+    return this.inventoryService.createNewMovement(inventoryMovementDTO);
   }
 }

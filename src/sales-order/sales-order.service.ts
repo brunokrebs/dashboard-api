@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import randomize from 'randomatic';
-import moment, { Moment } from 'moment';
+import moment from 'moment';
 
 import { SaleOrder } from './entities/sale-order.entity';
 import { Repository, Brackets } from 'typeorm';
@@ -21,6 +21,7 @@ import { Pagination, paginate } from 'nestjs-typeorm-paginate';
 import { isNullOrUndefined } from '../util/numeric-transformer';
 import { SaleOrderBlingStatus } from './entities/sale-order-bling-status.enum';
 import { BlingService } from '../bling/bling.service';
+import { Propagation, Transactional } from 'typeorm-transactional-cls-hooked';
 
 @Injectable()
 export class SalesOrderService {
@@ -140,6 +141,7 @@ export class SalesOrderService {
     });
   }
 
+  @Transactional({ propagation: Propagation.REQUIRED })
   private async createOrUpdateSaleOrder(
     saleOrderDTO: SaleOrderDTO,
   ): Promise<SaleOrder> {
@@ -240,10 +242,12 @@ export class SalesOrderService {
     return Promise.resolve(persistedSaleOrder);
   }
 
+  @Transactional()
   save(saleOrderDTO: SaleOrderDTO): Promise<SaleOrder> {
     return this.createOrUpdateSaleOrder(saleOrderDTO);
   }
 
+  @Transactional()
   async updateStatus(
     referenceCode: string,
     status: PaymentStatus,

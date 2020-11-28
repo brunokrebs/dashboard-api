@@ -16,6 +16,7 @@ import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { PurchaseOrderStatus } from './purchase-order.enum';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { UpdatePurchaseOrderStatusDTO } from './update-purchase-order-status.dto';
+import { Propagation, Transactional } from 'typeorm-transactional-cls-hooked';
 
 @Injectable()
 export class PurchaseOrderService {
@@ -33,6 +34,7 @@ export class PurchaseOrderService {
   ) {}
 
   @Cron('0 45 * * * *')
+  @Transactional()
   async syncPurchaseOrdersWithBling() {
     if (
       process.env.NODE_ENV === 'development' ||
@@ -48,6 +50,7 @@ export class PurchaseOrderService {
     await Promise.all(persistJobs);
   }
 
+  @Transactional({ propagation: Propagation.REQUIRED })
   private async persistPurchaseOrderFromBling(
     blingPurchaseOrder: any,
     persistedSuppliers: Supplier[],
@@ -284,9 +287,8 @@ export class PurchaseOrderService {
     return order;
   }
 
-  async updatePurchaseOrderMovements(
-    updatedPurchaseOrderStatus: UpdatePurchaseOrderStatusDTO,
-  ) {
+  @Transactional()
+  async updateStatus(updatedPurchaseOrderStatus: UpdatePurchaseOrderStatusDTO) {
     const { referenceCode, status } = updatedPurchaseOrderStatus;
     const purchaseOrder = await await this.purchaseOrderRepository
       .createQueryBuilder('po')

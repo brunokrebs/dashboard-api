@@ -1,10 +1,4 @@
-import {
-  PrimaryGeneratedColumn,
-  VersionColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
-  DeleteDateColumn,
-} from 'typeorm';
+import { PrimaryGeneratedColumn, VersionColumn } from 'typeorm';
 
 export abstract class BaseEntity {
   @PrimaryGeneratedColumn()

@@ -15,6 +15,7 @@ import { ProductVariation } from '../products/entities/product-variation.entity'
 import { Product } from '../products/entities/product.entity';
 import { ProductComposition } from '../products/entities/product-composition.entity';
 import { PurchaseOrder } from '../purchase-order/purchase-order.entity';
+import { Propagation, Transactional } from 'typeorm-transactional-cls-hooked';
 
 @Injectable()
 export class InventoryService {
@@ -126,6 +127,7 @@ export class InventoryService {
       .getOne();
   }
 
+  @Transactional({ propagation: Propagation.MANDATORY })
   async cleanUpMovements(saleOrder?: SaleOrder, purchaseOrder?: PurchaseOrder) {
     // finds all movements related to a sale order or a purchase order
     const query = saleOrder ? { saleOrder } : { purchaseOrder };
@@ -174,6 +176,12 @@ export class InventoryService {
     await Promise.all(removeJobs);
   }
 
+  @Transactional()
+  async createNewMovement(inventoryMovementDTO: InventoryMovementDTO) {
+    return this.saveMovement(inventoryMovementDTO);
+  }
+
+  @Transactional({ propagation: Propagation.MANDATORY })
   async saveMovement(
     inventoryMovementDTO: InventoryMovementDTO,
     saleOrder?: SaleOrder,
