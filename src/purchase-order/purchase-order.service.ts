@@ -222,15 +222,14 @@ export class PurchaseOrderService {
   }
 
   async save(purchaseOrder: PurchaseOrder) {
-    let total = 0;
-    purchaseOrder.items.map(item => {
-      total += item.price;
-    });
+    const itemsTotal = purchaseOrder.items
+      .map(item => item.price * item.amount)
+      .reduce((previousAmount, itemAmount) => previousAmount + itemAmount, 0);
     purchaseOrder.total =
-      total + purchaseOrder.shippingPrice - purchaseOrder.discount;
-    if (purchaseOrder.id) {
-      purchaseOrder.creationDate = new Date();
-    }
+      itemsTotal + purchaseOrder.shippingPrice - purchaseOrder.discount;
+
+    if (!purchaseOrder.id) purchaseOrder.creationDate = new Date();
+
     const persistedOrder = await this.purchaseOrderRepository.save(
       purchaseOrder,
     );
