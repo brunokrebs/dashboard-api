@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import moment, { Moment } from 'moment';
 
+import { SaleOrder } from '../sales-order/entities/sale-order.entity';
 import { SalesOrderService } from '../sales-order/sales-order.service';
-import { parseWeekDay } from '../util/parsers';
 
 @Injectable()
 export class ChartService {
@@ -17,10 +17,24 @@ export class ChartService {
     const sevenDaysData = this.quantitySales(7, sevenDays);
     const thirtyDaysData = this.quantitySales(30, thirtyDays);
 
+    const threeDaysTotal = this.getTotalSum(threeDays);
+    const sevenDaysTotal = this.getTotalSum(sevenDays);
+    const thirtyDaysTotal = this.getTotalSum(thirtyDays);
+
+    const threeDaysAvg = threeDaysTotal / threeDays.length;
+    const sevenDaysAvg = sevenDaysTotal / sevenDays.length;
+    const thirtyDaysAvg = thirtyDaysTotal / thirtyDays.length;
+
     return {
       threeDaysData: this.renderPeriod(3, threeDaysData),
       sevenDaysData: this.renderPeriod(7, sevenDaysData),
       thirtyDaysData: this.renderPeriod(30, thirtyDaysData),
+      threeDaysAvg,
+      sevenDaysAvg,
+      thirtyDaysAvg,
+      threeDaysTotal,
+      sevenDaysTotal,
+      thirtyDaysTotal,
     };
   }
 
@@ -66,5 +80,9 @@ export class ChartService {
           .reduce((total, sale) => (total += sale.paymentDetails.total), 0)
           .toFixed(2);
       });
+  }
+
+  private getTotalSum(sales: SaleOrder[]) {
+    return sales.reduce((total, sale) => total + sale.paymentDetails.total, 0);
   }
 }
