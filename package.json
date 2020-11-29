@@ -59,6 +59,7 @@
     "typeorm": "^0.2.26",
     "typeorm-transactional-cls-hooked": "^0.1.17",
     "uuid": "^8.2.0",
+    "winston": "^3.3.3",
     "xlsx": "^0.16.7"
   },
   "devDependencies": {

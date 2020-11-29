@@ -7,12 +7,10 @@ import {
 import helmet from 'helmet';
 
 import { AppModule } from './app.module';
+import { AppLogger } from './logger/app-logger.service';
 
 export async function bootstrap(silentMode = false) {
-  // define log level
-  const logger: LogLevel[] = ['error', 'warn'];
   if (!silentMode) {
-    logger.push('log');
     process.env.LOG_SQL_QUERIES = 'true';
   }
 
@@ -21,7 +19,7 @@ export async function bootstrap(silentMode = false) {
   patchTypeORMRepositoryWithBaseRepository();
 
   // build app instance
-  const app = await NestFactory.create(AppModule, { logger });
+  const app = await NestFactory.create(AppModule, { logger: new AppLogger() });
   app.use(helmet());
 
   if (
