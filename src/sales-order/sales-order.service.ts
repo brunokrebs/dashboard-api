@@ -309,6 +309,7 @@ export class SalesOrderService {
     const queryBuilder = await this.salesOrderRepository
       .createQueryBuilder('so')
       .leftJoinAndSelect('so.customer', 'c')
+      .leftJoinAndSelect('so.items', 'i')
       .where('so.paymentStatus = :status', { status: 'APPROVED' })
       .andWhere('so.approvalDate >= :date', {
         date: moment().subtract(3, 'd'),
@@ -318,12 +319,12 @@ export class SalesOrderService {
     return paginate<SaleOrder>(queryBuilder, options);
   }
 
-  async getSalesForLast7Days() {
+  async getSalesForLastNDays(days) {
     const queryBuilder = await this.salesOrderRepository
       .createQueryBuilder('so')
       .where('so.paymentStatus = :status', { status: 'APPROVED' })
       .andWhere('so.approvalDate >= :date', {
-        date: moment().subtract(7, 'd'),
+        date: moment().subtract(days, 'd'),
       })
       .orderBy('so.approvalDate', 'DESC')
       .getMany();

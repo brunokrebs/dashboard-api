@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import moment, { Moment } from 'moment';
 
-import { PaymentType } from '../sales-order/entities/payment-type.enum';
 import { SalesOrderService } from '../sales-order/sales-order.service';
 import { parseWeekDay } from '../util/parsers';
 
@@ -10,60 +9,62 @@ export class ChartService {
   constructor(private salesOrderService: SalesOrderService) {}
 
   async graphicalData() {
-    const sales = await this.salesOrderService.getSalesForLast7Days();
+    const threeDays = await this.salesOrderService.getSalesForLastNDays(3);
+    const sevenDays = await this.salesOrderService.getSalesForLastNDays(7);
+    const thirtyDays = await this.salesOrderService.getSalesForLastNDays(30);
 
-    const weekDay = this.getLast7Days();
+    const threeDaysData = this.quantitySales(3, threeDays);
+    const sevenDaysData = this.quantitySales(7, sevenDays);
+    const thirtyDaysData = this.quantitySales(30, thirtyDays);
 
-    const bankSlipData = this.quantitySales(sales, PaymentType.BANK_SLIP);
-    const creditCardData = this.quantitySales(sales, PaymentType.CREDIT_CARD);
+    return {
+      threeDaysData: this.renderPeriod(3, threeDaysData),
+      sevenDaysData: this.renderPeriod(7, sevenDaysData),
+      thirtyDaysData: this.renderPeriod(30, thirtyDaysData),
+    };
+  }
 
-    const data = {
-      labels: weekDay.map(day => day.dayOfWeek),
+  private renderPeriod(days, data) {
+    const lastNDays = this.getLastNDays(days);
+    return {
+      labels: lastNDays.map(day => day.date.format('DD/MM')),
       datasets: [
         {
-          label: 'Boleto',
-          backgroundColor: '#42A5F5',
+          backgroundColor: '#77b5e8',
           borderColor: '#1E88E5',
-          data: bankSlipData,
-        },
-        {
-          label: 'Cartão de Crédito',
-          backgroundColor: '#9CCC65',
-          borderColor: '#7CB342',
-          data: creditCardData,
+          borderWidth: 1,
+          data: data,
         },
       ],
     };
-    return data;
   }
 
-  getLast7Days() {
+  getLastNDays(days) {
     // we add one day here because the while loop subtract one
     // i.e., if we didn't do that, we would ignore "today"
     const currentDay = moment().add(1, 'days');
-    const lastSevenDays: { date: Moment; dayOfWeek: string }[] = [];
-    while (lastSevenDays.length < 7) {
-      lastSevenDays.push({
+    const lastNDays: { date: Moment }[] = [];
+    while (lastNDays.length < days) {
+      lastNDays.push({
         date: moment(currentDay.subtract(1, 'days')).startOf('day'),
-        dayOfWeek: parseWeekDay(currentDay.weekday()),
       });
     }
-    return lastSevenDays.reverse();
+    return lastNDays.reverse();
   }
 
-  private quantitySales(sales, paymentType) {
-    const last7Days = this.getLast7Days();
-    return last7Days
+  private quantitySales(days, sales) {
+    const lastNDays = this.getLastNDays(days);
+    return lastNDays
       .map(day => day.date)
       .map(date => {
         return sales
-          .filter(sale => sale.paymentDetails.paymentType === paymentType)
           .filter(sale => {
             return moment(sale.approvalDate)
               .startOf('day')
               .isSame(date);
           })
-          .reduce((total, sale) => (total += sale.paymentDetails.total), 0);
+          .reduce((total, sale) => (total += sale.paymentDetails.total), 0)
+          .toFixed(2);
       });
   }
 }

@@ -5,7 +5,7 @@ import { ChartService } from './chart.service';
 export class ChartController {
   constructor(private chartService: ChartService) {}
 
-  @Get('/sales-for-last-7-days')
+  @Get('/home')
   async graphicalData() {
     return this.chartService.graphicalData();
   }
