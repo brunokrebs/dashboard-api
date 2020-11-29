@@ -9,7 +9,6 @@ import {
   Body,
   Param,
   Delete,
-  UseFilters,
   Query,
   Put,
 } from '@nestjs/common';
@@ -21,7 +20,6 @@ import { Image } from './image.entity';
 import { ImagesService } from './images.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TagsService } from '../tags/tags.service';
-import { GlobalExceptionsFilter } from '../global-exceptions.filter';
 
 const transformations = [
   { id: 'thumbnail', width: 90, height: 90, strategy: 'auto', enhance: true },
@@ -49,7 +47,6 @@ const kraken = new Kraken({
 
 @Controller('media-library')
 @UseGuards(JwtAuthGuard)
-@UseFilters(new GlobalExceptionsFilter())
 export class MediaLibraryController {
   constructor(
     private imagesService: ImagesService,

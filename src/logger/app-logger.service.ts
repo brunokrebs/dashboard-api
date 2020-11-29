@@ -29,23 +29,23 @@ const logger = createLogger({
 
 // extends Nest.js' Logger to use Winston
 export class AppLogger extends Logger {
-  log(message: string) {
+  log(message: any) {
     logger.log('info', message);
   }
 
-  error(message: string) {
+  error(message: any) {
     logger.error(message);
   }
 
-  warn(message: string) {
+  warn(message: any) {
     logger.warn(message);
   }
 
-  debug(message: string) {
+  debug(message: any) {
     logger.debug(message);
   }
 
-  verbose(message: string) {
+  verbose(message: any) {
     logger.verbose(message);
   }
 }

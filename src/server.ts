@@ -8,6 +8,8 @@ import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 import { AppLogger } from './logger/app-logger.service';
+import { ActionLoggerInterceptor } from './logger/action-logger.service';
+import { GlobalExceptionsFilter } from './global-exceptions.filter';
 
 export async function bootstrap(silentMode = false) {
   if (!silentMode) {
@@ -19,7 +21,8 @@ export async function bootstrap(silentMode = false) {
   patchTypeORMRepositoryWithBaseRepository();
 
   // build app instance
-  const app = await NestFactory.create(AppModule, { logger: new AppLogger() });
+  const appLogger = new AppLogger();
+  const app = await NestFactory.create(AppModule, { logger: appLogger });
   app.use(helmet());
 
   if (
@@ -32,7 +35,9 @@ export async function bootstrap(silentMode = false) {
     });
   }
   console.log(`NODE_ENV = ${process.env.NODE_ENV}`);
+  app.useGlobalFilters(new GlobalExceptionsFilter(appLogger));
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  app.useGlobalInterceptors(new ActionLoggerInterceptor(appLogger));
   app.setGlobalPrefix('v1');
   await app.listen(3005);
   return app;

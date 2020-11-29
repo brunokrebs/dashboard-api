@@ -5,9 +5,15 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
+import { AppLogger } from './logger/app-logger.service';
 
 @Catch()
 export class GlobalExceptionsFilter implements ExceptionFilter {
+  logger: AppLogger;
+  constructor(logger: AppLogger) {
+    this.logger = logger;
+  }
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
@@ -17,6 +23,20 @@ export class GlobalExceptionsFilter implements ExceptionFilter {
       exception instanceof HttpException
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
+
+    // when a request fails, we add details to DataDog
+    this.logger.error({
+      req: {
+        user: request.user,
+        path: request.path,
+        method: request.method,
+        query: request.query,
+        body: request.body,
+      },
+      res: {
+        statusCode: status,
+      },
+    });
 
     response.status(status).json({
       statusCode: status,
