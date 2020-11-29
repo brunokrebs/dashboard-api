@@ -27,5 +27,7 @@ describe('querying purchase orders', () => {
     expect(response).toBeDefined();
     expect(response.data).toBeDefined();
     expect(response.status).toBe(200);
+
+    // TODO check the returned data
   });
 });

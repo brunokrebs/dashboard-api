@@ -324,7 +324,9 @@ export class SalesOrderService {
       .createQueryBuilder('so')
       .where('so.paymentStatus = :status', { status: 'APPROVED' })
       .andWhere('so.approvalDate >= :date', {
-        date: moment().subtract(days, 'd'),
+        date: moment()
+          .subtract(days - 1, 'd')
+          .startOf('day'),
       })
       .orderBy('so.approvalDate', 'DESC')
       .getMany();

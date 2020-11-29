@@ -10,7 +10,7 @@ import purchaseOrdersScenarios from '../purchase-orders.scenarios.json';
 import { insertProductFixtures } from '../../products/products-fixtures/products.fixture';
 import { PurchaseOrderStatus } from '../../../../src/purchase-order/purchase-order.enum';
 
-describe('updating purchasing order status', () => {
+describe('updating purchase order status', () => {
   let authorizedRequest: any;
 
   beforeEach(async () => {

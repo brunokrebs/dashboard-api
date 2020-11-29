@@ -31,6 +31,7 @@
                 "--config",
                 "${workspaceRoot}/test/jest-e2e.json",
                 "--runInBand",
+                "--watch",
                 "--testTimeout=120000"
             ],
             "sourceMaps": true,
