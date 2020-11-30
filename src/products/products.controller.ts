@@ -23,8 +23,10 @@ export class ProductsController {
   @Get('/variations')
   findProductVariations(
     @Query('query') query: string,
+    @Query('skip-composite-products') skipCompositeProducts?: string,
   ): Promise<ProductVariationDetailsDTO[]> {
-    return this.productsService.findVariations(query);
+    const isSkipCompisiteProducts = parseBoolean(skipCompositeProducts);
+    return this.productsService.findVariations(query, isSkipCompisiteProducts);
   }
 
   @Get('/all')

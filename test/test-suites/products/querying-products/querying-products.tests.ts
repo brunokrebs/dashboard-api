@@ -2,7 +2,10 @@ import axios from 'axios';
 
 import { cleanUpDatabase } from '../../utils/queries';
 import { getCredentials } from '../../utils/credentials';
-import { insertProductFixtures } from '../products-fixtures/products.fixture';
+import {
+  insertProductFixtures,
+  insertProductWithComposition,
+} from '../products-fixtures/products.fixture';
 import productsFixtures from '../products-fixtures/products.fixtures.json';
 
 describe('querying products', () => {
@@ -14,6 +17,7 @@ describe('querying products', () => {
     authorizedRequest = await getCredentials();
 
     await insertProductFixtures();
+    await insertProductWithComposition();
   });
 
   it('should be able to retrieve all products with variations, images, and inventory', async () => {
@@ -132,5 +136,19 @@ describe('querying products', () => {
     expect(response.data.items[0].sku).toBe('A-09');
     expect(response.data.items[1].sku).toBe('A-08');
     expect(response.data.items[2].sku).toBe('A-07');
+  });
+
+  it.only('should show only products that are not compositions', async () => {
+    const response = await axios.get(
+      'http://localhost:3005/v1/products/variations?query=cp&skip-composite-products=false',
+      authorizedRequest,
+    );
+    console.log('#####################################');
+    console.log(response.data);
+    console.log('#####################################');
+    if (response.data.length !== 0) {
+      fail();
+    }
+    expect(response.data.length).toBe(0);
   });
 });
