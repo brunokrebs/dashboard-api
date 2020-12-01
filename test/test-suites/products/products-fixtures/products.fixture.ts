@@ -40,5 +40,5 @@ export async function insertProductWithComposition() {
       });
     },
   );
-  Promise.all(insertProductWithCompositionJobs);
+  await Promise.all(insertProductWithCompositionJobs);
 }

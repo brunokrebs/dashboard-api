@@ -385,18 +385,4 @@ describe('managing composite products', () => {
 
     await checkInventory(persistedProduct.sku, inventoryPart4.amount);
   });
-
-  it('should show only products that are not compositions', async () => {
-    await prepareScenarioForTests();
-
-    const response = await axios.get(
-      'http://localhost:3005/v1/products/variations?query=cp&skip-composite-products=true',
-      authorizedRequest,
-    );
-
-    if (response.data.length !== 0) {
-      fail();
-    }
-    expect(response.data.length).toBe(0);
-  });
 });

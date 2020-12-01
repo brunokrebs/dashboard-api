@@ -17,7 +17,6 @@ describe('querying products', () => {
     authorizedRequest = await getCredentials();
 
     await insertProductFixtures();
-    await insertProductWithComposition();
   });
 
   it('should be able to retrieve all products with variations, images, and inventory', async () => {
@@ -138,15 +137,17 @@ describe('querying products', () => {
     expect(response.data.items[2].sku).toBe('A-07');
   });
 
-  it.only('should show only products that are not compositions', async () => {
+  it('should show only products that are not compositions', async () => {
+    await insertProductWithComposition();
+
     const response = await axios.get(
-      'http://localhost:3005/v1/products/variations?query=cp&skip-composite-products=false',
+      'http://localhost:3005/v1/products/variations?query=p-&skip-composite-products=true',
       authorizedRequest,
     );
 
-    if (response.data.length !== 0) {
+    if (response.data.length > 2) {
       return fail();
     }
-    expect(response.data.length).toBe(0);
+    expect(response.data.length).toBe(2);
   });
 });
