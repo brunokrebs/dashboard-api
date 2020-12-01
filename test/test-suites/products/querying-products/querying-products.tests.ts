@@ -143,6 +143,7 @@ describe('querying products', () => {
       'http://localhost:3005/v1/products/variations?query=cp&skip-composite-products=false',
       authorizedRequest,
     );
+
     if (response.data.length !== 0) {
       return fail();
     }
