@@ -224,12 +224,21 @@ export class PurchaseOrderService {
     return paginate<PurchaseOrder>(queryBuilder, options);
   }
 
+  @Transactional()
   async save(purchaseOrder: PurchaseOrder) {
     const itemsTotal = purchaseOrder.items
-      .map(item => item.price * item.amount)
+      .map(item => {
+        if (item.amount < 1)
+          throw new Error('product amount can not is smaller 1');
+        return item.price * item.amount;
+      })
       .reduce((previousAmount, itemAmount) => previousAmount + itemAmount, 0);
     purchaseOrder.total =
       itemsTotal + purchaseOrder.shippingPrice - purchaseOrder.discount;
+
+    if (purchaseOrder.total < 0) {
+      throw new Error('total can not is smaller 0');
+    }
 
     if (!purchaseOrder.id) purchaseOrder.creationDate = new Date();
 

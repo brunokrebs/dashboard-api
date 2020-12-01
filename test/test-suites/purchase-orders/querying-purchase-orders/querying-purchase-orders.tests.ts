@@ -1,10 +1,16 @@
 import axios from 'axios';
 import { getCredentials } from '../../utils/credentials';
-import { cleanUpDatabase } from '../../../test-suites/utils/queries';
+import {
+  cleanUpDatabase,
+  executeQuery,
+} from '../../../test-suites/utils/queries';
 
 import { createPurchaseOrders } from '../purchase-orders.fixtures';
 import purchaseOrdersScenarios from '../purchase-orders.scenarios.json';
-import { insertProductFixtures } from '../../products/products-fixtures/products.fixture';
+import {
+  insertProductFixtures,
+  insertProductWithComposition,
+} from '../../products/products-fixtures/products.fixture';
 
 describe('querying purchase orders', () => {
   let authorizedRequest: any;
@@ -15,6 +21,7 @@ describe('querying purchase orders', () => {
     await cleanUpDatabase();
 
     await insertProductFixtures();
+    await insertProductWithComposition();
     await createPurchaseOrders();
   });
 
@@ -29,5 +36,56 @@ describe('querying purchase orders', () => {
     expect(response.status).toBe(200);
 
     // TODO check the returned data
+  });
+
+  it('should calculate total of purchase order', async () => {
+    const results = await executeQuery(`
+        select reference_code, total
+        from purchase_order
+    `);
+    results.forEach(({ reference_code, total: persistedTotal }) => {
+      const { total: expectedTotal } = purchaseOrdersScenarios.find(
+        s => s.referenceCode === reference_code,
+      );
+      expect(Number.parseFloat(persistedTotal)).toBe(expectedTotal);
+    });
+  });
+
+  it.only('should not insert a purchase order with a product composition', async () => {
+    const [{ id }] = await executeQuery(`
+    select id
+    from supplier
+`);
+    const purchaseOrder = {
+      id: null,
+      referenceCode: 'ref000',
+      creationDate: '2020-11-25',
+      completionDate: '2020-11-25',
+      supplier: {
+        id: id,
+      },
+      items: [
+        {
+          productVariation: {
+            id: 45630,
+            sku: 'CP-1',
+          },
+          price: 15.35,
+          amount: 12,
+        },
+      ],
+      discount: 0,
+      shippingPrice: 0,
+      total: 184.2,
+      status: 'IN_PROCESS',
+    };
+
+    const response = await axios.post(
+      'http://localhost:3005/v1/purchase-orders',
+      purchaseOrder,
+      authorizedRequest,
+    );
+
+    console.log(response);
   });
 });
