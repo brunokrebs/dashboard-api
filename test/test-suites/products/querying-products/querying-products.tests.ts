@@ -143,11 +143,8 @@ describe('querying products', () => {
       'http://localhost:3005/v1/products/variations?query=cp&skip-composite-products=false',
       authorizedRequest,
     );
-    console.log('#####################################');
-    console.log(response.data);
-    console.log('#####################################');
     if (response.data.length !== 0) {
-      fail();
+      return fail();
     }
     expect(response.data.length).toBe(0);
   });
