@@ -10,6 +10,7 @@ import { PurchaseOrderService } from './purchase-order.service';
 import { PurchaseOrderController } from './purchase-order.controller';
 import { SupplierModule } from '../supplier/supplier.module';
 import { ProductVariation } from '../products/entities/product-variation.entity';
+import { Product } from '../products/entities/product.entity';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ProductVariation } from '../products/entities/product-variation.entity'
       PurchaseOrder,
       PurchaseOrderItem,
       ProductVariation,
+      Product,
     ]),
   ],
   providers: [PurchaseOrderService],

@@ -17,6 +17,7 @@ import { PurchaseOrderStatus } from './purchase-order.enum';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { UpdatePurchaseOrderStatusDTO } from './update-purchase-order-status.dto';
 import { Propagation, Transactional } from 'typeorm-transactional-cls-hooked';
+import { Product } from '../products/entities/product.entity';
 
 @Injectable()
 export class PurchaseOrderService {
@@ -27,6 +28,8 @@ export class PurchaseOrderService {
     private purchaseOrderItemRepository: Repository<PurchaseOrderItem>,
     @InjectRepository(ProductVariation)
     private productVariationRepository: Repository<ProductVariation>,
+    @InjectRepository(Product)
+    private productRepository: Repository<Product>,
     private inventoryService: InventoryService,
     private productsService: ProductsService,
     private supplierService: SupplierService,
@@ -226,19 +229,7 @@ export class PurchaseOrderService {
 
   @Transactional()
   async save(purchaseOrder: PurchaseOrder) {
-    const itemsTotal = purchaseOrder.items
-      .map(item => {
-        if (item.amount < 1)
-          throw new Error('product amount can not is smaller 1');
-        return item.price * item.amount;
-      })
-      .reduce((previousAmount, itemAmount) => previousAmount + itemAmount, 0);
-    purchaseOrder.total =
-      itemsTotal + purchaseOrder.shippingPrice - purchaseOrder.discount;
-
-    if (purchaseOrder.total < 0) {
-      throw new Error('total can not is smaller 0');
-    }
+    purchaseOrder.total = await this.validateAndGenerateTotal(purchaseOrder);
 
     if (!purchaseOrder.id) purchaseOrder.creationDate = new Date();
 
@@ -338,5 +329,36 @@ export class PurchaseOrderService {
         );
       await Promise.all(insertMovementJobs);
     }
+  }
+
+  async validateAndGenerateTotal(purchaseOrder: PurchaseOrder) {
+    const itemsTotal = purchaseOrder.items
+      .map(item => {
+        if (item.amount < 1)
+          throw new Error('product amount can not is smaller 1');
+        return item.price * item.amount;
+      })
+      .reduce((previousAmount, itemAmount) => previousAmount + itemAmount, 0);
+    purchaseOrder.total =
+      itemsTotal + purchaseOrder.shippingPrice - purchaseOrder.discount;
+
+    if (purchaseOrder.total < 0) {
+      throw new Error('total can not is smaller 0');
+    }
+
+    const ids = purchaseOrder.items.map(item => item.productVariation.id);
+    const isComposition = await this.productVariationRepository
+      .createQueryBuilder('pv')
+      .select('p.isComposition')
+      .leftJoinAndSelect('pv.product', 'p')
+      .whereInIds(ids)
+      .andWhere('p.isComposition=true')
+      .getRawOne();
+
+    if (isComposition) {
+      throw new Error('product compositions can not be part of purchase order');
+    }
+
+    return purchaseOrder.total;
   }
 }
