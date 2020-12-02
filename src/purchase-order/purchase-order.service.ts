@@ -247,7 +247,10 @@ export class PurchaseOrderService {
       .execute();
 
     const productVariations = await this.productVariationRepository.find({
-      sku: In(purchaseOrder.items.map(item => item.productVariation.sku)),
+      where: {
+        sku: In(purchaseOrder.items.map(item => item.productVariation.sku)),
+      },
+      relations: ['product'],
     });
 
     if (productVariations.find(pv => pv.product.isComposition)) {
