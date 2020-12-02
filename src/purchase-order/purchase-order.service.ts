@@ -349,7 +349,7 @@ export class PurchaseOrderService {
       itemsTotal + purchaseOrder.shippingPrice - purchaseOrder.discount;
 
     if (purchaseOrder.total <= 0) {
-      throw new Error('total can not is smaller 0');
+      throw new Error('Total must be a positive number.');
     }
 
     return purchaseOrder.total;
