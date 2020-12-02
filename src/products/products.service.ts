@@ -477,22 +477,42 @@ export class ProductsService {
     return Promise.resolve(persistedProduct);
   }
 
-  async findVariations(query: string): Promise<ProductVariationDetailsDTO[]> {
+  async findVariations(
+    query: string,
+    skipCompositeProducts: boolean,
+  ): Promise<ProductVariationDetailsDTO[]> {
     const queryBuilder = this.productVariationsRepository
       .createQueryBuilder('pV')
       .leftJoinAndSelect('pV.product', 'p')
-      .where('lower(p.sku) like lower(:query)', {
-        query: `%${query}%`,
-      })
-      .orWhere('lower(pV.sku) like lower(:query)', {
-        query: `%${query}%`,
-      })
-      .orWhere('lower(p.title) like lower(:query)', {
-        query: `%${query}%`,
-      })
-      .orWhere('lower(pV.description) like lower(:query)', {
-        query: `%${query}%`,
-      })
+      .where(
+        new Brackets(qb => {
+          qb.where('lower(p.sku) like lower(:query)', {
+            query: `%${query}%`,
+          })
+            .orWhere('lower(pV.sku) like lower(:query)', {
+              query: `%${query}%`,
+            })
+            .orWhere('lower(p.title) like lower(:query)', {
+              query: `%${query}%`,
+            })
+            .orWhere('lower(pV.description) like lower(:query)', {
+              query: `%${query}%`,
+            });
+        }),
+      );
+
+    if (skipCompositeProducts) {
+      queryBuilder.andWhere(qb => {
+        const subQuery = qb
+          .subQuery()
+          .select('pc.product')
+          .from(ProductComposition, 'pc')
+          .getQuery();
+        return 'pV.product NOT IN' + subQuery;
+      });
+    }
+
+    queryBuilder
       .orderBy('p.title')
       .orderBy('pV.sku')
       .orderBy('pV.description')
