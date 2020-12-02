@@ -18,7 +18,7 @@ describe('querying sale orders', () => {
     await createSaleOrders();
   });
 
-  it('should be able to query sale orders', async () => {
+  it.only('should be able to query sale orders', async () => {
     const response = await axios.get(
       'http://localhost:3005/v1/sales-order?page=1&limit=3',
       authorizedRequest,
@@ -30,7 +30,7 @@ describe('querying sale orders', () => {
 
     const result = response.data;
     expect(result.items.length).toBe(3);
-
+    console.log(saleOrderScenarios);
     expect(result.items[0].customer).toBeDefined();
     expect(result.items[0].customer.name).toBe(
       saleOrderScenarios[4].customer.name,
