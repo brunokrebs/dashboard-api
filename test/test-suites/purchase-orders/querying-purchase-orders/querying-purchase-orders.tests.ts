@@ -51,19 +51,12 @@ describe('querying purchase orders', () => {
     });
   });
 
-  it.only('should not insert a purchase order with a product composition', async () => {
-    const [{ id }] = await executeQuery(`
-    select id
-    from supplier
-`);
+  it('should not insert a purchase order with a product composition', async () => {
+    const [{ id }] = await executeQuery(`select id from supplier;`);
     const purchaseOrder = {
       id: null,
       referenceCode: 'ref000',
-      creationDate: '2020-11-25',
-      completionDate: '2020-11-25',
-      supplier: {
-        id: id,
-      },
+      supplier: { id },
       items: [
         {
           productVariation: {
@@ -76,7 +69,6 @@ describe('querying purchase orders', () => {
       ],
       discount: 0,
       shippingPrice: 0,
-      total: 184.2,
       status: 'IN_PROCESS',
     };
 

@@ -238,6 +238,7 @@ export class PurchaseOrderService {
     );
 
     const { id } = purchaseOrder;
+    // remove all items from purchase order (it will recreate below)
     await this.purchaseOrderItemRepository
       .createQueryBuilder()
       .delete()
@@ -248,6 +249,10 @@ export class PurchaseOrderService {
     const productVariations = await this.productVariationRepository.find({
       sku: In(purchaseOrder.items.map(item => item.productVariation.sku)),
     });
+
+    if (productVariations.find(pv => pv.product.isComposition)) {
+      throw new Error('Cannot add composite product to purchase orders.');
+    }
 
     const purchaseOrderItems = purchaseOrder.items.map(item => ({
       ...item,
@@ -332,31 +337,19 @@ export class PurchaseOrderService {
   }
 
   async validateAndGenerateTotal(purchaseOrder: PurchaseOrder) {
+    if (purchaseOrder.items.find(item => item.amount <= 0)) {
+      throw new Error('Product amount must be greater than 0.');
+    }
+
     const itemsTotal = purchaseOrder.items
-      .map(item => {
-        if (item.amount < 1)
-          throw new Error('product amount can not is smaller 1');
-        return item.price * item.amount;
-      })
+      .map(item => item.price * item.amount)
       .reduce((previousAmount, itemAmount) => previousAmount + itemAmount, 0);
+
     purchaseOrder.total =
       itemsTotal + purchaseOrder.shippingPrice - purchaseOrder.discount;
 
-    if (purchaseOrder.total < 0) {
+    if (purchaseOrder.total <= 0) {
       throw new Error('total can not is smaller 0');
-    }
-
-    const ids = purchaseOrder.items.map(item => item.productVariation.id);
-    const isComposition = await this.productVariationRepository
-      .createQueryBuilder('pv')
-      .select('p.isComposition')
-      .leftJoinAndSelect('pv.product', 'p')
-      .whereInIds(ids)
-      .andWhere('p.isComposition=true')
-      .getRawOne();
-
-    if (isComposition) {
-      throw new Error('product compositions can not be part of purchase order');
     }
 
     return purchaseOrder.total;
