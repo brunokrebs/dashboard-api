@@ -18,7 +18,7 @@ describe('querying sale orders', () => {
     await createSaleOrders();
   });
 
-  it.only('should be able to query sale orders', async () => {
+  it('should be able to query sale orders', async () => {
     const response = await axios.get(
       'http://localhost:3005/v1/sales-order?page=1&limit=3',
       authorizedRequest,
