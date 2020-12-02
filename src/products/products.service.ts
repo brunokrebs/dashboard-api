@@ -178,6 +178,9 @@ export class ProductsService {
       category: productDTO.category
         ? ProductCategory[productDTO.category]
         : null,
+      isComposition: productDTO.isComposition
+        ? productDTO.isComposition
+        : false,
     };
 
     const persistedProduct = await this.productsRepository.save(newProduct);

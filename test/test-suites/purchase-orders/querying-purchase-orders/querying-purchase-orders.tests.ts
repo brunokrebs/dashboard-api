@@ -51,7 +51,7 @@ describe('querying purchase orders', () => {
     });
   });
 
-  it('should not insert a purchase order with a product composition', async () => {
+  it('should not insert a purchase order with a product composition or transaction fail', async () => {
     const [{ id }] = await executeQuery(`select id from supplier;`);
     const purchaseOrder = {
       id: null,
@@ -72,12 +72,17 @@ describe('querying purchase orders', () => {
       status: 'IN_PROCESS',
     };
 
-    const response = await axios.post(
-      'http://localhost:3005/v1/purchase-orders',
-      purchaseOrder,
-      authorizedRequest,
-    );
-
-    console.log(response);
+    try {
+      await axios.post(
+        'http://localhost:3005/v1/purchase-orders',
+        purchaseOrder,
+        authorizedRequest,
+      );
+      fail('error expected');
+    } catch (err) {
+      //good a error is expected
+      const order = await executeQuery('SELECT * from purchase_order;');
+      expect(order.length).toBe(4);
+    }
   });
 });

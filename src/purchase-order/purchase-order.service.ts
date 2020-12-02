@@ -17,7 +17,6 @@ import { PurchaseOrderStatus } from './purchase-order.enum';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { UpdatePurchaseOrderStatusDTO } from './update-purchase-order-status.dto';
 import { Propagation, Transactional } from 'typeorm-transactional-cls-hooked';
-import { Product } from '../products/entities/product.entity';
 
 @Injectable()
 export class PurchaseOrderService {
@@ -28,8 +27,6 @@ export class PurchaseOrderService {
     private purchaseOrderItemRepository: Repository<PurchaseOrderItem>,
     @InjectRepository(ProductVariation)
     private productVariationRepository: Repository<ProductVariation>,
-    @InjectRepository(Product)
-    private productRepository: Repository<Product>,
     private inventoryService: InventoryService,
     private productsService: ProductsService,
     private supplierService: SupplierService,
