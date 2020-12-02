@@ -6,7 +6,6 @@ import {
   cleanUpDatabase,
   executeQuery,
 } from '../utils/queries';
-import { toNumber } from 'lodash';
 
 describe('media library tests', () => {
   let authorizedRequest: any;
