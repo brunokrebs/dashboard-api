@@ -28,17 +28,8 @@ export async function insertProductFixtures() {
 
 export async function insertProductWithComposition() {
   const authorizedRequest = await getCredentials();
-  const insertProductWithCompositionJobs = productsWithComposition.map(
-    product => {
-      return new Promise(async res => {
-        await axios.post(
-          'http://localhost:3005/v1/products',
-          product,
-          authorizedRequest,
-        );
-        res();
-      });
-    },
+  const insertJobs = productsWithComposition.map(product =>
+    axios.post('http://localhost:3005/v1/products', product, authorizedRequest),
   );
-  await Promise.all(insertProductWithCompositionJobs);
+  await Promise.all(insertJobs);
 }

@@ -137,7 +137,7 @@ describe('querying products', () => {
     expect(response.data.items[2].sku).toBe('A-07');
   });
 
-  it('should show only products that are not compositions', async () => {
+  it('should omit product compositions', async () => {
     await insertProductWithComposition();
 
     const response = await axios.get(
@@ -145,9 +145,6 @@ describe('querying products', () => {
       authorizedRequest,
     );
 
-    if (response.data.length > 2) {
-      return fail();
-    }
     expect(response.data.length).toBe(2);
   });
 });

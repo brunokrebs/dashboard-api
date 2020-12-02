@@ -25,8 +25,8 @@ export class ProductsController {
     @Query('query') query: string,
     @Query('skip-composite-products') skipCompositeProducts?: string,
   ): Promise<ProductVariationDetailsDTO[]> {
-    const isSkipCompisiteProducts = parseBoolean(skipCompositeProducts);
-    return this.productsService.findVariations(query, isSkipCompisiteProducts);
+    const skiCompositeProducts = parseBoolean(skipCompositeProducts);
+    return this.productsService.findVariations(query, skiCompositeProducts);
   }
 
   @Get('/all')
@@ -36,8 +36,8 @@ export class ProductsController {
 
   @Get()
   query(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+    @Query('page') page: 1,
+    @Query('limit') limit: 10,
     @Query('sortedBy') sortedBy: string,
     @Query('sortDirectionAscending') sortDirectionAscending: string,
     @Query('query') query: string,
