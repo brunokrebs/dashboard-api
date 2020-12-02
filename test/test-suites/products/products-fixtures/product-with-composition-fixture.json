@@ -1,0 +1,42 @@
+[
+  {
+    "sku": "P-1",
+    "title": "Product Part 1",
+    "ncm": "1234.56.78",
+    "productVariations": [
+      {
+        "parentSku": "P-1",
+        "sku": "P-1",
+        "sellingPrice": 29.95,
+        "description": "Tamanho Único"
+      }
+    ]
+  },
+  {
+    "sku": "P-2",
+    "title": "Product Part 2",
+    "ncm": "1234.56.78",
+    "productVariations": [
+      {
+        "parentSku": "P-2",
+        "sku": "P-2",
+        "sellingPrice": 29.95,
+        "description": "Tamanho Único"
+      }
+    ]
+  },
+  {
+    "sku": "CP-1",
+    "title": "Composite Product 1",
+    "ncm": "1234.56.78",
+    "productComposition": ["P-1", "P-2"],
+    "productVariations": [
+      {
+        "parentSku": "CP-1",
+        "sku": "CP-1",
+        "sellingPrice": 29.95,
+        "description": "Tamanho Único"
+      }
+    ]
+  }
+]
