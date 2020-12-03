@@ -290,7 +290,7 @@ export class PurchaseOrderService {
   @Transactional()
   async updateStatus(updatedPurchaseOrderStatus: UpdatePurchaseOrderStatusDTO) {
     const { referenceCode, status } = updatedPurchaseOrderStatus;
-    const purchaseOrder = await await this.purchaseOrderRepository
+    const purchaseOrder = await this.purchaseOrderRepository
       .createQueryBuilder('po')
       .leftJoinAndSelect('po.items', 'poi')
       .leftJoinAndSelect('poi.productVariation', 'pv')

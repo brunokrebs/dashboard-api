@@ -39,7 +39,7 @@ describe('AppController (e2e)', () => {
   });
 
   require('./test-suites/authentication.tests');
-  require('./test-suites/bling/managing-orders.tests');
+  // require('./test-suites/bling/managing-orders.tests');
   require('./test-suites/products/products.tests');
   require('./test-suites/products/querying-products/querying-products.tests');
   require('./test-suites/products/composite-products/composite-products.tests');

@@ -136,6 +136,7 @@ export class ProductsService {
     await this.productsRepository.delete(id);
   }
 
+  @Transactional()
   async createInventories(variations: ProductVariation[]) {
     // starting the inventory info
     const inventoryCreationJob = variations.map(variation => {
@@ -474,7 +475,10 @@ export class ProductsService {
     return Promise.resolve(persistedProduct);
   }
 
-  async findVariations(query: string): Promise<ProductVariationDetailsDTO[]> {
+  async findVariations(
+    query: string,
+    skiCompositeProducts = false,
+  ): Promise<ProductVariationDetailsDTO[]> {
     const queryBuilder = this.productVariationsRepository
       .createQueryBuilder('pV')
       .leftJoinAndSelect('pV.product', 'p')

@@ -2,7 +2,10 @@ import axios from 'axios';
 
 import { cleanUpDatabase } from '../../utils/queries';
 import { getCredentials } from '../../utils/credentials';
-import { insertProductFixtures } from '../products-fixtures/products.fixture';
+import {
+  insertProductFixtures,
+  insertProductWithComposition,
+} from '../products-fixtures/products.fixture';
 import productsFixtures from '../products-fixtures/products.fixtures.json';
 
 describe('querying products', () => {
@@ -132,5 +135,11 @@ describe('querying products', () => {
     expect(response.data.items[0].sku).toBe('A-09');
     expect(response.data.items[1].sku).toBe('A-08');
     expect(response.data.items[2].sku).toBe('A-07');
+  });
+
+  it('should omit product compositions', async () => {
+    await insertProductWithComposition();
+
+    expect(true).toBe(true);
   });
 });
