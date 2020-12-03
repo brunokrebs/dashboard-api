@@ -1,6 +1,6 @@
 import axios from 'axios';
 import products from './products.fixtures.json';
-import productsWithComposition from '../products-fixtures/product-with-composition-fixture.json';
+import compositeScenarios from '../products-fixtures/product-compositions.fixture.json';
 
 import { getCredentials } from '../../utils/credentials';
 import { executeQuery } from '../../utils/queries';
@@ -28,8 +28,19 @@ export async function insertProductFixtures() {
 
 export async function insertProductWithComposition() {
   const authorizedRequest = await getCredentials();
-  const insertJobs = productsWithComposition.map(product =>
+
+  const parts = compositeScenarios.filter(p => !p.productComposition);
+  const compositions = compositeScenarios.filter(p => !p.productComposition);
+
+  // first we insert all parts
+  const insertPartJobs = parts.map(product =>
     axios.post('http://localhost:3005/v1/products', product, authorizedRequest),
   );
-  await Promise.all(insertJobs);
+  await Promise.all(insertPartJobs);
+
+  // then we insert the compositions
+  const insertCompositeProductJobs = compositions.map(product =>
+    axios.post('http://localhost:3005/v1/products', product, authorizedRequest),
+  );
+  await Promise.all(insertCompositeProductJobs);
 }

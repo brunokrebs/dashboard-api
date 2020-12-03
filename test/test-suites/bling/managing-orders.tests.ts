@@ -11,6 +11,8 @@ import { Product } from '../../../src/products/entities/product.entity';
 import { ProductVariation } from '../../../src/products/entities/product-variation.entity';
 
 describe('Bling integration', () => {
+  if (process.env.SKIP_BLING_TESTS) return;
+
   const realBlingService = new BlingService(new HttpService(axios));
 
   async function createOrUpdateProduct(productVariation: ProductVariation) {

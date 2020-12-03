@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, InsertResult } from 'typeorm';
+import { Transactional } from 'typeorm-transactional-cls-hooked';
 import { Tag } from './tag.entity';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class TagsService {
     private tagsRepository: Repository<Tag>,
   ) {}
 
+  @Transactional()
   async save(tag: Tag): Promise<InsertResult> {
     return this.tagsRepository
       .createQueryBuilder()

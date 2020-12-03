@@ -132,10 +132,12 @@ export class ProductsService {
     return product;
   }
 
+  @Transactional()
   async remove(id: number): Promise<void> {
     await this.productsRepository.delete(id);
   }
 
+  @Transactional()
   async createInventories(variations: ProductVariation[]) {
     // starting the inventory info
     const inventoryCreationJob = variations.map(variation => {
@@ -272,6 +274,7 @@ export class ProductsService {
     );
   }
 
+  @Transactional()
   async updateVariationProperty(
     id: number,
     properties: Partial<ProductVariation>,
@@ -364,6 +367,7 @@ export class ProductsService {
     return Promise.resolve(product);
   }
 
+  @Transactional()
   async updateProductProperties(
     productId: number,
     properties: Partial<Product>,
