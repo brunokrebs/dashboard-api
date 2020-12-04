@@ -34,12 +34,12 @@ export class UsersService {
 
     if (user.password) {
       user.password = await bcrypt.hash(user.password, 10);
-      this.userRepository.update(id, {
+      await this.userRepository.update(id, {
         name: user.name,
         password: user.password,
       });
     } else {
-      this.userRepository.update(id, { name: user.name });
+      await this.userRepository.update(id, { name: user.name });
     }
   }
 }
