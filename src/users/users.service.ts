@@ -28,18 +28,23 @@ export class UsersService {
   }
 
   async updateUser(user: User) {
-    const { id } = await this.userRepository.findOne({
+    const name = user.name.trim();
+    const password = user.password ? user.password.trim() : null;
+
+    const { id, email } = await this.userRepository.findOne({
       where: { email: user.email },
     });
 
-    if (user.password) {
-      user.password = await bcrypt.hash(user.password, 10);
-      await this.userRepository.update(id, {
-        name: user.name,
-        password: user.password,
-      });
+    if (name !== '' && password !== '' && email === user.email) {
+      if (user.password) {
+        user.password = await bcrypt.hash(user.password, 10);
+      } else {
+        delete user.password;
+        //password is deleted because it when null the query failed
+      }
+      await this.userRepository.update(id, user);
     } else {
-      await this.userRepository.update(id, { name: user.name });
+      throw new Error('user name and password can not be an empity string');
     }
   }
 }
