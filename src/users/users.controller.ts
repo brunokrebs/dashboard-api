@@ -13,7 +13,6 @@ export class UsersController {
 
   @Put()
   async updateUser(@Body() user: User) {
-    await this.usersService.updateUser(user);
-    return;
+    return this.usersService.updateUser(user);
   }
 }

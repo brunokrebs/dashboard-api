@@ -22,11 +22,12 @@ export class AuthService {
   }
 
   async login(user: User) {
+    const dbUser = await this.usersService.findOne(user.email);
     const payload = {
-      username: user.email,
-      sub: user.id,
-      name: user.name,
-      image: user.image,
+      username: dbUser.email,
+      sub: dbUser.id,
+      name: dbUser.name,
+      image: dbUser.image,
     };
     return {
       access_token: this.jwtService.sign(payload, { expiresIn: '4d' }),
