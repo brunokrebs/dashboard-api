@@ -81,7 +81,8 @@ export class BlingService {
 
   async createPurchaseOrder(saleOrder: SaleOrder): Promise<any> {
     const env = process.env.NODE_ENV;
-    if (env === 'development' || env === 'test') return;
+    if (env === 'development' || env === 'test') return Promise.resolve();
+
     if (saleOrder.paymentDetails.paymentStatus !== PaymentStatus.APPROVED) {
       throw new Error(
         'We should only create purchase orders that have payment approved.',
