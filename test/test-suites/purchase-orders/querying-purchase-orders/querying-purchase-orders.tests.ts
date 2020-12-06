@@ -81,8 +81,10 @@ describe('querying purchase orders', () => {
       fail('error expected');
     } catch (err) {
       //good a error is expected
-      const order = await executeQuery('SELECT * from purchase_order;');
-      expect(order.length).toBe(4);
+      const order = await executeQuery(
+        `SELECT * FROM purchase_order WHERE reference_code = '${purchaseOrder.referenceCode}';`,
+      );
+      expect(order.length).toBe(0);
     }
   });
 });
