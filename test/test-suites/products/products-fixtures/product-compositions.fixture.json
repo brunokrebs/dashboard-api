@@ -10,7 +10,8 @@
         "sellingPrice": 29.95,
         "description": "Tamanho Único"
       }
-    ]
+    ],
+    "isComposition": false
   },
   {
     "sku": "P-2",
@@ -23,7 +24,8 @@
         "sellingPrice": 29.95,
         "description": "Tamanho Único"
       }
-    ]
+    ],
+    "isComposition": false
   },
   {
     "sku": "CP-1",
@@ -37,6 +39,7 @@
         "sellingPrice": 29.95,
         "description": "Tamanho Único"
       }
-    ]
+    ],
+    "isComposition": true
   }
 ]

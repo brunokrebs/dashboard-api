@@ -1,10 +1,16 @@
 import axios from 'axios';
 import { getCredentials } from '../../utils/credentials';
-import { cleanUpDatabase } from '../../../test-suites/utils/queries';
+import {
+  cleanUpDatabase,
+  executeQuery,
+} from '../../../test-suites/utils/queries';
 
 import { createPurchaseOrders } from '../purchase-orders.fixtures';
 import purchaseOrdersScenarios from '../purchase-orders.scenarios.json';
-import { insertProductFixtures } from '../../products/products-fixtures/products.fixture';
+import {
+  insertProductFixtures,
+  insertProductWithComposition,
+} from '../../products/products-fixtures/products.fixture';
 
 describe('querying purchase orders', () => {
   let authorizedRequest: any;
@@ -15,6 +21,7 @@ describe('querying purchase orders', () => {
     await cleanUpDatabase();
 
     await insertProductFixtures();
+    await insertProductWithComposition();
     await createPurchaseOrders();
   });
 
@@ -29,5 +36,55 @@ describe('querying purchase orders', () => {
     expect(response.status).toBe(200);
 
     // TODO check the returned data
+  });
+
+  it('should calculate total of purchase order', async () => {
+    const results = await executeQuery(`
+        select reference_code, total
+        from purchase_order
+    `);
+    results.forEach(({ reference_code, total: persistedTotal }) => {
+      const { total: expectedTotal } = purchaseOrdersScenarios.find(
+        s => s.referenceCode === reference_code,
+      );
+      expect(Number.parseFloat(persistedTotal)).toBe(expectedTotal);
+    });
+  });
+
+  it('should not insert a purchase order with a product composition or transaction fail', async () => {
+    const [{ id }] = await executeQuery(`select id from supplier;`);
+    const purchaseOrder = {
+      id: null,
+      referenceCode: 'ref000',
+      supplier: { id },
+      items: [
+        {
+          productVariation: {
+            id: 45630,
+            sku: 'CP-1',
+          },
+          price: 15.35,
+          amount: 12,
+        },
+      ],
+      discount: 0,
+      shippingPrice: 0,
+      status: 'IN_PROCESS',
+    };
+
+    try {
+      await axios.post(
+        'http://localhost:3005/v1/purchase-orders',
+        purchaseOrder,
+        authorizedRequest,
+      );
+      fail('error expected');
+    } catch (err) {
+      //good a error is expected
+      const order = await executeQuery(
+        `SELECT * FROM purchase_order WHERE reference_code = '${purchaseOrder.referenceCode}';`,
+      );
+      expect(order.length).toBe(0);
+    }
   });
 });

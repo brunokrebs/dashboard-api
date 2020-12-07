@@ -46,7 +46,7 @@ export class PurchaseOrderController {
   }
 
   @Post()
-  createPurchaseOrder(@Body() purchaseOrder: PurchaseOrder) {
+  savePurchaseOrder(@Body() purchaseOrder: PurchaseOrder) {
     return this.purchaseOrderService.save(purchaseOrder);
   }
 
