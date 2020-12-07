@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 describe('authentication', () => {
-  it('should be able to sign in', async () => {
+  it.only('should be able to sign in', async () => {
     const validCrendetials = {
       username: 'bruno.krebs@fridakahlo.com.br',
       password: 'lbX01as$',
@@ -24,7 +24,7 @@ describe('authentication', () => {
       await axios.post('http://localhost:3005/v1/sign-in', validCrendetials);
       fail('an error should be thrown by the line above');
     } catch (err) {
-      expect(err).toBeDefined();
+      expect(err.response.status).toBe(401);
     }
   });
 });

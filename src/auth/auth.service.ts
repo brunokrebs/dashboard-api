@@ -13,12 +13,13 @@ export class AuthService {
 
   async validateUser(username: string, pass: string): Promise<User> {
     const user = await this.usersService.findOne(username);
+    if (!user) return null;
+
     const isValidPassword = await bcrypt.compare(pass, user.password);
-    if (isValidPassword) {
-      delete user.password;
-      return user;
-    }
-    return null;
+    if (!isValidPassword) return null;
+
+    delete user.password;
+    return user;
   }
 
   async login(user: User) {
