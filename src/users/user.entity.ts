@@ -32,7 +32,7 @@ export class User extends BaseEntity {
   @Column({
     name: 'image',
     type: 'varchar',
-    length: 150,
+    length: 250,
     nullable: true,
   })
   image?: string;
