@@ -22,4 +22,5 @@ export class ProductDTO {
   productComposition?: string[];
   productImages?: ProductImageDTO[];
   category?: ProductCategory | string;
+  isComposition?: boolean;
 }

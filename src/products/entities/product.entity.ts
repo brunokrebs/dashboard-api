@@ -159,4 +159,11 @@ export class Product extends BaseEntity {
     nullable: false,
   })
   thumbnail?: string;
+
+  @Column({
+    name: 'is_composition',
+    type: 'boolean',
+    default: false,
+  })
+  isComposition?: boolean;
 }
