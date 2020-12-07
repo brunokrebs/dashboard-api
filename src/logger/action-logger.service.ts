@@ -15,6 +15,9 @@ export class ActionLoggerInterceptor implements NestInterceptor {
   ): Observable<any> | Promise<Observable<any>> {
     return next.handle().pipe(
       map(result => {
+        const env = process.env.NODE_ENV;
+        if (env === 'development' || env === 'test') return result;
+
         // when a request is successfully handled, we add details to DataDog
         const httpContext = context.switchToHttp();
         const req = httpContext.getRequest();

@@ -21,7 +21,98 @@
     ],
     "discount": 15,
     "shippingPrice": 30,
-    "total": 234.56,
+    "total": 199.2,
+    "status": "IN_PROCESS"
+  },
+  {
+    "id": null,
+    "referenceCode": "ref345",
+    "creationDate": "2020-11-25",
+    "completionDate": "2020-11-25",
+    "supplier": {
+      "id": null,
+      "cnpj": "27481049000162",
+      "name": "BK Sistemas de Informação LTDA"
+    },
+    "items": [
+      {
+        "productVariation": {
+          "id": null,
+          "sku": "A-09-15"
+        },
+        "price": 15.35,
+        "amount": 12
+      },
+      {
+        "productVariation": {
+          "id": null,
+          "sku": "A-09-22"
+        },
+        "price": 32.4,
+        "amount": 10
+      },
+      {
+        "productVariation": {
+          "id": null,
+          "sku": "A-09-23"
+        },
+        "price": 10.99,
+        "amount": 15
+      }
+    ],
+    "discount": 15,
+    "shippingPrice": 30,
+    "total": 688.05,
+    "status": "IN_PROCESS"
+  },
+  {
+    "id": null,
+    "referenceCode": "ref234",
+    "creationDate": "2020-11-25",
+    "completionDate": "2020-11-25",
+    "supplier": {
+      "id": null,
+      "cnpj": "27481049000163",
+      "name": "BK Sistemas de Informação LTDA"
+    },
+    "items": [
+      {
+        "productVariation": {
+          "id": null,
+          "sku": "A-09-15"
+        },
+        "price": 15.35,
+        "amount": 12
+      }
+    ],
+    "discount": 0,
+    "shippingPrice": 30,
+    "total": 214.2,
+    "status": "IN_PROCESS"
+  },
+  {
+    "id": null,
+    "referenceCode": "ref456",
+    "creationDate": "2020-11-25",
+    "completionDate": "2020-11-25",
+    "supplier": {
+      "id": null,
+      "cnpj": "27481049000164",
+      "name": "BK Sistemas de Informação LTDA"
+    },
+    "items": [
+      {
+        "productVariation": {
+          "id": null,
+          "sku": "A-09-15"
+        },
+        "price": 15.35,
+        "amount": 12
+      }
+    ],
+    "discount": 0,
+    "shippingPrice": 0,
+    "total": 184.2,
     "status": "IN_PROCESS"
   }
 ]

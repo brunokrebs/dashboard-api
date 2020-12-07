@@ -224,12 +224,9 @@ export class PurchaseOrderService {
     return paginate<PurchaseOrder>(queryBuilder, options);
   }
 
+  @Transactional()
   async save(purchaseOrder: PurchaseOrder) {
-    const itemsTotal = purchaseOrder.items
-      .map(item => item.price * item.amount)
-      .reduce((previousAmount, itemAmount) => previousAmount + itemAmount, 0);
-    purchaseOrder.total =
-      itemsTotal + purchaseOrder.shippingPrice - purchaseOrder.discount;
+    purchaseOrder.total = await this.validateAndGenerateTotal(purchaseOrder);
 
     if (!purchaseOrder.id) purchaseOrder.creationDate = new Date();
 
@@ -238,6 +235,7 @@ export class PurchaseOrderService {
     );
 
     const { id } = purchaseOrder;
+    // remove all items from purchase order (it will recreate below)
     await this.purchaseOrderItemRepository
       .createQueryBuilder()
       .delete()
@@ -246,8 +244,15 @@ export class PurchaseOrderService {
       .execute();
 
     const productVariations = await this.productVariationRepository.find({
-      sku: In(purchaseOrder.items.map(item => item.productVariation.sku)),
+      where: {
+        sku: In(purchaseOrder.items.map(item => item.productVariation.sku)),
+      },
+      relations: ['product'],
     });
+
+    if (productVariations.find(pv => pv.product.isComposition)) {
+      throw new Error('Cannot add composite product to purchase orders.');
+    }
 
     const purchaseOrderItems = purchaseOrder.items.map(item => ({
       ...item,
@@ -290,7 +295,7 @@ export class PurchaseOrderService {
   @Transactional()
   async updateStatus(updatedPurchaseOrderStatus: UpdatePurchaseOrderStatusDTO) {
     const { referenceCode, status } = updatedPurchaseOrderStatus;
-    const purchaseOrder = await await this.purchaseOrderRepository
+    const purchaseOrder = await this.purchaseOrderRepository
       .createQueryBuilder('po')
       .leftJoinAndSelect('po.items', 'poi')
       .leftJoinAndSelect('poi.productVariation', 'pv')
@@ -329,5 +334,24 @@ export class PurchaseOrderService {
         );
       await Promise.all(insertMovementJobs);
     }
+  }
+
+  async validateAndGenerateTotal(purchaseOrder: PurchaseOrder) {
+    if (purchaseOrder.items.find(item => item.amount <= 0)) {
+      throw new Error('Product amount must be greater than 0.');
+    }
+
+    const itemsTotal = purchaseOrder.items
+      .map(item => item.price * item.amount)
+      .reduce((previousAmount, itemAmount) => previousAmount + itemAmount, 0);
+
+    purchaseOrder.total =
+      itemsTotal + purchaseOrder.shippingPrice - purchaseOrder.discount;
+
+    if (purchaseOrder.total <= 0) {
+      throw new Error('Total must be a positive number.');
+    }
+
+    return purchaseOrder.total;
   }
 }
