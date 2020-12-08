@@ -5,6 +5,7 @@ import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { BaseEntity } from '../util/base-entity';
 import { PurchaseOrderItem } from './purchase-order-item.entity';
 import { PurchaseOrderStatus } from './purchase-order.enum';
+import { Allow } from 'class-validator';
 
 @Entity()
 export class PurchaseOrder extends BaseEntity {
@@ -15,6 +16,7 @@ export class PurchaseOrder extends BaseEntity {
     unique: true,
     nullable: false,
   })
+  @Allow()
   referenceCode: string;
 
   @Column({
@@ -23,6 +25,7 @@ export class PurchaseOrder extends BaseEntity {
     unique: false,
     nullable: true,
   })
+  @Allow()
   creationDate?: Date;
 
   @Column({
@@ -31,12 +34,14 @@ export class PurchaseOrder extends BaseEntity {
     unique: false,
     nullable: true,
   })
+  @Allow()
   completionDate?: Date;
 
   @ManyToOne(type => Supplier, {
     nullable: false,
     cascade: false,
   })
+  @Allow()
   @JoinColumn({ name: 'supplier_id' })
   supplier: Supplier;
 
@@ -45,6 +50,7 @@ export class PurchaseOrder extends BaseEntity {
     item => item.purchaseOrder,
     { persistence: false },
   )
+  @Allow()
   items: PurchaseOrderItem[];
 
   @Column({
@@ -53,6 +59,7 @@ export class PurchaseOrder extends BaseEntity {
     nullable: false,
     transformer: new NumericTransformer(),
   })
+  @Allow()
   discount: number;
 
   @Column({
@@ -61,6 +68,7 @@ export class PurchaseOrder extends BaseEntity {
     nullable: false,
     transformer: new NumericTransformer(),
   })
+  @Allow()
   shippingPrice: number;
 
   @Column({
@@ -68,6 +76,7 @@ export class PurchaseOrder extends BaseEntity {
     precision: 2,
     transformer: new NumericTransformer(),
   })
+  @Allow()
   total?: number;
 
   @Column({
@@ -75,5 +84,6 @@ export class PurchaseOrder extends BaseEntity {
     type: 'varchar',
     length: 60,
   })
+  @Allow()
   status?: PurchaseOrderStatus;
 }

@@ -1,8 +1,10 @@
 import { BaseEntity } from '../util/base-entity';
 import { Entity, Column } from 'typeorm';
+import { Allow } from 'class-validator';
 
 @Entity()
 export class Customer extends BaseEntity {
+  @Allow()
   @Column({
     name: 'cpf',
     type: 'varchar',
@@ -12,6 +14,7 @@ export class Customer extends BaseEntity {
   })
   cpf: string;
 
+  @Allow()
   @Column({
     name: 'name',
     type: 'varchar',
@@ -21,6 +24,7 @@ export class Customer extends BaseEntity {
   })
   name: string;
 
+  @Allow()
   @Column({
     name: 'phone_number',
     type: 'varchar',
@@ -30,6 +34,7 @@ export class Customer extends BaseEntity {
   })
   phoneNumber?: string;
 
+  @Allow()
   @Column({
     name: 'email',
     type: 'varchar',
@@ -39,6 +44,7 @@ export class Customer extends BaseEntity {
   })
   email?: string;
 
+  @Allow()
   @Column({
     name: 'birthday',
     type: 'date',
@@ -47,6 +53,7 @@ export class Customer extends BaseEntity {
   })
   birthday?: Date | string;
 
+  @Allow()
   @Column({
     name: 'zip_address',
     type: 'varchar',
@@ -56,6 +63,7 @@ export class Customer extends BaseEntity {
   })
   zipAddress?: string;
 
+  @Allow()
   @Column({
     name: 'state',
     type: 'varchar',
@@ -65,6 +73,7 @@ export class Customer extends BaseEntity {
   })
   state?: string;
 
+  @Allow()
   @Column({
     name: 'city',
     type: 'varchar',
@@ -74,6 +83,7 @@ export class Customer extends BaseEntity {
   })
   city?: string;
 
+  @Allow()
   @Column({
     name: 'neighborhood',
     type: 'varchar',
@@ -83,6 +93,7 @@ export class Customer extends BaseEntity {
   })
   neighborhood?: string;
 
+  @Allow()
   @Column({
     name: 'street_address',
     type: 'varchar',
@@ -92,6 +103,7 @@ export class Customer extends BaseEntity {
   })
   streetAddress?: string;
 
+  @Allow()
   @Column({
     name: 'street_number',
     type: 'varchar',
@@ -101,6 +113,7 @@ export class Customer extends BaseEntity {
   })
   streetNumber?: string;
 
+  @Allow()
   @Column({
     name: 'street_number2',
     type: 'varchar',

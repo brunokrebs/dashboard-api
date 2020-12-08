@@ -28,4 +28,12 @@ export class User extends BaseEntity {
     nullable: false,
   })
   password?: string;
+
+  @Column({
+    name: 'image',
+    type: 'varchar',
+    length: 250,
+    nullable: true,
+  })
+  image?: string;
 }

@@ -1,3 +1,4 @@
+import { Allow } from 'class-validator';
 import { Column, Entity } from 'typeorm';
 
 import { BaseEntity } from '../util/base-entity';
@@ -11,6 +12,7 @@ export class Supplier extends BaseEntity {
     unique: true,
     nullable: false,
   })
+  @Allow()
   cnpj: string;
 
   @Column({
@@ -20,5 +22,6 @@ export class Supplier extends BaseEntity {
     unique: false,
     nullable: false,
   })
+  @Allow()
   name: string;
 }

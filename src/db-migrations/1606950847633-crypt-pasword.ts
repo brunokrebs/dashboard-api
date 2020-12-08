@@ -1,5 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 import bcrypt from 'bcryptjs';
+
 export class cryptPasword1606950847633 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     const users = await queryRunner.query('SELECT * FROM app_user;');

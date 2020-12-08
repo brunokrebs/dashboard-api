@@ -24,7 +24,7 @@ describe('authentication', () => {
       await axios.post('http://localhost:3005/v1/sign-in', validCrendetials);
       fail('an error should be thrown by the line above');
     } catch (err) {
-      expect(err).toBeDefined();
+      expect(err.response.status).toBe(401);
     }
   });
 });

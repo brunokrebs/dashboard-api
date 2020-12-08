@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import { Client } from 'pg';
 
 export async function executeQuery(query: string) {
@@ -39,6 +40,13 @@ export async function cleanUpDatabase() {
       'delete from product_variation;',
       'delete from product;',
       'delete from image;',
+      'delete from app_user;',
+    );
+
+    const password = await bcrypt.hash('lbX01as$', 10);
+    await executeQueries(
+      `insert into app_user (id, name, email, password) values (1, 'Bruno Krebs', 'bruno.krebs@fridakahlo.com.br', '${password}');`,
+      `insert into app_user (id, name, email, password) values (2, 'Lena Vettoretti', 'lena@fridakahlo.com.br', '${password}');`,
     );
   } catch (err) {
     console.error(
