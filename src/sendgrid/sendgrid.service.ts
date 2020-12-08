@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/camelcase */
 import { HttpService, Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { AppLogger } from '../logger/app-logger.service';
 import { CustomersService } from '../customers/customers.service';
 
 @Injectable()
@@ -7,10 +9,11 @@ export class SendgridService {
   constructor(
     private httpService: HttpService,
     private customerService: CustomersService,
+    private logger: AppLogger,
   ) {}
 
-  //every 10 minutes
-  @Cron('0 */10 * * * *')
+  // every hour
+  @Cron('0 0 * * * *')
   async populateList(): Promise<any> {
     if (
       process.env.NODE_ENV === 'development' ||
@@ -20,7 +23,7 @@ export class SendgridService {
 
     const users = await this.customerService.findAllUsersWithEmail();
 
-    const listUsers = users.map(user => {
+    const sendgridContacts = users.map(user => {
       const name = user.name.split(' ');
       const firstName = name[0];
       const lastName = name.slice(1, name.length).join(' ');
@@ -35,13 +38,13 @@ export class SendgridService {
     //essa variavel server para saber em quantas vezes vou ter que paginar
     //os usuarios para envia-los ao sendgrid, eu deixei enviar 70 usuarios por vez
     //pois é oque o sendgrid estava aceitndo pelos testes
-    const pages = Math.trunc(listUsers.length / 70) + 1;
+    const pages = Math.trunc(sendgridContacts.length / 70) + 1;
     const jobs = [];
 
     for (let i = 0; i < pages; i++) {
-      let initialPosition = i * 70;
-      let finalPosition = i * 70 + 70;
-      const list = listUsers.slice(initialPosition, finalPosition);
+      const initialPosition = i * 70;
+      const finalPosition = initialPosition + 70;
+      const list = sendgridContacts.slice(initialPosition, finalPosition);
       const job = this.httpService
         .put(
           'https://api.sendgrid.com/v3/marketing/contacts',
@@ -58,7 +61,12 @@ export class SendgridService {
     }
 
     Promise.all(jobs)
-      .then(values => console.log(values))
-      .catch(err => console.log(err));
+      .then(() => {
+        this.logger.log('Synced contacts with SendGrid.');
+      })
+      .catch(err => {
+        this.logger.error('Error while syncing up contacts with SendGrid.');
+        this.logger.error(err);
+      });
   }
 }
