@@ -32,6 +32,7 @@ import { PurchaseOrderItem } from './purchase-order/purchase-order-item.entity';
 import { PurchaseOrderModule } from './purchase-order/purchase-order.module';
 import { Supplier } from './supplier/supplier.entity';
 import { SupplierModule } from './supplier/supplier.module';
+import { SendgridModule } from './sendgrid/sendgrid.module';
 
 @Module({
   imports: [
@@ -87,6 +88,7 @@ import { SupplierModule } from './supplier/supplier.module';
     MarketplacesModule,
     KeyValuePairModule,
     ChartModule,
+    SendgridModule,
   ],
   controllers: [],
   providers: [],

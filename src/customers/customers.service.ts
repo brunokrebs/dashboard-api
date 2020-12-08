@@ -91,4 +91,11 @@ export class CustomersService {
     customer.id = id;
     return this.save(customer);
   }
+
+  async findAllUsersWithEmail() {
+    return this.customerRepository.find({
+      select: ['email', 'name', 'state'],
+      where: "TRIM(email) != '' AND email IS NOT NULL",
+    });
+  }
 }
