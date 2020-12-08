@@ -5,11 +5,6 @@ import { SendgridService } from './sendgrid.service';
 export class SendgridController {
   constructor(private sendgridService: SendgridService) {}
 
-  @Post('create-list')
-  async createList() {
-    return this.sendgridService.createList();
-  }
-
   @Post()
   async populateList() {
     return this.sendgridService.populateList();

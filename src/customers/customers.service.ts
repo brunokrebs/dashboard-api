@@ -95,7 +95,7 @@ export class CustomersService {
   async findAllUsersWithEmail() {
     return this.customerRepository.find({
       select: ['email', 'name', 'state'],
-      where: 'email IS NOT NULL',
+      where: "TRIM(email) !='' AND email IS NOT NULL",
     });
   }
 }
