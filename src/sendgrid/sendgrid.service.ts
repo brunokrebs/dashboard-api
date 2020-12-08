@@ -42,7 +42,12 @@ export class SendgridService {
         state_province_region: user.state,
       };
     });
+
+    //essa variavel server para saber em quantas vezes vou ter que paginar
+    //os usuarios para envia-los ao sendgrid, eu deixei enviar 70 usuarios por vez
+    //pois é oque o sendgrid estava aceitndo pelos testes
     const qntSentUsers = Math.trunc(listUsers.length / 70) + 1;
+
     for (let i = 0; i < qntSentUsers; i++) {
       let initialPosition = i > 0 ? i * 70 : 0;
       let finalPosition = i > 0 ? i * 70 + 70 : 70;
