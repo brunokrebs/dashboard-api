@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 describe('authentication', () => {
-  it.only('should be able to sign in', async () => {
+  it('should be able to sign in', async () => {
     const validCrendetials = {
       username: 'bruno.krebs@fridakahlo.com.br',
       password: 'lbX01as$',

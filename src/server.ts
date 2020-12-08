@@ -36,7 +36,7 @@ export async function bootstrap(silentMode = false) {
   }
   console.log(`NODE_ENV = ${process.env.NODE_ENV}`);
   app.useGlobalFilters(new GlobalExceptionsFilter(appLogger));
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
   app.useGlobalInterceptors(new ActionLoggerInterceptor(appLogger));
   app.setGlobalPrefix('v1');
   await app.listen(3005);

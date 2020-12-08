@@ -1,14 +1,19 @@
 import axios from 'axios';
 
-export async function getCredentials() {
-  const validCrendetials = {
-    username: 'bruno.krebs@fridakahlo.com.br',
-    password: 'lbX01as$',
-  };
+export const brunoCredentials = {
+  username: 'bruno.krebs@fridakahlo.com.br',
+  password: 'lbX01as$',
+};
 
+export const lenaCrendetials = {
+  username: 'lena@fridakahlo.com.br',
+  password: 'lbX01as$',
+};
+
+export async function getCredentials() {
   const resp = await axios.post(
     'http://localhost:3005/v1/sign-in',
-    validCrendetials,
+    brunoCredentials,
   );
   const accessToken = resp.data.access_token;
 

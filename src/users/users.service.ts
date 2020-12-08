@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import bcrypt from 'bcryptjs';
+import { UserProfileDTO } from './user-profile.dto';
 
 @Injectable()
 export class UsersService {
@@ -27,24 +28,11 @@ export class UsersService {
     return users[0];
   }
 
-  async updateUser(user: User) {
-    const name = user.name.trim();
-    const password = user.password ? user.password.trim() : null;
-
-    const { id, email } = await this.userRepository.findOne({
-      where: { email: user.email },
-    });
-
-    if (name !== '' && password !== '' && email === user.email) {
-      if (user.password) {
-        user.password = await bcrypt.hash(user.password, 10);
-      } else {
-        delete user.password;
-        //password is deleted because it when null the query failed
-      }
-      await this.userRepository.update(id, user);
-    } else {
-      throw new Error('user name and password can not be an empity string');
+  async updateUser(loggedInUser: User, newProfile: UserProfileDTO) {
+    const email = loggedInUser.email;
+    if (newProfile.password) {
+      newProfile.password = await bcrypt.hash(newProfile.password, 10);
     }
+    await this.userRepository.update({ email }, newProfile);
   }
 }
