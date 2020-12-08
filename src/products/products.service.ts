@@ -39,7 +39,7 @@ export class ProductsService {
   ) {}
 
   // every 30 min
-  @Cron('0 0/30 * * * *')
+  // @Cron('0 0/30 * * * *')
   async syncProducts() {
     if (
       process.env.NODE_ENV === 'development' ||
