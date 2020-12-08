@@ -71,7 +71,7 @@ export class SendgridService {
       finalPosition += 70;
     }
   }
-  //create migration for emails like a empity string
+
   private splitAtFirstSpace(name: string) {
     if (!name) return [];
     let i = name.indexOf(' ');
