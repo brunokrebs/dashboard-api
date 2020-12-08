@@ -1,4 +1,5 @@
 import { HttpService, Injectable } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { CustomersService } from '../customers/customers.service';
 
 @Injectable()
@@ -8,7 +9,15 @@ export class SendgridService {
     private customerService: CustomersService,
   ) {}
 
+  //every 10 minutes
+  @Cron('0 */10 * * * *')
   async populateList(): Promise<any> {
+    if (
+      process.env.NODE_ENV === 'development' ||
+      process.env.NODE_ENV === 'test'
+    )
+      return;
+
     const users = await this.customerService.findAllUsersWithEmail();
 
     const listUsers = users.map(user => {
@@ -53,5 +62,3 @@ export class SendgridService {
       .catch(err => console.log(err));
   }
 }
-//other api key -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
-//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
