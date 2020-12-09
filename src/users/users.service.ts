@@ -32,6 +32,8 @@ export class UsersService {
     const email = loggedInUser.email;
     if (newProfile.password) {
       newProfile.password = await bcrypt.hash(newProfile.password, 10);
+    } else {
+      delete newProfile.password;
     }
     await this.userRepository.update({ email }, newProfile);
   }

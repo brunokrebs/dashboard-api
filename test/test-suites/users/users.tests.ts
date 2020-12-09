@@ -151,4 +151,39 @@ describe('update users', () => {
       // no op
     }
   });
+
+  it('should ignore undefined/null values for password', async () => {
+    const newProfile = {
+      name: 'Bruno',
+      password: null,
+    };
+
+    await axios.put(
+      'http://localhost:3005/v1/users',
+      newProfile,
+      authorizedRequest,
+    );
+
+    // gets their details after the update
+    const [userDetails1] = await executeQuery(
+      `SELECT name FROM app_user WHERE email = '${brunoCredentials.username}'`,
+    );
+
+    // check if details did not change
+    expect(userDetails1.name).toBe(newProfile.name);
+
+    await axios.put(
+      'http://localhost:3005/v1/users',
+      { ...newProfile, password: undefined },
+      authorizedRequest,
+    );
+
+    // gets their details after the update
+    const [userDetails2] = await executeQuery(
+      `SELECT name FROM app_user WHERE email = '${brunoCredentials.username}'`,
+    );
+
+    // check if details did not change
+    expect(userDetails2.name).toBe(newProfile.name);
+  });
 });

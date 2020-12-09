@@ -1,4 +1,4 @@
-import { ValidationPipe, LogLevel } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import {
   initializeTransactionalContext,
