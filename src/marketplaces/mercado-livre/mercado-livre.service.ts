@@ -7,12 +7,20 @@ import { ProductsService } from '../../products/products.service';
 import { ProductCategory } from '../../products/entities/product-category.enum';
 
 const ML_REDIRECT_URL = 'https://digituz.com.br/api/v1/mercado-livre';
-const ML_CLIENT_ID = '6962689565848218';
-const ML_CLIENT_SECRET = '0j9pICVyBzxaQ8zGI4UdGlj5HkjWXn6Q';
+const ML_CLIENT_ID = '8549654584565096';
+const ML_CLIENT_SECRET = 'hnmngMTYNe6Uf8ogcdDzZ9VemjkayZ4s';
 const ML_REFRESH_TOKEN_KEY = 'ML_REFRESH_TOKEN';
 const ML_ACCESS_TOKEN_KEY = 'ML_ACCESS_TOKEN';
 const ML_SITE_ID = 'MLB';
 const REFRESH_RATE = 3 * 60 * 60 * 1000; // every three hours
+
+//test aplication
+//ML_CLIENT_ID =  8549654584565096,
+//ML_CLIENT_SECRET = hnmngMTYNe6Uf8ogcdDzZ9VemjkayZ4s,
+
+//production keys
+//ML_CLIENT_ID = '6962689565848218';
+//ML_CLIENT_SECRET = '0j9pICVyBzxaQ8zGI4UdGlj5HkjWXn6Q';
 
 @Injectable()
 export class MercadoLivreService {
@@ -55,28 +63,38 @@ export class MercadoLivreService {
   }
 
   getAuthURL(): string {
-    return this.mercadoLivre.getAuthURL(ML_REDIRECT_URL);
+    return this.mercadoLivre.getAuthURL(
+      'https://791f183eabc1.ngrok.io/mercado-livre',
+    );
   }
 
   fetchTokens(code: string) {
-    this.mercadoLivre.authorize(code, ML_REDIRECT_URL, (err, res) => {
-      if (err) throw new Error(err);
+    this.mercadoLivre.authorize(
+      code,
+      'https://791f183eabc1.ngrok.io/mercado-livre',
+      (err, res) => {
+        if (err) throw new Error(err);
 
-      const refreshToken = res.refresh_token;
-      const accessToken = res.access_token;
+        const refreshToken = res.refresh_token;
+        const accessToken = res.access_token;
 
-      this.keyValuePairService.set({
-        key: ML_REFRESH_TOKEN_KEY,
-        value: refreshToken,
-      });
+        this.keyValuePairService.set({
+          key: ML_REFRESH_TOKEN_KEY,
+          value: refreshToken,
+        });
 
-      this.keyValuePairService.set({
-        key: ML_ACCESS_TOKEN_KEY,
-        value: accessToken,
-      });
+        this.keyValuePairService.set({
+          key: ML_ACCESS_TOKEN_KEY,
+          value: accessToken,
+        });
 
-      this.startRefreshingTokens();
-    });
+        this.startRefreshingTokens();
+      },
+    );
+  }
+
+  async getToken() {
+    return this.keyValuePairService.get(ML_ACCESS_TOKEN_KEY);
   }
 
   async updateProducts() {
@@ -121,6 +139,7 @@ export class MercadoLivreService {
         }, idx * 250);
       });
     });
+
     await Promise.all(createJobs);
   }
 
