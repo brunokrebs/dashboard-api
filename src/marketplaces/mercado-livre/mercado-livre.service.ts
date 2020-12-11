@@ -5,10 +5,10 @@ import { KeyValuePairService } from '../../key-value-pair/key-value-pair.service
 import { Product } from '../../products/entities/product.entity';
 import { ProductsService } from '../../products/products.service';
 import { ProductCategory } from '../../products/entities/product-category.enum';
-import { IPaginationOpts } from 'src/pagination/pagination';
+import { IPaginationOpts } from '../../pagination/pagination';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { MLProduct } from './mercado-livre.entity';
 
 const ML_REDIRECT_URL = 'https://digituz.com.br/api/v1/mercado-livre';
@@ -36,7 +36,7 @@ export class MercadoLivreService {
     private keyValuePairService: KeyValuePairService,
     private productsService: ProductsService,
     @InjectRepository(MLProduct)
-    private productRepository: Repository<MLProduct>,
+    private mlProductRepository: Repository<MLProduct>,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -367,12 +367,12 @@ export class MercadoLivreService {
     });
   }
 
-  async paginate(options: IPaginationOpts): Promise<Pagination<MBProduct>> {
-    const queryBuilder = this.productRepository
+  async paginate(options: IPaginationOpts): Promise<Pagination<MLProduct>> {
+    const queryBuilder = this.mlProductRepository
       .createQueryBuilder('ml')
-      .leftJoinAndSelect('ml.product', 'p');
+      .leftJoinAndSelect('ml.product', 'product');
 
-    /* options.queryParams
+    options.queryParams
       .filter(queryParam => {
         return (
           queryParam !== null &&
@@ -383,18 +383,25 @@ export class MercadoLivreService {
       .forEach(queryParam => {
         switch (queryParam.key) {
           case 'query':
-            queryBuilder.andWhere(
+            queryBuilder.where(
               new Brackets(qb => {
-                qb.where(`lower(c.name) like lower(:query)`, {
+                qb.where(`lower(ml.mercado_livre_id) like lower(:query)`, {
                   query: `%${queryParam.value.toString()}%`,
-                }).orWhere(`lower(c.cpf) like lower(:query)`, {
-                  query: `%${queryParam.value.toString()}%`,
-                });
+                })
+                  .orWhere(`lower(ml.category_id) like lower(:query)`, {
+                    query: `%${queryParam.value.toString()}%`,
+                  })
+                  .orWhere(`lower(product.title) like lower(:query)`, {
+                    query: `%${queryParam.value.toString()}%`,
+                  })
+                  .orWhere(`lower(product.sku) like lower(:query)`, {
+                    query: `%${queryParam.value.toString()}%`,
+                  });
               }),
             );
             break;
         }
-      }); */
+      });
 
     let sortDirection;
     let sortNulls;
@@ -409,10 +416,12 @@ export class MercadoLivreService {
         sortDirection = 'DESC';
         sortNulls = 'NULLS LAST';
     }
-
-    const orderColumn = 'title';
+    const orderColumn = 'product.title';
     queryBuilder.orderBy(orderColumn, sortDirection, sortNulls);
-
-    return paginate<MLProduct>(queryBuilder, options);
+    console.log(queryBuilder.getQuery());
+    return paginate<MLProduct>(queryBuilder, options).catch(err => {
+      console.log(err);
+      return null;
+    });
   }
 }

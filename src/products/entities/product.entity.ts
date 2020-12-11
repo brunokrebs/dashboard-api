@@ -166,4 +166,7 @@ export class Product extends BaseEntity {
     default: false,
   })
   isComposition?: boolean;
+
+  @Column({ name: 'is_ml_product', default: true })
+  isMBProduct?: boolean;
 }

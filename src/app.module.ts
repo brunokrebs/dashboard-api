@@ -33,6 +33,7 @@ import { PurchaseOrderModule } from './purchase-order/purchase-order.module';
 import { Supplier } from './supplier/supplier.entity';
 import { SupplierModule } from './supplier/supplier.module';
 import { SendgridModule } from './sendgrid/sendgrid.module';
+import { MLProduct } from './marketplaces/mercado-livre/mercado-livre.entity';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { SendgridModule } from './sendgrid/sendgrid.module';
         SaleOrderItem,
         Supplier,
         Tag,
+        MLProduct,
       ],
       synchronize: false,
       migrationsTableName: 'database_migrations',

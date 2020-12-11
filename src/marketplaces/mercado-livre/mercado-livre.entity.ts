@@ -1,16 +1,14 @@
 import { Product } from '../../products/entities/product.entity';
-import { Entity, Column } from 'typeorm';
+import { Entity, Column, OneToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from '../../util/base-entity';
+import { profile } from 'console';
 
 @Entity({
   name: 'ml_product',
 })
 export class MLProduct extends BaseEntity {
-  @Column({
-    name: 'product_id',
-    type: 'integer',
-    nullable: false,
-  })
+  @OneToOne(() => Product)
+  @JoinColumn({ name: 'product_id' })
   product: Product;
 
   @Column({
