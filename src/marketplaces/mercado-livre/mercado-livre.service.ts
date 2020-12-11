@@ -5,6 +5,11 @@ import { KeyValuePairService } from '../../key-value-pair/key-value-pair.service
 import { Product } from '../../products/entities/product.entity';
 import { ProductsService } from '../../products/products.service';
 import { ProductCategory } from '../../products/entities/product-category.enum';
+import { IPaginationOpts } from 'src/pagination/pagination';
+import { paginate, Pagination } from 'nestjs-typeorm-paginate';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { MLProduct } from './mercado-livre.entity';
 
 const ML_REDIRECT_URL = 'https://digituz.com.br/api/v1/mercado-livre';
 const ML_CLIENT_ID = '8549654584565096';
@@ -30,6 +35,8 @@ export class MercadoLivreService {
   constructor(
     private keyValuePairService: KeyValuePairService,
     private productsService: ProductsService,
+    @InjectRepository(MLProduct)
+    private productRepository: Repository<MLProduct>,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -358,5 +365,54 @@ export class MercadoLivreService {
         },
       );
     });
+  }
+
+  async paginate(options: IPaginationOpts): Promise<Pagination<MBProduct>> {
+    const queryBuilder = this.productRepository
+      .createQueryBuilder('ml')
+      .leftJoinAndSelect('ml.product', 'p');
+
+    /* options.queryParams
+      .filter(queryParam => {
+        return (
+          queryParam !== null &&
+          queryParam.value !== null &&
+          queryParam.value !== undefined
+        );
+      })
+      .forEach(queryParam => {
+        switch (queryParam.key) {
+          case 'query':
+            queryBuilder.andWhere(
+              new Brackets(qb => {
+                qb.where(`lower(c.name) like lower(:query)`, {
+                  query: `%${queryParam.value.toString()}%`,
+                }).orWhere(`lower(c.cpf) like lower(:query)`, {
+                  query: `%${queryParam.value.toString()}%`,
+                });
+              }),
+            );
+            break;
+        }
+      }); */
+
+    let sortDirection;
+    let sortNulls;
+    switch (options.sortDirectionAscending) {
+      case undefined:
+      case null:
+      case true:
+        sortDirection = 'ASC';
+        sortNulls = 'NULLS FIRST';
+        break;
+      default:
+        sortDirection = 'DESC';
+        sortNulls = 'NULLS LAST';
+    }
+
+    const orderColumn = 'title';
+    queryBuilder.orderBy(orderColumn, sortDirection, sortNulls);
+
+    return paginate<MLProduct>(queryBuilder, options);
   }
 }
