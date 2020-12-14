@@ -368,14 +368,6 @@ export class MercadoLivreService {
   }
 
   async paginate(options: IPaginationOpts): Promise<Pagination<Product>> {
-    const productQuery = this.productRepository
-      .createQueryBuilder('product')
-      .leftJoinAndSelect('product.MLProduct', 'ml')
-      .where({
-        isActive: true,
-      })
-      .getQuery();
-    console.log(productQuery);
     const queryBuilder = this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.MLProduct', 'ml')
@@ -429,22 +421,8 @@ export class MercadoLivreService {
     }
     const orderColumn = 'product.title';
     queryBuilder.orderBy(orderColumn, sortDirection, sortNulls);
-    const products = await queryBuilder.getMany();
-    console.log(products);
-    const mb_products: MLProductDTO[] = products.map(product => {
-      return {
-        categoryId: product.category,
-        thumbnail: product.thumbnail,
-        sku: product.sku,
-        title: product.title,
-        maxPrice: product.sellingPrice,
-        isMLProduct: product.MLProduct != null ? true : false,
-      };
-    });
 
-    console.log(mb_products);
     const results = await paginate<Product>(queryBuilder, options);
-
     return new Pagination(
       await Promise.all(
         results.items.map(async (item: Product) => {
