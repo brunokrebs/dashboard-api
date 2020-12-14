@@ -18,5 +18,5 @@ export class MLProductDTO {
   maxPrice: number;
 
   @Allow()
-  isMbProduct: boolean;
+  isMLProduct: boolean;
 }

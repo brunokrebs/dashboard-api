@@ -438,7 +438,7 @@ export class MercadoLivreService {
         sku: product.sku,
         title: product.title,
         maxPrice: product.sellingPrice,
-        isMbProduct: product.MLProduct != null ? true : false,
+        isMLProduct: product.MLProduct != null ? true : false,
       };
     });
 

@@ -17,7 +17,7 @@ export class MLProduct extends BaseEntity {
     length: 30,
     nullable: false,
   })
-  mbId: string;
+  mlId: string;
 
   @Column({
     name: 'category_id',
