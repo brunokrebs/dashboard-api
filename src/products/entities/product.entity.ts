@@ -1,10 +1,11 @@
-import { Entity, Column, OneToMany } from 'typeorm';
+import { Entity, Column, OneToMany, OneToOne, JoinColumn } from 'typeorm';
 import { ProductVariation } from './product-variation.entity';
 import { BaseEntity } from '../../util/base-entity';
 import { ProductImage } from './product-image.entity';
 import { NumericTransformer } from '../../util/numeric-transformer';
 import { ProductCategory } from './product-category.enum';
 import { ProductComposition } from './product-composition.entity';
+import { MLProduct } from '../../marketplaces/mercado-livre/mercado-livre.entity';
 
 @Entity()
 export class Product extends BaseEntity {
@@ -167,6 +168,7 @@ export class Product extends BaseEntity {
   })
   isComposition?: boolean;
 
-  @Column({ name: 'is_ml_product', default: true })
-  isMBProduct?: boolean;
+  @OneToOne(() => MLProduct)
+  @JoinColumn({ name: 'ml_product' })
+  MLProduct?: string;
 }

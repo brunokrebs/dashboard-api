@@ -7,12 +7,13 @@ import { MercadoLivreService } from './mercado-livre/mercado-livre.service';
 import { KeyValuePairModule } from '../key-value-pair/key-value-pair.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MLProduct } from './mercado-livre/mercado-livre.entity';
+import { Product } from '../products/entities/product.entity';
 
 @Module({
   imports: [
     ProductsModule,
     KeyValuePairModule,
-    TypeOrmModule.forFeature([MLProduct]),
+    TypeOrmModule.forFeature([MLProduct, Product]),
   ],
   controllers: [ShopifyController, MercadoLivreController],
   providers: [ShopifyService, MercadoLivreService],

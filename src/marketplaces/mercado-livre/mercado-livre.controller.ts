@@ -2,8 +2,8 @@ import { Controller, Post, Get, Query, UseGuards, Put } from '@nestjs/common';
 import { MercadoLivreService } from './mercado-livre.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { Pagination } from 'nestjs-typeorm-paginate';
-import { MLProduct } from './mercado-livre.entity';
 import { parseBoolean } from '../../util/parsers';
+import { Product } from '../../products/entities/product.entity';
 
 @Controller('mercado-livre')
 export class MercadoLivreController {
@@ -44,7 +44,7 @@ export class MercadoLivreController {
     @Query('sortedBy') sortedBy: string,
     @Query('sortDirectionAscending') sortDirectionAscending: string,
     @Query('query') query: string,
-  ): Promise<Pagination<MLProduct>> {
+  ): Promise<Pagination<Product>> {
     return this.mercadoLivreService.paginate({
       page,
       limit,

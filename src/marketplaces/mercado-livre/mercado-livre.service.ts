@@ -9,7 +9,7 @@ import { IPaginationOpts } from '../../pagination/pagination';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
-import { MLProduct } from './mercado-livre.entity';
+import { MLProductDTO } from './mercado-livre.dto';
 
 const ML_REDIRECT_URL = 'https://digituz.com.br/api/v1/mercado-livre';
 const ML_CLIENT_ID = '8549654584565096';
@@ -35,8 +35,8 @@ export class MercadoLivreService {
   constructor(
     private keyValuePairService: KeyValuePairService,
     private productsService: ProductsService,
-    @InjectRepository(MLProduct)
-    private mlProductRepository: Repository<MLProduct>,
+    @InjectRepository(Product)
+    private productRepository: Repository<Product>,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -367,10 +367,21 @@ export class MercadoLivreService {
     });
   }
 
-  async paginate(options: IPaginationOpts): Promise<Pagination<MLProduct>> {
-    const queryBuilder = this.mlProductRepository
-      .createQueryBuilder('ml')
-      .leftJoinAndSelect('ml.product', 'product');
+  async paginate(options: IPaginationOpts): Promise<Pagination<Product>> {
+    const productQuery = this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.MLProduct', 'ml')
+      .where({
+        isActive: true,
+      })
+      .getQuery();
+    console.log(productQuery);
+    const queryBuilder = this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.MLProduct', 'ml')
+      .where({
+        isActive: true,
+      });
 
     options.queryParams
       .filter(queryParam => {
@@ -383,18 +394,18 @@ export class MercadoLivreService {
       .forEach(queryParam => {
         switch (queryParam.key) {
           case 'query':
-            queryBuilder.where(
+            queryBuilder.andWhere(
               new Brackets(qb => {
-                qb.where(`lower(ml.mercado_livre_id) like lower(:query)`, {
+                qb.where(`lower(product.title) like lower(:query)`, {
                   query: `%${queryParam.value.toString()}%`,
                 })
-                  .orWhere(`lower(ml.category_id) like lower(:query)`, {
-                    query: `%${queryParam.value.toString()}%`,
-                  })
-                  .orWhere(`lower(product.title) like lower(:query)`, {
-                    query: `%${queryParam.value.toString()}%`,
-                  })
                   .orWhere(`lower(product.sku) like lower(:query)`, {
+                    query: `%${queryParam.value.toString()}%`,
+                  })
+                  .orWhere(`lower(ml.mercado_livre_id) like lower(:query)`, {
+                    query: `%${queryParam.value.toString()}%`,
+                  })
+                  .orWhere(`lower(ml.category_id) like lower(:query)`, {
                     query: `%${queryParam.value.toString()}%`,
                   });
               }),
@@ -418,10 +429,30 @@ export class MercadoLivreService {
     }
     const orderColumn = 'product.title';
     queryBuilder.orderBy(orderColumn, sortDirection, sortNulls);
-    console.log(queryBuilder.getQuery());
-    return paginate<MLProduct>(queryBuilder, options).catch(err => {
-      console.log(err);
-      return null;
+    const products = await queryBuilder.getMany();
+    console.log(products);
+    const mb_products: MLProductDTO[] = products.map(product => {
+      return {
+        categoryId: product.category,
+        thumbnail: product.thumbnail,
+        sku: product.sku,
+        title: product.title,
+        maxPrice: product.sellingPrice,
+        isMbProduct: product.MLProduct != null ? true : false,
+      };
     });
+
+    console.log(mb_products);
+    const results = await paginate<Product>(queryBuilder, options);
+
+    return new Pagination(
+      await Promise.all(
+        results.items.map(async (item: Product) => {
+          return item;
+        }),
+      ),
+      results.meta,
+      results.links,
+    );
   }
 }
