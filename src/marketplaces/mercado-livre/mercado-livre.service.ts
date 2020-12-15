@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpService, Injectable } from '@nestjs/common';
 import htmlToText from 'html-to-text';
 import meli from 'mercadolibre';
 import { KeyValuePairService } from '../../key-value-pair/key-value-pair.service';
@@ -37,6 +37,7 @@ export class MercadoLivreService {
     private productsService: ProductsService,
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
+    private httpService: HttpService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -432,5 +433,29 @@ export class MercadoLivreService {
       results.meta,
       results.links,
     );
+  }
+
+  async getMLCategory(query: string) {
+    const categories = this.httpService
+      .get(
+        `https://api.mercadolibre.com/sites/MLB/domain_discovery/search?limit=4&q=${query}`,
+      )
+      .toPromise();
+
+    return (await categories).data;
+  }
+
+  async getProduct(sku: string) {
+    const queryBuilder = await this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.MLProduct', 'ml')
+      .where({ sku })
+      .getOne();
+
+    return queryBuilder;
+  }
+
+  async save() {
+    console.log('alelui');
   }
 }

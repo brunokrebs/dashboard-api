@@ -59,6 +59,12 @@ export class MercadoLivreController {
     });
   }
 
+  @Get('/product')
+  @UseGuards(JwtAuthGuard)
+  async getProduct(@Query('sku') sku: string) {
+    return this.mercadoLivreService.getProduct(sku);
+  }
+
   @Post('/')
   @UseGuards(JwtAuthGuard)
   async save(): Promise<void> {
@@ -69,5 +75,11 @@ export class MercadoLivreController {
   @UseGuards(JwtAuthGuard)
   async update(): Promise<void> {
     return this.mercadoLivreService.updateProducts();
+  }
+
+  @Get('category')
+  @UseGuards(JwtAuthGuard)
+  async getMLCategory(@Query('query') query: string) {
+    return this.mercadoLivreService.getMLCategory(query);
   }
 }
