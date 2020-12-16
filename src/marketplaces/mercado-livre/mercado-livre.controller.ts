@@ -1,9 +1,18 @@
-import { Controller, Post, Get, Query, UseGuards, Put } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Query,
+  UseGuards,
+  Put,
+  Body,
+} from '@nestjs/common';
 import { MercadoLivreService } from './mercado-livre.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { Pagination } from 'nestjs-typeorm-paginate';
 import { parseBoolean } from '../../util/parsers';
 import { Product } from '../../products/entities/product.entity';
+import { MLProductDTO } from './mercado-livre.dto';
 
 @Controller('mercado-livre')
 export class MercadoLivreController {
@@ -67,8 +76,14 @@ export class MercadoLivreController {
 
   @Post('/')
   @UseGuards(JwtAuthGuard)
-  async save(): Promise<void> {
+  async saveAll(): Promise<void> {
     return this.mercadoLivreService.createProducts();
+  }
+
+  @Post('/save')
+  @UseGuards(JwtAuthGuard)
+  async save(@Body() mlProduct: MLProductDTO): Promise<void> {
+    return this.mercadoLivreService.save(mlProduct);
   }
 
   @Put('/')

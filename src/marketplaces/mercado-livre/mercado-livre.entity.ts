@@ -17,7 +17,7 @@ export class MLProduct extends BaseEntity {
     length: 30,
     nullable: false,
   })
-  mlId: string;
+  mercadoLivreId: string;
 
   @Column({
     name: 'category_id',
@@ -25,7 +25,15 @@ export class MLProduct extends BaseEntity {
     length: 30,
     nullable: false,
   })
-  category: string;
+  categoryId: string;
+
+  @Column({
+    name: 'category_name',
+    type: 'varchar',
+    length: 30,
+    nullable: false,
+  })
+  categoryName: string;
 
   @Column({
     name: 'need_atualization',

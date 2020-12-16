@@ -170,5 +170,5 @@ export class Product extends BaseEntity {
 
   @OneToOne(() => MLProduct)
   @JoinColumn({ name: 'ml_product' })
-  MLProduct?: string;
+  MLProduct?: MLProduct;
 }

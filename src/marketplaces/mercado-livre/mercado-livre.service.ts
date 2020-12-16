@@ -10,8 +10,11 @@ import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
 import { MLProductDTO } from './mercado-livre.dto';
+import { Transactional } from 'typeorm-transactional-cls-hooked';
+import { MLProduct } from './mercado-livre.entity';
 
 const ML_REDIRECT_URL = 'https://digituz.com.br/api/v1/mercado-livre';
+const ML_REDIRECT_URL_TEST = 'https://2ad5522b7c94.ngrok.io/mercado-livre';
 const ML_CLIENT_ID = '8549654584565096';
 const ML_CLIENT_SECRET = 'hnmngMTYNe6Uf8ogcdDzZ9VemjkayZ4s';
 const ML_REFRESH_TOKEN_KEY = 'ML_REFRESH_TOKEN';
@@ -38,6 +41,8 @@ export class MercadoLivreService {
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
     private httpService: HttpService,
+    @InjectRepository(MLProduct)
+    private mlProductRepository: Repository<MLProduct>,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -71,34 +76,28 @@ export class MercadoLivreService {
   }
 
   getAuthURL(): string {
-    return this.mercadoLivre.getAuthURL(
-      'https://791f183eabc1.ngrok.io/mercado-livre',
-    );
+    return this.mercadoLivre.getAuthURL(ML_REDIRECT_URL_TEST);
   }
 
   fetchTokens(code: string) {
-    this.mercadoLivre.authorize(
-      code,
-      'https://791f183eabc1.ngrok.io/mercado-livre',
-      (err, res) => {
-        if (err) throw new Error(err);
+    this.mercadoLivre.authorize(code, ML_REDIRECT_URL_TEST, (err, res) => {
+      if (err) throw new Error(err);
 
-        const refreshToken = res.refresh_token;
-        const accessToken = res.access_token;
+      const refreshToken = res.refresh_token;
+      const accessToken = res.access_token;
 
-        this.keyValuePairService.set({
-          key: ML_REFRESH_TOKEN_KEY,
-          value: refreshToken,
-        });
+      this.keyValuePairService.set({
+        key: ML_REFRESH_TOKEN_KEY,
+        value: refreshToken,
+      });
 
-        this.keyValuePairService.set({
-          key: ML_ACCESS_TOKEN_KEY,
-          value: accessToken,
-        });
+      this.keyValuePairService.set({
+        key: ML_ACCESS_TOKEN_KEY,
+        value: accessToken,
+      });
 
-        this.startRefreshingTokens();
-      },
-    );
+      this.startRefreshingTokens();
+    });
   }
 
   async getToken() {
@@ -122,23 +121,26 @@ export class MercadoLivreService {
     const products = await this.productsService.findAll();
     const activeNoVariationProducts = products.filter(product => {
       return (
-        product.productVariations.length === 1 &&
+        product.productVariations.length >= 1 &&
         product.isActive &&
-        !product.mercadoLivreId &&
-        product.mercadoLivreCategoryId &&
+        !product.MLProduct.mercadoLivreId &&
+        product.MLProduct.categoryId &&
         product.productImages?.length > 0
       );
     });
+
     const createJobs = activeNoVariationProducts.map((product, idx) => {
       return new Promise((res, rej) => {
         setTimeout(async () => {
           const mlProduct = await this.mapToMLProduct(product);
           this.mercadoLivre.post('items', mlProduct, async (err, response) => {
             if (err) return rej(err);
-            if (!response.id)
+            if (!response.id) {
+              console.log(product.sku, response.cause);
               return rej(`Unable to create ${product.sku} on Mercado Livre.`);
+            }
             product.mercadoLivreId = response.id;
-            await this.productsService.updateProductProperties(product.id, {
+            await this.updateProductProperties(product.id, {
               mercadoLivreId: response.id,
             });
             console.log(`${product.sku} created successfully`);
@@ -147,8 +149,7 @@ export class MercadoLivreService {
         }, idx * 250);
       });
     });
-
-    await Promise.all(createJobs);
+    await Promise.all(createJobs).catch(err => console.log(err));
   }
 
   private async mapToMLProduct(product: Product) {
@@ -168,7 +169,7 @@ export class MercadoLivreService {
     const singleVariation = product.productVariations[0];
 
     return {
-      category_id: product.mercadoLivreCategoryId,
+      category_id: product.MLProduct.categoryId,
       description: {
         plain_text: htmlToText.fromString(product.productDetails),
       },
@@ -218,54 +219,57 @@ export class MercadoLivreService {
     product: Product,
     productImages: { source: string }[],
   ) {
-    return this.mapProductWithoutVariationsForCreation(product, productImages);
-    // return {
-    //   sku: null, // TODO
-    //   category_id: productCategory,
-    //   description: product.description,
-    //   condition: 'new',
-    //   buying_mode: 'buy_it_now',
-    //   available_quantity: singleVariation.currentPosition,
-    //   pictures: productImages,
-    //   price: singleVariation.sellingPrice,
-    //   currency_id: 'BRL',
-    //   tags: ['immediate_payment'],
-    //   subtitle: null, // TODO ml-integration fix
-    //   sale_terms: [], // TODO ml-integration fix
-    //   warranty: '90 dias de garantia', // TODO ml-integration fix
-    //   title: 'Item de Teste - Por favor, NÃO OFERTAR!', // TODO ml-integration fix
-    //   listing_type_id: 'gold_special', // TODO ml-integration fix (gold_special, gold_pro)
-    //   shipping: null, // TODO ml-integration fix
-    //   payment_method: null, // TODO ml-integration fix (needed?)
-    //   attributes: [
-    //     {
-    //       id: 'BRAND',
-    //       value_name: 'Frida Kahlo',
-    //     },
-    //   ],
-    //   variations: [
-    //     {
-    //       price: singleVariation.sellingPrice,
-    //       available_quantity: singleVariation.currentPosition,
-    //       pictures: null,
-    //       attribute_combinations: null,
-    //       attributes: [
-    //         // { // TODO
-    //         //   id: 'PACKAGE_HEIGHT',
-    //         //   value_name: '25 cm',
-    //         // },
-    //         // {
-    //         //   id: 'PACKAGE_WIDTH',
-    //         //   value_name: '17 cm',
-    //         // },
-    //         {
-    //           id: 'SELLER_SKU',
-    //           value_name: singleVariation.sku,
-    //         },
-    //       ],
-    //     },
-    //   ],
-    // };
+    const variations = product.productVariations.map(variation => {
+      return {
+        price: variation.sellingPrice,
+        available_quantity: variation.currentPosition,
+        pictures: productImages,
+        attribute_combinations: [
+          {
+            id: 'COLOR',
+            name: 'Cor',
+            value_name: variation.description,
+          },
+        ],
+        atributes: [
+          {
+            // TODO
+            id: 'PACKAGE_HEIGHT',
+            value_name: '25 cm',
+          },
+          {
+            id: 'PACKAGE_WIDTH',
+            value_name: '17 cm',
+          },
+          {
+            id: 'SELLER_SKU',
+            value_name: variation.sku,
+          },
+        ],
+      };
+    });
+
+    return {
+      category_id: product.MLProduct.categoryId,
+      description: product.description,
+      condition: 'new',
+      buying_mode: 'buy_it_now',
+      pictures: productImages,
+      currency_id: 'BRL',
+      tags: ['immediate_payment'],
+      sale_terms: [], // TODO ml-integration fix
+      title: 'Item de Teste - Por favor, NÃO OFERTAR!', // TODO ml-integration fix
+      listing_type_id: 'gold_special', // TODO ml-integration fix (gold_special, gold_pro)
+      shipping: null, // TODO ml-integration fix
+      attributes: [
+        {
+          id: 'BRAND',
+          value_id: '8795668',
+          value_name: 'Frida Kahlo',
+        },
+      ],
+      variations,
+    };
   }
 
   private async updateProductExposure(product: Product) {
@@ -455,7 +459,18 @@ export class MercadoLivreService {
     return queryBuilder;
   }
 
-  async save() {
-    console.log('alelui');
+  async save(mlProduct: MLProductDTO) {
+    console.log(mlProduct);
+  }
+
+  @Transactional()
+  async updateProductProperties(
+    productId: number,
+    properties: Partial<MLProduct>,
+  ) {
+    return this.mlProductRepository.update(
+      { product: { id: productId } },
+      properties,
+    );
   }
 }

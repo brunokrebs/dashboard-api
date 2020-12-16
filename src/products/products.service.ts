@@ -62,6 +62,7 @@ export class ProductsService {
       .leftJoinAndSelect('product.productVariations', 'pv')
       .leftJoinAndSelect('product.productImages', 'pi')
       .leftJoinAndSelect('pi.image', 'i')
+      .leftJoinAndSelect('product.MLProduct', 'ml')
       .getMany();
 
     const productVariations: ProductVariation[] = products.reduce(

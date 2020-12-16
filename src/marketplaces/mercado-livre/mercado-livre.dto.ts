@@ -2,21 +2,24 @@ import { Allow, Min } from 'class-validator';
 
 export class MLProductDTO {
   @Allow()
-  categoryId: string;
+  categoryId?: string;
 
   @Allow()
-  thumbnail: string;
+  categoryName?: string;
 
   @Allow()
-  sku: string;
+  thumbnail?: string;
+
+  @Allow()
+  sku?: string;
 
   @Allow()
   title: string;
 
   @Allow()
   @Min(0.0001)
-  maxPrice: number;
+  maxPrice?: number;
 
   @Allow()
-  isMLProduct: boolean;
+  isMLProduct?: boolean;
 }
