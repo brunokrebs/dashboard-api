@@ -97,4 +97,9 @@ export class MercadoLivreController {
   async getMLCategory(@Query('query') query: string) {
     return this.mercadoLivreService.getMLCategory(query);
   }
+
+  @Post('ml-image')
+  async saveImage() {
+    this.mercadoLivreService.saveImagesOnML();
+  }
 }

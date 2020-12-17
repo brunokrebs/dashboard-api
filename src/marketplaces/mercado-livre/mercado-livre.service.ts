@@ -12,23 +12,22 @@ import { Brackets, Repository } from 'typeorm';
 import { MLProductDTO } from './mercado-livre.dto';
 import { Transactional } from 'typeorm-transactional-cls-hooked';
 import { MLProduct } from './mercado-livre.entity';
+import { Image } from '../../media-library/image.entity';
+import request from 'request-promise';
 
-const ML_REDIRECT_URL = 'https://digituz.com.br/api/v1/mercado-livre';
-const ML_REDIRECT_URL_TEST = 'https://2ad5522b7c94.ngrok.io/mercado-livre';
-const ML_CLIENT_ID = '8549654584565096';
-const ML_CLIENT_SECRET = 'hnmngMTYNe6Uf8ogcdDzZ9VemjkayZ4s';
 const ML_REFRESH_TOKEN_KEY = 'ML_REFRESH_TOKEN';
 const ML_ACCESS_TOKEN_KEY = 'ML_ACCESS_TOKEN';
-const ML_SITE_ID = 'MLB';
 const REFRESH_RATE = 3 * 60 * 60 * 1000; // every three hours
 
 //test aplication
 //ML_CLIENT_ID =  8549654584565096,
 //ML_CLIENT_SECRET = hnmngMTYNe6Uf8ogcdDzZ9VemjkayZ4s,
+//const ML_REDIRECT_URL = 'https://2ad5522b7c94.ngrok.io/mercado-livre';
 
 //production keys
 //ML_CLIENT_ID = '6962689565848218';
 //ML_CLIENT_SECRET = '0j9pICVyBzxaQ8zGI4UdGlj5HkjWXn6Q';
+//const ML_REDIRECT_URL = 'https://digituz.com.br/api/v1/mercado-livre';
 
 @Injectable()
 export class MercadoLivreService {
@@ -43,14 +42,16 @@ export class MercadoLivreService {
     private httpService: HttpService,
     @InjectRepository(MLProduct)
     private mlProductRepository: Repository<MLProduct>,
+    @InjectRepository(Image)
+    private imageRepository: Repository<Image>,
   ) {}
 
   async onModuleInit(): Promise<void> {
     const rt = await this.keyValuePairService.get(ML_REFRESH_TOKEN_KEY);
     const at = await this.keyValuePairService.get(ML_ACCESS_TOKEN_KEY);
     this.mercadoLivre = new meli.Meli(
-      ML_CLIENT_ID,
-      ML_CLIENT_SECRET,
+      process.env.ML_CLIENT_ID,
+      process.env.ML_CLIENT_SECRET,
       at?.value,
       rt?.value,
     );
@@ -76,28 +77,32 @@ export class MercadoLivreService {
   }
 
   getAuthURL(): string {
-    return this.mercadoLivre.getAuthURL(ML_REDIRECT_URL_TEST);
+    return this.mercadoLivre.getAuthURL(process.env.ML_REDIRECT_URL);
   }
 
   fetchTokens(code: string) {
-    this.mercadoLivre.authorize(code, ML_REDIRECT_URL_TEST, (err, res) => {
-      if (err) throw new Error(err);
+    this.mercadoLivre.authorize(
+      code,
+      process.env.ML_REDIRECT_URL,
+      (err, res) => {
+        if (err) throw new Error(err);
 
-      const refreshToken = res.refresh_token;
-      const accessToken = res.access_token;
+        const refreshToken = res.refresh_token;
+        const accessToken = res.access_token;
 
-      this.keyValuePairService.set({
-        key: ML_REFRESH_TOKEN_KEY,
-        value: refreshToken,
-      });
+        this.keyValuePairService.set({
+          key: ML_REFRESH_TOKEN_KEY,
+          value: refreshToken,
+        });
 
-      this.keyValuePairService.set({
-        key: ML_ACCESS_TOKEN_KEY,
-        value: accessToken,
-      });
+        this.keyValuePairService.set({
+          key: ML_ACCESS_TOKEN_KEY,
+          value: accessToken,
+        });
 
-      this.startRefreshingTokens();
-    });
+        this.startRefreshingTokens();
+      },
+    );
   }
 
   async getToken() {
@@ -118,7 +123,9 @@ export class MercadoLivreService {
   }
 
   async createProducts() {
+    await this.saveImagesOnML();
     const products = await this.productsService.findAll();
+
     const activeNoVariationProducts = products.filter(product => {
       return (
         product.productVariations.length >= 1 &&
@@ -153,10 +160,16 @@ export class MercadoLivreService {
   }
 
   private async mapToMLProduct(product: Product) {
-    const productImages = product.productImages.map(pi => ({
-      source: pi.image.largeFileURL,
-    }));
+    const productImages = product.productImages
+      .map(pi => ({
+        id: pi.image.mlImageId,
+      }))
+      .filter(pi => pi.id !== null);
 
+    if (productImages.length === 0) {
+      console.log(`${product.sku} não tem imagens para ser cadastrado no ml`);
+      return; //mostrar que esse producto não tem imagens para ser cadastrado
+    }
     return product.variationsSize > 1
       ? this.mapProductWithVariationsForCreation(product, productImages)
       : this.mapProductWithoutVariationsForCreation(product, productImages);
@@ -164,7 +177,7 @@ export class MercadoLivreService {
 
   private mapProductWithoutVariationsForCreation(
     product: Product,
-    productImages: { source: string }[],
+    productImages: { id: string }[],
   ) {
     const singleVariation = product.productVariations[0];
 
@@ -189,6 +202,7 @@ export class MercadoLivreService {
       attributes: [
         {
           id: 'BRAND',
+          value_id: '8795668',
           value_name: 'Frida Kahlo',
         },
         {
@@ -217,13 +231,13 @@ export class MercadoLivreService {
 
   private mapProductWithVariationsForCreation(
     product: Product,
-    productImages: { source: string }[],
+    productImages: { id: string }[],
   ) {
     const variations = product.productVariations.map(variation => {
       return {
         price: variation.sellingPrice,
         available_quantity: variation.currentPosition,
-        pictures: productImages,
+        pictures: [...productImages], //por algum motivo ainda temos o problema com a quantidade de imagens sendo 0
         attribute_combinations: [
           {
             id: 'COLOR',
@@ -472,5 +486,71 @@ export class MercadoLivreService {
       { product: { id: productId } },
       properties,
     );
+  }
+
+  async saveImagesOnML() {
+    const images = await this.imageRepository
+      .createQueryBuilder('im')
+      .where({ mlImageStatus: null })
+      .andWhere('im.id in (SELECT image_id	 from product_image);')
+      .getMany();
+
+    const savedImages = images.map((image, idx) => {
+      return new Promise(res => {
+        setTimeout(async () => {
+          try {
+            const accessToken = await this.keyValuePairService.get(
+              ML_ACCESS_TOKEN_KEY,
+            );
+
+            const imageBuffer = await request({
+              url: image.originalFileURL,
+              encoding: null,
+            });
+
+            // create upload request
+            const uploadJob = request.post(
+              'https://api.mercadolibre.com/pictures/items/upload',
+              {
+                json: true,
+                headers: {
+                  authorization: `Bearer ${accessToken.value}`,
+                },
+              },
+            );
+            const form = uploadJob.form();
+            form.append('file', imageBuffer, {
+              filename: image.originalFilename,
+              contentType: image.mimetype,
+            });
+            const uploadResult = await uploadJob;
+
+            await this.imageRepository.update(
+              {
+                id: image.id,
+              },
+              {
+                mlImageId: uploadResult.id,
+                mlImageStatus: true,
+              },
+            );
+            res();
+          } catch (err) {
+            console.error(err);
+            await this.imageRepository.update(
+              {
+                id: image.id,
+              },
+              {
+                mlImageStatus: false,
+              },
+            );
+          }
+        }, 550 * idx);
+      });
+    });
+
+    await Promise.all(savedImages);
+    return;
   }
 }

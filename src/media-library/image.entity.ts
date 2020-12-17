@@ -140,4 +140,16 @@ export class Image extends BaseEntity {
     transformer: new NumericTransformer(),
   })
   aspectRatio: number = 0;
+
+  @Column({
+    name: 'ml_image_id',
+    type: 'varchar',
+  })
+  mlImageId?: string;
+
+  @Column({
+    name: 'ml_image_status',
+    type: 'boolean',
+  })
+  mlImageStatus?: boolean;
 }
