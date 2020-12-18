@@ -233,11 +233,19 @@ export class MercadoLivreService {
     product: Product,
     productImages: { id: string }[],
   ) {
+    const images = productImages.map(image => image.id);
+    const price = product.productVariations.reduce(
+      (total, variation) =>
+        total < variation.sellingPrice
+          ? (total = variation.sellingPrice)
+          : total,
+      0,
+    );
     const variations = product.productVariations.map(variation => {
       return {
-        price: variation.sellingPrice,
+        price: price, //ver a questão de preço ter que ser igual nas variações
         available_quantity: variation.currentPosition,
-        pictures: [...productImages], //por algum motivo ainda temos o problema com a quantidade de imagens sendo 0
+        picture_ids: images, //por algum motivo ainda temos o problema com a quantidade de imagens sendo 0
         attribute_combinations: [
           {
             id: 'COLOR',

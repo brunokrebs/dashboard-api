@@ -1,25 +1,12 @@
-import { Allow, Min } from 'class-validator';
+import { Allow, MaxLength, Min } from 'class-validator';
 
 export class MLProductDTO {
-  @Allow()
-  categoryId?: string;
+  @MaxLength(30)
+  categoryId: string;
 
-  @Allow()
-  categoryName?: string;
+  @MaxLength(30)
+  categoryName: string;
 
-  @Allow()
-  thumbnail?: string;
-
-  @Allow()
-  sku?: string;
-
-  @Allow()
-  title: string;
-
-  @Allow()
-  @Min(0.0001)
-  maxPrice?: number;
-
-  @Allow()
-  isMLProduct?: boolean;
+  @MaxLength(24)
+  sku: string;
 }

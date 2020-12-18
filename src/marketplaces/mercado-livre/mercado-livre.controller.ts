@@ -83,6 +83,7 @@ export class MercadoLivreController {
   @Post('/save')
   @UseGuards(JwtAuthGuard)
   async save(@Body() mlProduct: MLProductDTO): Promise<void> {
+    console.log('cheguei aqui', mlProduct);
     return this.mercadoLivreService.save(mlProduct);
   }
 
@@ -96,10 +97,5 @@ export class MercadoLivreController {
   @UseGuards(JwtAuthGuard)
   async getMLCategory(@Query('query') query: string) {
     return this.mercadoLivreService.getMLCategory(query);
-  }
-
-  @Post('ml-image')
-  async saveImage() {
-    this.mercadoLivreService.saveImagesOnML();
   }
 }
