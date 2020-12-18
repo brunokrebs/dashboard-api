@@ -113,7 +113,8 @@ export class MercadoLivreService {
     const products = await this.productsService.findAll();
     const berloques = products.filter(product => {
       return (
-        product.mercadoLivreId && product.category === ProductCategory.BERLOQUES
+        product.MLProduct.mercadoLivreId &&
+        product.category === ProductCategory.BERLOQUES
       );
     });
     const jobs = berloques.map(async berloque =>
@@ -122,9 +123,20 @@ export class MercadoLivreService {
     await Promise.all(jobs);
   }
 
-  async createProducts() {
+  async createProducts(mlProducts: any) {
+    const ids = mlProducts.products.map(product => product.id);
+    const insertMLProductsJob = mlProducts.products.map(product => {
+      const mlProduct: MLProduct = {
+        id: product.mlId,
+        categoryId: mlProducts.category.id,
+        categoryName: mlProducts.category.name,
+        product: product,
+      };
+      return this.mlProductRepository.save(mlProduct);
+    });
+    await Promise.all(insertMLProductsJob);
     await this.saveImagesOnML();
-    const products = await this.productsService.findAll();
+    const products = await this.productsService.findProductsToML(ids);
 
     const activeNoVariationProducts = products.filter(product => {
       return (
@@ -146,7 +158,7 @@ export class MercadoLivreService {
               console.log(product.sku, response.cause);
               return rej(`Unable to create ${product.sku} on Mercado Livre.`);
             }
-            product.mercadoLivreId = response.id;
+            product.MLProduct.mercadoLivreId = response.id;
             await this.updateProductProperties(product.id, {
               mercadoLivreId: response.id,
             });
@@ -299,13 +311,13 @@ export class MercadoLivreService {
         id: 'gold_pro',
       };
       this.mercadoLivre.post(
-        `items/${product.mercadoLivreId}/listing_type`,
+        `items/${product.MLProduct.mercadoLivreId}/listing_type`,
         exposure,
         async (err, response) => {
           if (err) return rej(err);
           if (!response.id) {
             return rej(
-              `Unable to update exposure of ${product.sku} (${product.mercadoLivreId}) on Mercado Livre.`,
+              `Unable to update exposure of ${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.`,
             );
           }
           res();
@@ -321,13 +333,13 @@ export class MercadoLivreService {
         plain_text: htmlToText.fromString(product.productDetails),
       };
       this.mercadoLivre.put(
-        `items/${product.mercadoLivreId}/description`,
+        `items/${product.MLProduct.mercadoLivreId}/description`,
         updatedProperties,
         async (err, response) => {
           if (err) return rej(err);
           if (!response.plain_text) {
             return rej(
-              `Unable to update ${product.sku} (${product.mercadoLivreId}) on Mercado Livre.`,
+              `Unable to update ${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.`,
             );
           }
           res();
@@ -371,7 +383,7 @@ export class MercadoLivreService {
         updatedProperties.title = product.title;
       }
       this.mercadoLivre.put(
-        `items/${product.mercadoLivreId}`,
+        `items/${product.MLProduct.mercadoLivreId}`,
         updatedProperties,
         async (err, response) => {
           if (err) return rej(err);
@@ -381,11 +393,11 @@ export class MercadoLivreService {
           }
           if (!response.id) {
             return rej(
-              `Unable to update ${product.sku} (${product.mercadoLivreId}) on Mercado Livre.`,
+              `Unable to update ${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.`,
             );
           }
           console.log(
-            `${product.sku} (${product.mercadoLivreId}) updated successfully`,
+            `${product.sku} (${product.MLProduct.mercadoLivreId}) updated successfully`,
           );
           res();
         },
@@ -503,7 +515,7 @@ export class MercadoLivreService {
           console.log('erro sku:' + product.sku, response);
           return `Unable to create ${product.sku} on Mercado Livre.`;
         }
-        product.mercadoLivreId = response.id;
+        product.MLProduct.mercadoLivreId = response.id;
         await this.updateProductProperties(product.id, {
           mercadoLivreId: response.id,
         });
