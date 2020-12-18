@@ -167,8 +167,7 @@ export class MercadoLivreService {
       .filter(pi => pi.id !== null);
 
     if (productImages.length === 0) {
-      console.log(`${product.sku} não tem imagens para ser cadastrado no ml`);
-      return; //mostrar que esse producto não tem imagens para ser cadastrado
+      return `${product.sku} não tem imagens para ser cadastrado no ml`; //mostrar que esse producto não tem imagens para ser cadastrado
     }
     return product.variationsSize > 1
       ? this.mapProductWithVariationsForCreation(product, productImages)
@@ -481,8 +480,38 @@ export class MercadoLivreService {
     return queryBuilder;
   }
 
-  async save(mlProduct: MLProductDTO) {
-    console.log(mlProduct);
+  async save(mlProductDTO: MLProductDTO) {
+    const mlProduct: MLProduct = {
+      id: mlProductDTO?.id,
+      categoryName: mlProductDTO.categoryName,
+      categoryId: mlProductDTO.categoryId,
+      product: mlProductDTO.product,
+    };
+    await this.mlProductRepository.save(mlProduct);
+
+    //search the product for insert in mercado livre
+    const product = await this.productsService.findOneProductToML(
+      mlProductDTO.product.id,
+    );
+    const sendProductJob = await this.mapToMLProduct(product);
+    const createJob = this.mercadoLivre.post(
+      'items',
+      sendProductJob,
+      async (err, response) => {
+        if (err) return err;
+        if (!response.id) {
+          console.log('erro sku:' + product.sku, response);
+          return `Unable to create ${product.sku} on Mercado Livre.`;
+        }
+        product.mercadoLivreId = response.id;
+        await this.updateProductProperties(product.id, {
+          mercadoLivreId: response.id,
+        });
+        console.log(`${product.sku} created successfully`);
+      },
+    );
+    await Promise.resolve(createJob).catch(err => console.log('err' + err));
+    return null;
   }
 
   @Transactional()

@@ -13,6 +13,7 @@ import { Pagination } from 'nestjs-typeorm-paginate';
 import { parseBoolean } from '../../util/parsers';
 import { Product } from '../../products/entities/product.entity';
 import { MLProductDTO } from './mercado-livre.dto';
+import { MLProduct } from './mercado-livre.entity';
 
 @Controller('mercado-livre')
 export class MercadoLivreController {
@@ -82,8 +83,7 @@ export class MercadoLivreController {
 
   @Post('/save')
   @UseGuards(JwtAuthGuard)
-  async save(@Body() mlProduct: MLProductDTO): Promise<void> {
-    console.log('cheguei aqui', mlProduct);
+  async save(@Body() mlProduct: MLProductDTO): Promise<MLProduct> {
     return this.mercadoLivreService.save(mlProduct);
   }
 
