@@ -23,13 +23,9 @@ export class MercadoLivreController {
   accessToken: string;
   refreshToken: string;
 
-  constructor(
-    private mercadoLivreService: MercadoLivreService,
-    @InjectRepository(MLProduct)
-    private mlProductRepository: Repository<MLProduct>,
-  ) {}
+  constructor(private mercadoLivreService: MercadoLivreService) {}
 
-  @Get('notification')
+  @Get('/notification')
   getNotification() {
     return console.log('chegou notificação');
   }
@@ -90,15 +86,7 @@ export class MercadoLivreController {
   @Post('/save')
   @UseGuards(JwtAuthGuard)
   async save(@Body() mlProduct: MLProductDTO): Promise<void> {
-    const mercadoLivreId = await this.mlProductRepository.findOne({
-      select: ['mercadoLivreId'],
-      where: { id: mlProduct.id },
-    });
-    if (mercadoLivreId) {
-      return this.mercadoLivreService.updateProducts(mlProduct.product.id);
-    } else {
-      return this.mercadoLivreService.save(mlProduct);
-    }
+    return this.mercadoLivreService.save(mlProduct);
   }
 
   @Get('category')

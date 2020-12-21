@@ -31,7 +31,6 @@ const REFRESH_RATE = 3 * 60 * 60 * 1000; // every three hours
 @Injectable()
 export class MercadoLivreService {
   private mercadoLivre;
-  private mercadoLivreCategoryMapping: any = {};
 
   constructor(
     private keyValuePairService: KeyValuePairService,
@@ -106,13 +105,6 @@ export class MercadoLivreService {
 
   async getToken() {
     return this.keyValuePairService.get(ML_ACCESS_TOKEN_KEY);
-  }
-
-  async updateProducts(id: number): Promise<void> {
-    const products = await this.productsService.findProductsToML([id]);
-    const job = this.updateProductDetails(products[0]);
-
-    await Promise.resolve(job).catch(err => console.log(err));
   }
 
   async createProducts(mlProducts: any) {
@@ -494,6 +486,10 @@ export class MercadoLivreService {
       mlProductDTO.product.id,
     ]);
 
+    if (mlProductDTO.id) {
+      const job = this.updateProductDetails(product[0]);
+      await Promise.resolve(job).catch(err => console.log(err));
+    }
     const createJob = this.createProductOnML(product[0]);
 
     return Promise.resolve(createJob).catch(err => console.log('err' + err));
