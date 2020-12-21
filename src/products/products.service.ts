@@ -19,7 +19,7 @@ import { ProductVariationDetailsDTO } from './dtos/product-variation-details.dto
 import { ProductCategory } from './entities/product-category.enum';
 import { ProductComposition } from './entities/product-composition.entity';
 import { BlingService } from '../bling/bling.service';
-import { Propagation, Transactional } from 'typeorm-transactional-cls-hooked';
+import { Transactional } from 'typeorm-transactional-cls-hooked';
 
 @Injectable()
 export class ProductsService {

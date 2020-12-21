@@ -10,6 +10,7 @@ import { ProductImage } from './entities/product-image.entity';
 import { MediaLibraryModule } from '../media-library/media-library.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { BlingModule } from '../bling/bling.module';
+import { MLProduct } from '../marketplaces/mercado-livre/mercado-livre.entity';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { BlingModule } from '../bling/bling.module';
       ProductVariation,
       ProductComposition,
       ProductImage,
+      MLProduct,
     ]),
   ],
   providers: [ProductsService],

@@ -36,10 +36,37 @@ export class MLProduct extends BaseEntity {
   categoryName: string;
 
   @Column({
+    name: 'ad_type',
+    type: 'varchar',
+    length: 15,
+  })
+  adType: string;
+
+  @Column({
+    name: 'warranty_type',
+    type: 'varchar',
+    length: 30,
+  })
+  warrantyType?: string;
+
+  @Column({
+    name: 'warranty_time_id',
+    type: 'varchar',
+    length: 5,
+  })
+  warrantyTimeId?: string;
+
+  @Column({
+    name: 'warranty_time',
+    type: 'integer',
+  })
+  warrantyTime?: number;
+
+  @Column({
     name: 'need_atualization',
     type: 'boolean',
     default: false,
     nullable: true,
   })
-  needAtualization?: string;
+  needAtualization?: boolean;
 }

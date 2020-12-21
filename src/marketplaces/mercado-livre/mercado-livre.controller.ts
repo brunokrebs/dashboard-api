@@ -14,6 +14,8 @@ import { parseBoolean } from '../../util/parsers';
 import { Product } from '../../products/entities/product.entity';
 import { MLProductDTO } from './mercado-livre.dto';
 import { MLProduct } from './mercado-livre.entity';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Controller('mercado-livre')
 export class MercadoLivreController {
@@ -21,7 +23,11 @@ export class MercadoLivreController {
   accessToken: string;
   refreshToken: string;
 
-  constructor(private mercadoLivreService: MercadoLivreService) {}
+  constructor(
+    private mercadoLivreService: MercadoLivreService,
+    @InjectRepository(MLProduct)
+    private mlProductRepository: Repository<MLProduct>,
+  ) {}
 
   @Get('notification')
   getNotification() {
@@ -77,20 +83,22 @@ export class MercadoLivreController {
 
   @Post('/')
   @UseGuards(JwtAuthGuard)
-  async saveAll(@Body() mlProducts): Promise<void> {
+  async saveAll(@Body() mlProducts: MLProductDTO): Promise<void> {
     return this.mercadoLivreService.createProducts(mlProducts);
   }
 
   @Post('/save')
   @UseGuards(JwtAuthGuard)
-  async save(@Body() mlProduct: MLProductDTO): Promise<MLProduct> {
-    return this.mercadoLivreService.save(mlProduct);
-  }
-
-  @Put('/')
-  @UseGuards(JwtAuthGuard)
-  async update(): Promise<void> {
-    return this.mercadoLivreService.updateProducts();
+  async save(@Body() mlProduct: MLProductDTO): Promise<void> {
+    const mercadoLivreId = await this.mlProductRepository.findOne({
+      select: ['mercadoLivreId'],
+      where: { id: mlProduct.id },
+    });
+    if (mercadoLivreId) {
+      return this.mercadoLivreService.updateProducts(mlProduct.product.id);
+    } else {
+      return this.mercadoLivreService.save(mlProduct);
+    }
   }
 
   @Get('category')

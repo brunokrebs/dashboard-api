@@ -1,4 +1,4 @@
-import { Allow, MaxLength, Min } from 'class-validator';
+import { Allow, MaxLength, Min, MinLength } from 'class-validator';
 import { Product } from '../../products/entities/product.entity';
 
 export class MLProductDTO {
@@ -6,11 +6,15 @@ export class MLProductDTO {
   id?: number;
 
   @MaxLength(30)
-  categoryId: string;
+  categoryId?: string;
 
   @MaxLength(30)
   categoryName: string;
 
+  @MinLength(4)
+  @MaxLength(15)
+  adType?: string;
+
   @Allow()
-  product: Product;
+  product?: Product;
 }

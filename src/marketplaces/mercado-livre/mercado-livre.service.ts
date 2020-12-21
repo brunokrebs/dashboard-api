@@ -4,7 +4,6 @@ import meli from 'mercadolibre';
 import { KeyValuePairService } from '../../key-value-pair/key-value-pair.service';
 import { Product } from '../../products/entities/product.entity';
 import { ProductsService } from '../../products/products.service';
-import { ProductCategory } from '../../products/entities/product-category.enum';
 import { IPaginationOpts } from '../../pagination/pagination';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -109,18 +108,11 @@ export class MercadoLivreService {
     return this.keyValuePairService.get(ML_ACCESS_TOKEN_KEY);
   }
 
-  async updateProducts() {
-    const products = await this.productsService.findAll();
-    const berloques = products.filter(product => {
-      return (
-        product.MLProduct.mercadoLivreId &&
-        product.category === ProductCategory.BERLOQUES
-      );
-    });
-    const jobs = berloques.map(async berloque =>
-      this.updateProductDetails(berloque, true),
-    );
-    await Promise.all(jobs);
+  async updateProducts(id: number): Promise<void> {
+    const products = await this.productsService.findProductsToML([id]);
+    const job = this.updateProductDetails(products[0]);
+
+    await Promise.resolve(job).catch(err => console.log(err));
   }
 
   async createProducts(mlProducts: any) {
@@ -131,6 +123,7 @@ export class MercadoLivreService {
         categoryId: mlProducts.category.id,
         categoryName: mlProducts.category.name,
         product: product,
+        adType: mlProducts.adType,
       };
       return this.mlProductRepository.save(mlProduct);
     });
@@ -189,12 +182,14 @@ export class MercadoLivreService {
     ) {
       productInfos = {
         title: product.title,
-        listing_type_id: 'gold_pro',
+        listingTypeId: product.MLProduct.adType, // TODO ml-integration fix (gold_special, gold_pro, silver)
+        saleTerms: product.MLProduct.warrantyType ? [] : [],
       };
     } else {
       productInfos = {
         title: 'Item de Teste - Por favor, NÃO OFERTAR!',
-        listing_type_id: 'gold_pro',
+        listingTypeId: 'gold_pro',
+        saleTerms: [],
       };
     }
     return {
@@ -209,12 +204,10 @@ export class MercadoLivreService {
       price: singleVariation.sellingPrice,
       currency_id: 'BRL',
       tags: ['immediate_payment'],
-      // subtitle: null, // TODO ml-integration check is valuable?
-      sale_terms: [], // TODO ml-integration check is valuable?
+      sale_terms: productInfos.saleTerms, // TODO ml-integration check is valuable?
       title: productInfos.title,
-      listing_type_id: productInfos.listing_type_id, // TODO ml-integration fix (gold_special, gold_pro, silver)
+      listing_type_id: productInfos.listingTypeId,
       shipping: null, // TODO ml-integration fix
-      // payment_method: null, // TODO ml-integration fix (needed?)
       attributes: [
         {
           id: 'BRAND',
@@ -249,6 +242,24 @@ export class MercadoLivreService {
     product: Product,
     productImages: { id: string }[],
   ) {
+    let productInfos: any;
+    if (
+      process.env.NODE_ENV !== 'development' &&
+      process.env.NODE_ENV !== 'test'
+    ) {
+      productInfos = {
+        title: product.title,
+        listingTypeId: product.MLProduct.adType,
+        saleTerms: product.MLProduct.warrantyType ? [] : [], //I left it that way because I was going to add the warranty terms but on second thought I think this is more used in the case of electronics so I didn't stop to finish it completely, the bank is already adapted to receive warranty information
+      };
+    } else {
+      productInfos = {
+        title: 'Item de Teste - Por favor, NÃO OFERTAR!',
+        listingTypeId: 'gold_pro',
+        saleTerms: [],
+      };
+    }
+
     const images = productImages.map(image => image.id);
     const price = product.productVariations.reduce(
       (total, variation) =>
@@ -295,9 +306,9 @@ export class MercadoLivreService {
       pictures: productImages,
       currency_id: 'BRL',
       tags: ['immediate_payment'],
-      sale_terms: [], // TODO ml-integration fix
-      title: 'Item de Teste - Por favor, NÃO OFERTAR!', // TODO ml-integration fix
-      listing_type_id: 'gold_special', // TODO ml-integration fix (gold_special, gold_pro)
+      sale_terms: productInfos.saleTerms,
+      title: productInfos.title, // TODO ml-integration fix
+      listing_type_id: productInfos.listingTypeId,
       shipping: null, // TODO ml-integration fix
       attributes: [
         {
@@ -311,9 +322,9 @@ export class MercadoLivreService {
   }
 
   private async updateProductExposure(product: Product) {
-    return new Promise((res, rej) => {
+    const promise = new Promise((res, rej) => {
       const exposure: any = {
-        id: 'gold_pro',
+        id: product.MLProduct.adType,
       };
       this.mercadoLivre.post(
         `items/${product.MLProduct.mercadoLivreId}/listing_type`,
@@ -321,6 +332,7 @@ export class MercadoLivreService {
         async (err, response) => {
           if (err) return rej(err);
           if (!response.id) {
+            console.log(response);
             return rej(
               `Unable to update exposure of ${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.`,
             );
@@ -329,6 +341,7 @@ export class MercadoLivreService {
         },
       );
     });
+    return Promise.resolve(promise);
   }
 
   private async updateProductDescription(product: Product) {
@@ -344,7 +357,7 @@ export class MercadoLivreService {
           if (err) return rej(err);
           if (!response.plain_text) {
             return rej(
-              `Unable to update ${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.`,
+              `Unable to update  Description${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.`,
             );
           }
           res();
@@ -353,49 +366,18 @@ export class MercadoLivreService {
     });
   }
 
-  private async updateProductDetails(
-    product: Product,
-    updateTitle: boolean,
-    updateExposure?: boolean,
-  ) {
+  private async updateProductDetails(product: Product) {
     return new Promise((res, rej) => {
-      const updatedProperties: any = {
-        attributes: [
-          {
-            id: 'MATERIAL',
-            value_id: '2481975',
-            value_name: 'Prata',
-          },
-          {
-            id: 'DIAMETER',
-            value_name: `${product.width * 10} mm`,
-          },
-          {
-            id: 'HEIGHT',
-            value_name: `${product.height * 10} mm`,
-          },
-          {
-            id: 'LENGTH',
-            value_name: `${product.length * 10} mm`,
-          },
-          {
-            id: 'GEMSTONE_TYPE',
-            value_name: null,
-          },
-        ],
-      };
-      if (updateTitle) {
-        updatedProperties.title = product.title;
-      }
-      this.mercadoLivre.put(
+      const updatedProperties = { title: product.title };
+
+      return this.mercadoLivre.put(
         `items/${product.MLProduct.mercadoLivreId}`,
         updatedProperties,
         async (err, response) => {
           if (err) return rej(err);
           await this.updateProductDescription(product);
-          if (updateExposure) {
-            await this.updateProductExposure(product);
-          }
+          await this.updateProductExposure(product);
+
           if (!response.id) {
             return rej(
               `Unable to update ${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.`,
@@ -503,6 +485,7 @@ export class MercadoLivreService {
       categoryName: mlProductDTO.categoryName,
       categoryId: mlProductDTO.categoryId,
       product: mlProductDTO.product,
+      adType: mlProductDTO.adType,
     };
     await this.mlProductRepository.save(mlProduct);
 
