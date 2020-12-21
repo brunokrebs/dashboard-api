@@ -658,24 +658,6 @@ export class ProductsService {
     return !!existingSKU;
   }
 
-  async findOneProductToML(id: number): Promise<Product> {
-    const product = await this.productsRepository
-      .createQueryBuilder('product')
-      .leftJoinAndSelect('product.productVariations', 'pv')
-      .leftJoinAndSelect('product.productImages', 'pi')
-      .leftJoinAndSelect('pi.image', 'i')
-      .leftJoinAndSelect('product.MLProduct', 'ml')
-      .where({ id })
-      .getOne();
-
-    for (const variation of product.productVariations) {
-      const inventory = await this.inventoryService.findBySku(variation.sku);
-      variation.currentPosition = inventory.currentPosition;
-    }
-
-    return product;
-  }
-
   async findProductsToML(ids: number[]): Promise<Product[]> {
     const products = await this.productsRepository
       .createQueryBuilder('product')
