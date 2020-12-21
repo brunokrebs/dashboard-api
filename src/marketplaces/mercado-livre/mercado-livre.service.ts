@@ -153,16 +153,7 @@ export class MercadoLivreService {
         setTimeout(async () => {
           const mlProduct = await this.mapToMLProduct(product);
           this.mercadoLivre.post('items', mlProduct, async (err, response) => {
-            if (err) return rej(err);
-            if (!response.id) {
-              console.log(product.sku, response.cause);
-              return rej(`Unable to create ${product.sku} on Mercado Livre.`);
-            }
-            product.MLProduct.mercadoLivreId = response.id;
-            await this.updateProductProperties(product.id, {
-              mercadoLivreId: response.id,
-            });
-            console.log(`${product.sku} created successfully`);
+            this.createProductOnML(product);
             res();
           });
         }, idx * 250);
@@ -179,7 +170,7 @@ export class MercadoLivreService {
       .filter(pi => pi.id !== null);
 
     if (productImages.length === 0) {
-      return `${product.sku} não tem imagens para ser cadastrado no ml`; //mostrar que esse producto não tem imagens para ser cadastrado
+      return `${product.sku} não tem imagens para ser cadastrado no ml`;
     }
     return product.variationsSize > 1
       ? this.mapProductWithVariationsForCreation(product, productImages)
@@ -191,7 +182,21 @@ export class MercadoLivreService {
     productImages: { id: string }[],
   ) {
     const singleVariation = product.productVariations[0];
-
+    let productInfos: any;
+    if (
+      process.env.NODE_ENV !== 'development' &&
+      process.env.NODE_ENV !== 'test'
+    ) {
+      productInfos = {
+        title: product.title,
+        listing_type_id: 'gold_pro',
+      };
+    } else {
+      productInfos = {
+        title: 'Item de Teste - Por favor, NÃO OFERTAR!',
+        listing_type_id: 'gold_pro',
+      };
+    }
     return {
       category_id: product.MLProduct.categoryId,
       description: {
@@ -206,8 +211,8 @@ export class MercadoLivreService {
       tags: ['immediate_payment'],
       // subtitle: null, // TODO ml-integration check is valuable?
       sale_terms: [], // TODO ml-integration check is valuable?
-      title: 'Item de Teste - Por favor, NÃO OFERTAR!', // TODO ml-integration fix
-      listing_type_id: 'gold_pro', // TODO ml-integration fix (gold_special, gold_pro, silver)
+      title: productInfos.title,
+      listing_type_id: productInfos.listing_type_id, // TODO ml-integration fix (gold_special, gold_pro, silver)
       shipping: null, // TODO ml-integration fix
       // payment_method: null, // TODO ml-integration fix (needed?)
       attributes: [
@@ -254,9 +259,9 @@ export class MercadoLivreService {
     );
     const variations = product.productVariations.map(variation => {
       return {
-        price: price, //ver a questão de preço ter que ser igual nas variações
+        price: price,
         available_quantity: variation.currentPosition,
-        picture_ids: images, //por algum motivo ainda temos o problema com a quantidade de imagens sendo 0
+        picture_ids: images,
         attribute_combinations: [
           {
             id: 'COLOR',
@@ -502,28 +507,13 @@ export class MercadoLivreService {
     await this.mlProductRepository.save(mlProduct);
 
     //search the product for insert in mercado livre
-    const product = await this.productsService.findOneProductToML(
+    const product = await this.productsService.findProductsToML([
       mlProductDTO.product.id,
-    );
-    const sendProductJob = await this.mapToMLProduct(product);
-    const createJob = this.mercadoLivre.post(
-      'items',
-      sendProductJob,
-      async (err, response) => {
-        if (err) return err;
-        if (!response.id) {
-          console.log('erro sku:' + product.sku, response);
-          return `Unable to create ${product.sku} on Mercado Livre.`;
-        }
-        product.MLProduct.mercadoLivreId = response.id;
-        await this.updateProductProperties(product.id, {
-          mercadoLivreId: response.id,
-        });
-        console.log(`${product.sku} created successfully`);
-      },
-    );
-    await Promise.resolve(createJob).catch(err => console.log('err' + err));
-    return null;
+    ]);
+
+    const createJob = this.createProductOnML(product[0]);
+
+    return Promise.resolve(createJob).catch(err => console.log('err' + err));
   }
 
   @Transactional()
@@ -601,5 +591,25 @@ export class MercadoLivreService {
 
     await Promise.all(savedImages);
     return;
+  }
+
+  async createProductOnML(product: Product) {
+    const sendProductJob = await this.mapToMLProduct(product);
+    return this.mercadoLivre.post(
+      'items',
+      sendProductJob,
+      async (err, response) => {
+        if (err) return err;
+        if (!response.id) {
+          console.log('erro sku:' + product.sku, response);
+          return `Unable to create ${product.sku} on Mercado Livre.`;
+        }
+        product.MLProduct.mercadoLivreId = response.id;
+        await this.updateProductProperties(product.id, {
+          mercadoLivreId: response.id,
+        });
+        console.log(`${product.sku} created successfully`);
+      },
+    );
   }
 }
