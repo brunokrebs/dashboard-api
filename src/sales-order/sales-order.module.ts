@@ -9,6 +9,7 @@ import { CustomersModule } from '../customers/customers.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { BlingModule } from '../bling/bling.module';
 import { SalesOrderReportsService } from './sales-order-reports.service';
+import { ProductVariation } from '../products/entities/product-variation.entity';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { SalesOrderReportsService } from './sales-order-reports.service';
     ProductsModule,
     CustomersModule,
     InventoryModule,
-    TypeOrmModule.forFeature([SaleOrder, SaleOrderItem]),
+    TypeOrmModule.forFeature([SaleOrder, SaleOrderItem, ProductVariation]),
   ],
   providers: [SalesOrderService, SalesOrderReportsService],
   controllers: [SalesOrderController],

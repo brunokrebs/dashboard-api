@@ -69,4 +69,12 @@ export class MLProduct extends BaseEntity {
     nullable: true,
   })
   needAtualization?: boolean;
+
+  @Column({
+    name: 'is_synchronized',
+    type: 'boolean',
+    default: false,
+    nullable: true,
+  })
+  isSynchronized?: boolean;
 }

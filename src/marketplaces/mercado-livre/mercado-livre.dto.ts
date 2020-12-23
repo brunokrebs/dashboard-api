@@ -17,4 +17,7 @@ export class MLProductDTO {
 
   @Allow()
   product?: Product;
+
+  @Allow()
+  isSynchronized?: boolean;
 }

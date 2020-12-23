@@ -53,4 +53,11 @@ export class ProductVariation extends BaseEntity {
     type: 'bigint',
   })
   shopifyInventoryId?: number = 0;
+
+  @Column({
+    name: 'ml_variation_id',
+    type: 'varchar',
+    length: 30,
+  })
+  mlVariationId?: string;
 }

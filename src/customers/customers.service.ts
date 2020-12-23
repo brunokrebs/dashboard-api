@@ -98,4 +98,12 @@ export class CustomersService {
       where: "TRIM(email) != '' AND email IS NOT NULL",
     });
   }
+
+  async findUserByemail(customer: Customer) {
+    const existingCustomer = await this.customerRepository.findOne({
+      where: { email: customer.email },
+    });
+    if (existingCustomer) return Promise.resolve(existingCustomer);
+    return this.save(customer);
+  }
 }

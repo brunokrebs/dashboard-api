@@ -13,6 +13,9 @@ import { Transactional } from 'typeorm-transactional-cls-hooked';
 import { MLProduct } from './mercado-livre.entity';
 import { Image } from '../../media-library/image.entity';
 import request from 'request-promise';
+import { NotificationRecived } from './notificationReceived.interface';
+import { SalesOrderService } from '../../sales-order/sales-order.service';
+import { ProductVariation } from '../../products/entities/product-variation.entity';
 
 const ML_REFRESH_TOKEN_KEY = 'ML_REFRESH_TOKEN';
 const ML_ACCESS_TOKEN_KEY = 'ML_ACCESS_TOKEN';
@@ -37,11 +40,14 @@ export class MercadoLivreService {
     private productsService: ProductsService,
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
+    @InjectRepository(ProductVariation)
+    private productVariationRepository: Repository<ProductVariation>,
     private httpService: HttpService,
     @InjectRepository(MLProduct)
     private mlProductRepository: Repository<MLProduct>,
     @InjectRepository(Image)
     private imageRepository: Repository<Image>,
+    private saleOrderService: SalesOrderService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -139,7 +145,7 @@ export class MercadoLivreService {
           const mlProduct = await this.mapToMLProduct(product);
           this.mercadoLivre.post('items', mlProduct, async (err, response) => {
             this.createProductOnML(product);
-            res();
+            res('');
           });
         }, idx * 250);
       });
@@ -147,7 +153,7 @@ export class MercadoLivreService {
     await Promise.all(createJobs).catch(err => console.log(err));
   }
 
-  private async mapToMLProduct(product: Product) {
+  private mapToMLProduct(product: Product) {
     const productImages = product.productImages
       .map(pi => ({
         id: pi.image.mlImageId,
@@ -199,7 +205,12 @@ export class MercadoLivreService {
       sale_terms: productInfos.saleTerms, // TODO ml-integration check is valuable?
       title: productInfos.title,
       listing_type_id: productInfos.listingTypeId,
-      shipping: null, // TODO ml-integration fix
+      shipping: {
+        mode: 'me2',
+        local_pick_up: false,
+        free_shipping: false,
+        free_methods: [],
+      },
       attributes: [
         {
           id: 'BRAND',
@@ -268,7 +279,7 @@ export class MercadoLivreService {
         attribute_combinations: [
           {
             id: 'COLOR',
-            name: 'Cor',
+            name: 'Tamanho',
             value_name: variation.description,
           },
         ],
@@ -292,16 +303,23 @@ export class MercadoLivreService {
 
     return {
       category_id: product.MLProduct.categoryId,
-      description: product.description,
+      description: {
+        plain_text: htmlToText.fromString(product.productDetails),
+      },
       condition: 'new',
       buying_mode: 'buy_it_now',
       pictures: productImages,
       currency_id: 'BRL',
       tags: ['immediate_payment'],
       sale_terms: productInfos.saleTerms,
-      title: productInfos.title, // TODO ml-integration fix
+      title: productInfos.title,
       listing_type_id: productInfos.listingTypeId,
-      shipping: null, // TODO ml-integration fix
+      shipping: {
+        mode: 'me2',
+        local_pick_up: false,
+        free_shipping: false,
+        free_methods: [],
+      },
       attributes: [
         {
           id: 'BRAND',
@@ -329,7 +347,9 @@ export class MercadoLivreService {
               `Unable to update exposure of ${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.`,
             );
           }
-          res();
+          res(
+            'updated exposure of ${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.',
+          );
         },
       );
     });
@@ -349,10 +369,12 @@ export class MercadoLivreService {
           if (err) return rej(err);
           if (!response.plain_text) {
             return rej(
-              `Unable to update  Description${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.`,
+              `Unable to update Description${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.`,
             );
           }
-          res();
+          res(
+            'updated Description${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.',
+          );
         },
       );
     });
@@ -375,10 +397,9 @@ export class MercadoLivreService {
               `Unable to update ${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.`,
             );
           }
-          console.log(
+          res(
             `${product.sku} (${product.MLProduct.mercadoLivreId}) updated successfully`,
           );
-          res();
         },
       );
     });
@@ -471,6 +492,7 @@ export class MercadoLivreService {
     return queryBuilder;
   }
 
+  @Transactional()
   async save(mlProductDTO: MLProductDTO) {
     const mlProduct: MLProduct = {
       id: mlProductDTO?.id,
@@ -486,20 +508,29 @@ export class MercadoLivreService {
       mlProductDTO.product.id,
     ]);
 
-    if (mlProductDTO.id) {
-      const job = this.updateProductDetails(product[0]);
-      await Promise.resolve(job).catch(err => console.log(err));
+    if (mlProductDTO.isSynchronized === true) {
+      await this.updateProductDetails(product[0]);
+      return;
     }
-    const createJob = this.createProductOnML(product[0]);
-
-    return Promise.resolve(createJob).catch(err => console.log('err' + err));
+    await this.createProductOnML(product[0]); // TODO utilizar await
   }
 
   @Transactional()
   async updateProductProperties(
     productId: number,
     properties: Partial<MLProduct>,
+    variations?: any[],
   ) {
+    if (variations?.length > 0) {
+      variations.forEach(async variation => {
+        return this.productVariationRepository.update(
+          {
+            description: variation.attribute_combinations[0].value_name,
+          },
+          { mlVariationId: variation.id },
+        );
+      });
+    }
     return this.mlProductRepository.update(
       { product: { id: productId } },
       properties,
@@ -552,7 +583,7 @@ export class MercadoLivreService {
                 mlImageStatus: true,
               },
             );
-            res();
+            res('Image update sucess');
           } catch (err) {
             console.error(err);
             await this.imageRepository.update(
@@ -572,23 +603,56 @@ export class MercadoLivreService {
     return;
   }
 
-  async createProductOnML(product: Product) {
-    const sendProductJob = await this.mapToMLProduct(product);
-    return this.mercadoLivre.post(
-      'items',
-      sendProductJob,
-      async (err, response) => {
-        if (err) return err;
-        if (!response.id) {
-          console.log('erro sku:' + product.sku, response);
-          return `Unable to create ${product.sku} on Mercado Livre.`;
-        }
-        product.MLProduct.mercadoLivreId = response.id;
-        await this.updateProductProperties(product.id, {
-          mercadoLivreId: response.id,
-        });
-        console.log(`${product.sku} created successfully`);
-      },
-    );
+  createProductOnML(product: Product) {
+    return new Promise((res, rej) => {
+      const sendProductJob = this.mapToMLProduct(product);
+      return this.mercadoLivre.post(
+        'items',
+        sendProductJob,
+        async (err, response) => {
+          if (err) return err;
+          if (!response.id) {
+            console.log('erro sku:' + product.sku, response);
+            await this.updateProductProperties(
+              product.id,
+              {
+                isSynchronized: false,
+              },
+              response.variations,
+            );
+            return rej(`Unable to create ${product.sku} on Mercado Livre.`);
+          }
+          product.MLProduct.mercadoLivreId = response.id;
+
+          await this.updateProductProperties(
+            product.id,
+            {
+              mercadoLivreId: response.id,
+              isSynchronized: true,
+            },
+            response.variations,
+          );
+          console.log(`${product.sku} created successfully`);
+          res(`${product.sku} created successfully`);
+        },
+      );
+    });
+  }
+
+  notificationReceived(notification: NotificationRecived) {
+    switch (notification.topic) {
+      case 'created_orders':
+        this.createOrderOnDigituz(notification.resource);
+        break;
+    }
+  }
+
+  async createOrderOnDigituz(url: string) {
+    // TODO change a static url to variable url
+    this.mercadoLivre.get('orders/4259735359', async (err, response) => {
+      console.log('erro:' + err);
+      console.log(response);
+      this.saleOrderService.saveSaleOrderFromML(response);
+    });
   }
 }

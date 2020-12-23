@@ -10,13 +10,22 @@ import { MLProduct } from './mercado-livre/mercado-livre.entity';
 import { Product } from '../products/entities/product.entity';
 import { Image } from '../media-library/image.entity';
 import { ProductImage } from '../products/entities/product-image.entity';
+import { SalesOrderModule } from '../sales-order/sales-order.module';
+import { ProductVariation } from '../products/entities/product-variation.entity';
 
 @Module({
   imports: [
     HttpModule,
     ProductsModule,
+    SalesOrderModule,
     KeyValuePairModule,
-    TypeOrmModule.forFeature([MLProduct, Product, Image, ProductImage]),
+    TypeOrmModule.forFeature([
+      MLProduct,
+      Product,
+      Image,
+      ProductImage,
+      ProductVariation,
+    ]),
   ],
   controllers: [ShopifyController, MercadoLivreController],
   providers: [ShopifyService, MercadoLivreService],

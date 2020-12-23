@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import randomize from 'randomatic';
 import moment from 'moment';
+import { generate } from 'gerador-validador-cpf';
 
 import { SaleOrder } from './entities/sale-order.entity';
 import { Repository, Brackets } from 'typeorm';
@@ -22,6 +23,9 @@ import { isNullOrUndefined } from '../util/numeric-transformer';
 import { SaleOrderBlingStatus } from './entities/sale-order-bling-status.enum';
 import { BlingService } from '../bling/bling.service';
 import { Propagation, Transactional } from 'typeorm-transactional-cls-hooked';
+import { Customer } from '../customers/customer.entity';
+import { ProductVariation } from '../products/entities/product-variation.entity';
+import { SaleOrderItemDTO } from './sale-order-item.dto';
 
 @Injectable()
 export class SalesOrderService {
@@ -30,6 +34,8 @@ export class SalesOrderService {
     private salesOrderRepository: Repository<SaleOrder>,
     @InjectRepository(SaleOrderItem)
     private salesOrderItemRepository: Repository<SaleOrderItem>,
+    @InjectRepository(ProductVariation)
+    private productVariationRepository: Repository<ProductVariation>,
     private customersService: CustomersService,
     private productsService: ProductsService,
     private inventoryService: InventoryService,
@@ -173,7 +179,7 @@ export class SalesOrderService {
       shippingNeighborhood: saleOrderDTO.shippingNeighborhood,
       shippingCity: saleOrderDTO.shippingCity,
       shippingState: saleOrderDTO.shippingState,
-      shippingZipAddress: saleOrderDTO.shippingZipAddress.replace(/\D/g, ''),
+      shippingZipAddress: saleOrderDTO.shippingZipAddress?.replace(/\D/g, ''),
     };
 
     const saleOrder: SaleOrder = {
@@ -331,5 +337,99 @@ export class SalesOrderService {
       .orderBy('so.approvalDate', 'DESC')
       .getMany();
     return queryBuilder;
+  }
+
+  async saveSaleOrderFromML(mlOrder: any) {
+    let cpf: string;
+    if (
+      process.env.NODE_ENV !== 'development' &&
+      process.env.NODE_ENV !== 'test'
+    ) {
+      cpf = mlOrder.buyer.billing_info.doc_number;
+    } else {
+      cpf = generate({ format: true });
+    }
+    const searchCustomer: Customer = {
+      name: `${mlOrder.buyer.first_name} ${mlOrder.buyer.last_name}`,
+      email: `${mlOrder.buyer.email}`,
+      phoneNumber: `${mlOrder.buyer.phone.area_code}${mlOrder.buyer.phone.number}`,
+      cpf,
+    };
+    const customer = await this.customersService.findUserByemail(
+      searchCustomer,
+    );
+
+    let paymentStatus: PaymentStatus;
+    switch (mlOrder.payments[0].status) {
+      case 'approved':
+        paymentStatus = PaymentStatus.APPROVED;
+        break;
+    }
+
+    let paymentType: PaymentType;
+    switch (mlOrder.payments[0].payment_type) {
+      case 'credit_card':
+        paymentType = PaymentType.CREDIT_CARD;
+        break;
+    }
+
+    const products = mlOrder.order_items.map(async item => {
+      const productVariations = await this.productVariationRepository
+        .createQueryBuilder('pv')
+        .leftJoinAndSelect('pv.product', 'product')
+        .leftJoinAndSelect('product.MLProduct', 'ml')
+        .where('ml.mercadoLivreId = :id', { id: item.item.id })
+        .getMany();
+
+      if (productVariations.length > 1) {
+        const variation = productVariations
+          .filter(
+            variation => variation.mlVariationId == item.item.variation_id,
+          )
+          .map(variation => {
+            return {
+              sku: variation.sku,
+              price: item.full_unit_price,
+              discount: 0,
+              amount: item.quantity,
+              currentPosition: variation.currentPosition,
+            };
+          });
+        return variation[0];
+      } else {
+        return {
+          sku: productVariations[0].sku,
+          price: Number.parseFloat(item.unit_pirce),
+          discount: 0,
+          amount: Number.parseInt(item.unit_pirce),
+          currentPosition: productVariations[0].currentPosition,
+        };
+      }
+    });
+
+    const items: any = await Promise.all(products);
+
+    const saleOrderDTO: SaleOrderDTO = {
+      referenceCode: randomize('0', 10),
+      customer,
+      items: items,
+      total: mlOrder.total_amount,
+      discount: mlOrder.coupon.amount,
+      paymentType,
+      paymentStatus,
+      installments: mlOrder.payments[0].installments,
+      shippingType: ShippingType.MERCADOLIVRE,
+      shippingPrice: 0,
+      customerName: customer.name,
+      shippingStreetAddress: '',
+      shippingStreetNumber: '',
+      shippingNeighborhood: '',
+      shippingCity: '',
+      shippingState: '',
+      shippingZipAddress: '',
+      creationDate: mlOrder.date_created,
+    };
+
+    await this.save(saleOrderDTO);
   }
 }

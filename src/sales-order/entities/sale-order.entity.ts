@@ -85,4 +85,11 @@ export class SaleOrder extends BaseEntity {
     nullable: true,
   })
   cancellationDate?: Date;
+
+  @Column({
+    name: 'ml_order_id',
+    type: 'varchar',
+    length: 30,
+  })
+  mlOrderId?: string;
 }

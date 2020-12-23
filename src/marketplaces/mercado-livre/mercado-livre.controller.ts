@@ -13,9 +13,8 @@ import { Pagination } from 'nestjs-typeorm-paginate';
 import { parseBoolean } from '../../util/parsers';
 import { Product } from '../../products/entities/product.entity';
 import { MLProductDTO } from './mercado-livre.dto';
-import { MLProduct } from './mercado-livre.entity';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
+import { response } from 'express';
+import { NotificationRecived } from './notificationReceived.interface';
 
 @Controller('mercado-livre')
 export class MercadoLivreController {
@@ -25,9 +24,10 @@ export class MercadoLivreController {
 
   constructor(private mercadoLivreService: MercadoLivreService) {}
 
-  @Get('/notification')
-  getNotification() {
-    return console.log('chegou notificação');
+  @Post('/notification')
+  getNotification(@Body() notification: NotificationRecived) {
+    this.mercadoLivreService.notificationReceived(notification);
+    return response.status(200);
   }
 
   @Get()
@@ -43,7 +43,6 @@ export class MercadoLivreController {
   }
 
   @Get('/authorize')
-  @UseGuards(JwtAuthGuard)
   authenticate(): string {
     return this.mercadoLivreService.getAuthURL();
   }
@@ -79,7 +78,7 @@ export class MercadoLivreController {
 
   @Post('/')
   @UseGuards(JwtAuthGuard)
-  async saveAll(@Body() mlProducts: MLProductDTO): Promise<void> {
+  async saveAll(@Body() mlProducts): Promise<void> {
     return this.mercadoLivreService.createProducts(mlProducts);
   }
 
