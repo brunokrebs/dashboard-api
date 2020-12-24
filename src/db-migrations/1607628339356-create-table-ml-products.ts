@@ -12,7 +12,7 @@ export class createTableMlProducts1607628339356 implements MigrationInterface {
                 creation_date timestamp,
                 completion_date timestamp,
                 need_atualization boolean,
-                constraint ml_product foreign key (product_id) references product(id)
+                CONSTRAINT ml_product FOREIGN KEY (product_id) REFERENCES product(id)
             );
         `);
 

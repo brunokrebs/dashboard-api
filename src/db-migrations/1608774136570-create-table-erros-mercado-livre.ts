@@ -9,7 +9,7 @@ export class createTableErrosMercadoLivre1608774136570
                 product_id integer,
                 error varchar(150),
                 version integer, 
-                constraint fk_product_sku foreign key (product_id) references product(id)
+                CONSTRAINT fk_product_id FOREIGN KEY (product_id) REFERENCES product(id)
             );
         `);
   }
