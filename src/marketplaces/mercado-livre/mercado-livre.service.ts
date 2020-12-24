@@ -153,7 +153,7 @@ export class MercadoLivreService {
         }, idx * 250);
       });
     });
-    await Promise.all(createJobs).catch(err => console.log(err));
+    await Promise.all(createJobs);
   }
 
   private mapToMLProduct(product: Product) {
@@ -630,7 +630,6 @@ export class MercadoLivreService {
         async (err, response) => {
           if (err) return err;
           if (!response.id) {
-            console.log('erro sku:' + product.sku, response);
             await this.updateProductProperties(
               product.id,
               {
@@ -650,7 +649,6 @@ export class MercadoLivreService {
             },
             response.variations,
           );
-          console.log(`${product.sku} created successfully`);
           res(`${product.sku} created successfully`);
         },
       );
@@ -667,8 +665,6 @@ export class MercadoLivreService {
 
   async createOrderOnDigituz(url: string) {
     this.mercadoLivre.get(url, async (err, response) => {
-      console.log('erro:' + err);
-      console.log(response);
       this.saleOrderService.saveSaleOrderFromML(response);
     });
   }
