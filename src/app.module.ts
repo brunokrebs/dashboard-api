@@ -34,6 +34,7 @@ import { Supplier } from './supplier/supplier.entity';
 import { SupplierModule } from './supplier/supplier.module';
 import { SendgridModule } from './sendgrid/sendgrid.module';
 import { MLProduct } from './marketplaces/mercado-livre/mercado-livre.entity';
+import { MLError } from './marketplaces/mercado-livre/mercado-livre-error.entity';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { MLProduct } from './marketplaces/mercado-livre/mercado-livre.entity';
         Supplier,
         Tag,
         MLProduct,
+        MLError,
       ],
       synchronize: false,
       migrationsTableName: 'database_migrations',

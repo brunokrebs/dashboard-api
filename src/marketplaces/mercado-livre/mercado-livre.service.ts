@@ -16,6 +16,7 @@ import request from 'request-promise';
 import { NotificationRecived } from './notificationReceived.interface';
 import { SalesOrderService } from '../../sales-order/sales-order.service';
 import { ProductVariation } from '../../products/entities/product-variation.entity';
+import { MLError } from './mercado-livre-error.entity';
 
 const ML_REFRESH_TOKEN_KEY = 'ML_REFRESH_TOKEN';
 const ML_ACCESS_TOKEN_KEY = 'ML_ACCESS_TOKEN';
@@ -40,6 +41,8 @@ export class MercadoLivreService {
     private productsService: ProductsService,
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
+    @InjectRepository(MLError)
+    private mlErrorRepository: Repository<MLError>,
     @InjectRepository(ProductVariation)
     private productVariationRepository: Repository<ProductVariation>,
     private httpService: HttpService,
@@ -121,7 +124,7 @@ export class MercadoLivreService {
         categoryId: mlProducts.category.id,
         categoryName: mlProducts.category.name,
         product: product,
-        adType: mlProducts.adType,
+        adType: mlProducts.adType ? 'gold_premiun' : mlProducts.adType,
       };
       return this.mlProductRepository.save(mlProduct);
     });
@@ -161,7 +164,12 @@ export class MercadoLivreService {
       .filter(pi => pi.id !== null);
 
     if (productImages.length === 0) {
-      return `${product.sku} não tem imagens para ser cadastrado no ml`;
+      const mlError: MLError = {
+        product,
+        error:
+          'O produto não tem imagens compativeis com o mercado para ser cadastrado',
+      };
+      return this.mlErrorRepository.save(mlError);
     }
     return product.variationsSize > 1
       ? this.mapProductWithVariationsForCreation(product, productImages)
@@ -180,7 +188,7 @@ export class MercadoLivreService {
     ) {
       productInfos = {
         title: product.title,
-        listingTypeId: product.MLProduct.adType, // TODO ml-integration fix (gold_special, gold_pro, silver)
+        listingTypeId: product.MLProduct.adType,
         saleTerms: product.MLProduct.warrantyType ? [] : [],
       };
     } else {
@@ -202,7 +210,7 @@ export class MercadoLivreService {
       price: singleVariation.sellingPrice,
       currency_id: 'BRL',
       tags: ['immediate_payment'],
-      sale_terms: productInfos.saleTerms, // TODO ml-integration check is valuable?
+      sale_terms: productInfos.saleTerms,
       title: productInfos.title,
       listing_type_id: productInfos.listingTypeId,
       shipping: {
@@ -253,7 +261,7 @@ export class MercadoLivreService {
       productInfos = {
         title: product.title,
         listingTypeId: product.MLProduct.adType,
-        saleTerms: product.MLProduct.warrantyType ? [] : [], //I left it that way because I was going to add the warranty terms but on second thought I think this is more used in the case of electronics so I didn't stop to finish it completely, the bank is already adapted to receive warranty information
+        saleTerms: product.MLProduct.warrantyType ? [] : [],
       };
     } else {
       productInfos = {
@@ -342,13 +350,13 @@ export class MercadoLivreService {
         async (err, response) => {
           if (err) return rej(err);
           if (!response.id) {
-            console.log(response);
+            await this.saveError(response, product);
             return rej(
               `Unable to update exposure of ${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.`,
             );
           }
           res(
-            'updated exposure of ${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.',
+            `updated exposure of ${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.`,
           );
         },
       );
@@ -366,14 +374,17 @@ export class MercadoLivreService {
         `items/${product.MLProduct.mercadoLivreId}/description`,
         updatedProperties,
         async (err, response) => {
-          if (err) return rej(err);
+          if (err) {
+            await this.saveError(response, product);
+            return rej(err);
+          }
           if (!response.plain_text) {
             return rej(
               `Unable to update Description${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.`,
             );
           }
           res(
-            'updated Description${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.',
+            `updated Description${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.`,
           );
         },
       );
@@ -393,6 +404,7 @@ export class MercadoLivreService {
           await this.updateProductExposure(product);
 
           if (!response.id) {
+            await this.saveError(response, product);
             return rej(
               `Unable to update ${product.sku} (${product.MLProduct.mercadoLivreId}) on Mercado Livre.`,
             );
@@ -440,6 +452,11 @@ export class MercadoLivreService {
                   });
               }),
             );
+            break;
+          case 'status':
+            queryBuilder.andWhere('ml.is_synchronized = :status', {
+              status: queryParam.value,
+            });
             break;
         }
       });
@@ -500,6 +517,7 @@ export class MercadoLivreService {
       categoryId: mlProductDTO.categoryId,
       product: mlProductDTO.product,
       adType: mlProductDTO.adType,
+      isSynchronized: mlProductDTO.isSynchronized,
     };
     await this.mlProductRepository.save(mlProduct);
 
@@ -512,7 +530,7 @@ export class MercadoLivreService {
       await this.updateProductDetails(product[0]);
       return;
     }
-    await this.createProductOnML(product[0]); // TODO utilizar await
+    await this.createProductOnML(product[0]);
   }
 
   @Transactional()
@@ -648,11 +666,29 @@ export class MercadoLivreService {
   }
 
   async createOrderOnDigituz(url: string) {
-    // TODO change a static url to variable url
-    this.mercadoLivre.get('orders/4259735359', async (err, response) => {
+    this.mercadoLivre.get(url, async (err, response) => {
       console.log('erro:' + err);
       console.log(response);
       this.saleOrderService.saveSaleOrderFromML(response);
     });
+  }
+
+  async getErros(options: IPaginationOpts) {
+    const queryBuilder = this.mlErrorRepository
+      .createQueryBuilder('error')
+      .leftJoinAndSelect('error.product', 'product');
+    queryBuilder.orderBy('error.id', 'DESC', 'NULLS LAST');
+
+    return paginate<MLError>(queryBuilder, options);
+  }
+
+  @Transactional()
+  async saveError(response: any, product: Product) {
+    const mlError: MLError = {
+      product,
+      error: response.error,
+    };
+    await this.mlErrorRepository.save(mlError);
+    return;
   }
 }

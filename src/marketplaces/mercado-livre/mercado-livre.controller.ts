@@ -15,6 +15,7 @@ import { Product } from '../../products/entities/product.entity';
 import { MLProductDTO } from './mercado-livre.dto';
 import { response } from 'express';
 import { NotificationRecived } from './notificationReceived.interface';
+import { MLError } from './mercado-livre-error.entity';
 
 @Controller('mercado-livre')
 export class MercadoLivreController {
@@ -55,6 +56,7 @@ export class MercadoLivreController {
     @Query('sortedBy') sortedBy: string,
     @Query('sortDirectionAscending') sortDirectionAscending: string,
     @Query('query') query: string,
+    @Query('status') status: string,
   ): Promise<Pagination<Product>> {
     return this.mercadoLivreService.paginate({
       page,
@@ -65,6 +67,10 @@ export class MercadoLivreController {
         {
           key: 'query',
           value: query,
+        },
+        {
+          key: 'status',
+          value: parseBoolean(status),
         },
       ],
     });
@@ -92,5 +98,17 @@ export class MercadoLivreController {
   @UseGuards(JwtAuthGuard)
   async getMLCategory(@Query('query') query: string) {
     return this.mercadoLivreService.getMLCategory(query);
+  }
+
+  @Get('errors')
+  @UseGuards(JwtAuthGuard)
+  async getErros(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ): Promise<Pagination<MLError>> {
+    return this.mercadoLivreService.getErros({
+      page,
+      limit,
+    });
   }
 }
