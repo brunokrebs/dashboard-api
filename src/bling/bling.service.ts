@@ -169,7 +169,7 @@ export class BlingService {
     });
 
     const data = {
-      xml: xml,
+      xml: xml.replace(/&/g, '&amp;'),
       apikey: process.env.BLING_APIKEY,
     };
 
@@ -180,6 +180,12 @@ export class BlingService {
 
     const response = await syncRequest.toPromise();
 
+    if (
+      response.data?.retorno?.erros &&
+      response.data.retorno.erros.length > 0
+    ) {
+      throw new Error('Unable to sync sale order with Bling.');
+    }
     return Promise.resolve(response);
   }
 
