@@ -6,6 +6,7 @@ import {
   UseGuards,
   Put,
   Body,
+  Delete,
 } from '@nestjs/common';
 import { MercadoLivreService } from './mercado-livre.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
@@ -98,6 +99,12 @@ export class MercadoLivreController {
   @UseGuards(JwtAuthGuard)
   async getMLCategory(@Query('query') query: string) {
     return this.mercadoLivreService.getMLCategory(query);
+  }
+
+  @Delete('delete-erros')
+  @UseGuards(JwtAuthGuard)
+  async deleteErros() {
+    return this.mercadoLivreService.deleteErros();
   }
 
   @Get('errors')

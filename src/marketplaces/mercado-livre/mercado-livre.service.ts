@@ -623,10 +623,10 @@ export class MercadoLivreService {
 
   createProductOnML(product: Product) {
     return new Promise((res, rej) => {
-      const sendProductJob = this.mapToMLProduct(product);
+      const mlProduct = this.mapToMLProduct(product);
       return this.mercadoLivre.post(
         'items',
-        sendProductJob,
+        mlProduct,
         async (err, response) => {
           if (err) return err;
           if (!response.id) {
@@ -686,5 +686,13 @@ export class MercadoLivreService {
     };
     await this.mlErrorRepository.save(mlError);
     return;
+  }
+
+  @Transactional()
+  async deleteErros() {
+    return this.mlErrorRepository
+      .createQueryBuilder('mlError')
+      .delete()
+      .execute();
   }
 }
