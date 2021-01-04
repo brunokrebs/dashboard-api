@@ -95,6 +95,7 @@ export class SalesOrderController {
           cancellationDate: saleOrder.cancellationDate,
           total: saleOrder.paymentDetails.total,
           blingStatus: saleOrder.blingStatus,
+          mlOrderId: saleOrder.mlOrderId,
         };
       }),
     };
