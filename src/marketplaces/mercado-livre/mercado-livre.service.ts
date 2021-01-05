@@ -118,13 +118,23 @@ export class MercadoLivreService {
 
   async createProducts(mlProducts: any) {
     const ids = mlProducts.products.map(product => product.id);
-    const insertMLProductsJob = mlProducts.products.map(product => {
+    await this.mlProductRepository.update(
+      {
+        product: In(ids),
+      },
+      {
+        isActive: false,
+      },
+    );
+    const insertMLProductsJob = mlProducts.products.map((product, idx) => {
       const adProduct: adProduct = {
         id: product.mlId,
         categoryId: mlProducts.category.id,
         categoryName: mlProducts.category.name,
         product: product,
-        adType: mlProducts.adType ? 'gold_premiun' : mlProducts.adType,
+        adType: mlProducts.adType ? 'free' : mlProducts.adType,
+        isActive: true,
+        needAtualization: false,
       };
       return this.mlProductRepository.save(adProduct);
     });
@@ -339,88 +349,10 @@ export class MercadoLivreService {
     };
   }
 
-  private async updateProductExposure(product: Product) {
-    const promise = new Promise((res, rej) => {
-      const exposure: any = {
-        id: product.adProduct[0].adType,
-      };
-      this.mercadoLivre.post(
-        `items/${product.adProduct[0].mercadoLivreId}/listing_type`,
-        exposure,
-        async (err, response) => {
-          if (err) return rej(err);
-          if (!response.id) {
-            await this.saveError(response, product);
-            return rej(
-              `Unable to update exposure of ${product.sku} (${product.adProduct[0].mercadoLivreId}) on Mercado Livre.`,
-            );
-          }
-          res(
-            `updated exposure of ${product.sku} (${product.adProduct[0].mercadoLivreId}) on Mercado Livre.`,
-          );
-        },
-      );
-    });
-    return Promise.resolve(promise);
-  }
-
-  private async updateProductDescription(product: Product) {
-    if (!product.productDetails) return Promise.resolve();
-    return new Promise((res, rej) => {
-      const updatedProperties: any = {
-        plain_text: htmlToText.fromString(product.productDetails),
-      };
-      this.mercadoLivre.put(
-        `items/${product.adProduct[0].mercadoLivreId}/description`,
-        updatedProperties,
-        async (err, response) => {
-          if (err) {
-            await this.saveError(response, product);
-            return rej(err);
-          }
-          if (!response.plain_text) {
-            return rej(
-              `Unable to update Description${product.sku} (${product.adProduct[0].mercadoLivreId}) on Mercado Livre.`,
-            );
-          }
-          res(
-            `updated Description${product.sku} (${product.adProduct[0].mercadoLivreId}) on Mercado Livre.`,
-          );
-        },
-      );
-    });
-  }
-
-  private async updateProductDetails(product: Product) {
-    return new Promise((res, rej) => {
-      const updatedProperties = { title: product.title };
-
-      return this.mercadoLivre.put(
-        `items/${product.adProduct[0].mercadoLivreId}`,
-        updatedProperties,
-        async (err, response) => {
-          if (err) return rej(err);
-          await this.updateProductDescription(product);
-          await this.updateProductExposure(product);
-
-          if (!response.id) {
-            await this.saveError(response, product);
-            return rej(
-              `Unable to update ${product.sku} (${product.adProduct[0].mercadoLivreId}) on Mercado Livre.`,
-            );
-          }
-          res(
-            `${product.sku} (${product.adProduct[0].mercadoLivreId}) updated successfully`,
-          );
-        },
-      );
-    });
-  }
-
   async paginate(options: IPaginationOpts): Promise<Pagination<Product>> {
     const queryBuilder = this.productRepository
       .createQueryBuilder('product')
-      .leftJoinAndSelect('product.adProduct', 'ml', 'ml.product = product.id')
+      .leftJoinAndSelect('product.adProduct', 'ml', 'ml.isActive = true')
       .where({
         isActive: true,
       });
@@ -502,35 +434,41 @@ export class MercadoLivreService {
   async getProduct(sku: string) {
     const queryBuilder = await this.productRepository
       .createQueryBuilder('product')
-      .leftJoinAndSelect('product.adProduct', 'ml')
+      .leftJoinAndSelect('product.adProduct', 'adProdcut')
       .where({ sku })
       .getOne();
-
     return queryBuilder;
   }
 
   @Transactional()
   async save(mlProductDTO: MLProductDTO) {
+    await this.saveImagesOnML();
+
+    await this.mlProductRepository.update(
+      {
+        product: mlProductDTO.product,
+      },
+      {
+        isActive: false,
+      },
+    );
+
     const adProduct: adProduct = {
       id: mlProductDTO?.id,
       categoryName: mlProductDTO.categoryName,
       categoryId: mlProductDTO.categoryId,
       product: mlProductDTO.product,
       adType: mlProductDTO.adType,
-
+      isActive: true,
       isSynchronized: mlProductDTO.isSynchronized,
+      needAtualization: false,
     };
     await this.mlProductRepository.save(adProduct);
     //search the product for insert in mercado livre
-    this.testFindProducts();
     const product = await this.productsService.findProductsToML([
       mlProductDTO.product.id,
     ]);
 
-    if (mlProductDTO.isSynchronized === true) {
-      await this.updateProductDetails(product[0]);
-      return;
-    }
     await this.createProductOnML(product[0]);
   }
 
@@ -695,28 +633,5 @@ export class MercadoLivreService {
       .createQueryBuilder('mlError')
       .delete()
       .execute();
-  }
-
-  async testFindProducts() {
-    const products = await this.mlProductRepository
-      .createQueryBuilder('MLProdcut')
-      .leftJoinAndSelect('adProduct.product', 'product')
-      .getMany()
-      .catch(err => console.log(err));
-
-    console.log(products);
-    /* const productVariations: ProductVariation[] = products.reduce(
-      (variations, product) => {
-        console.log(product, variations);
-        //variations.push(...product.productVariations);
-        return variations;
-      },
-      [],
-    );
- */
-    /* for (const variation of productVariations) {
-      const inventory = await this.inventoryService.findBySku(variation.sku);
-      variation.currentPosition = inventory.currentPosition;
-    } */
   }
 }

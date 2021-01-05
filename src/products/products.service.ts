@@ -664,7 +664,11 @@ export class ProductsService {
       .leftJoinAndSelect('product.productVariations', 'pv')
       .leftJoinAndSelect('product.productImages', 'pi')
       .leftJoinAndSelect('pi.image', 'i')
-      .leftJoinAndSelect('product.adProduct', 'ml')
+      .leftJoinAndSelect(
+        'product.adProduct',
+        'adProduct',
+        'adProduct.isActive = true',
+      )
       .where({ id: In(ids) })
       .getMany();
 
