@@ -1,13 +1,16 @@
 import { Product } from '../../products/entities/product.entity';
-import { Entity, Column, OneToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, OneToOne, JoinColumn, ManyToOne } from 'typeorm';
 import { BaseEntity } from '../../util/base-entity';
 import { profile } from 'console';
 
 @Entity({
-  name: 'ml_product',
+  name: 'ml_ad',
 })
 export class MLProduct extends BaseEntity {
-  @OneToOne(() => Product)
+  @ManyToOne(
+    () => Product,
+    product => product.id,
+  )
   @JoinColumn({ name: 'product_id' })
   product: Product;
 
@@ -43,26 +46,6 @@ export class MLProduct extends BaseEntity {
   adType: string;
 
   @Column({
-    name: 'warranty_type',
-    type: 'varchar',
-    length: 30,
-  })
-  warrantyType?: string;
-
-  @Column({
-    name: 'warranty_time_id',
-    type: 'varchar',
-    length: 5,
-  })
-  warrantyTimeId?: string;
-
-  @Column({
-    name: 'warranty_time',
-    type: 'integer',
-  })
-  warrantyTime?: number;
-
-  @Column({
     name: 'need_atualization',
     type: 'boolean',
     default: false,
@@ -77,4 +60,10 @@ export class MLProduct extends BaseEntity {
     nullable: true,
   })
   isSynchronized?: boolean;
+
+  @Column({
+    name: 'is_active',
+    type: 'boolean',
+  })
+  isActive?: boolean;
 }

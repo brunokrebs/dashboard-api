@@ -91,7 +91,7 @@ export class MercadoLivreController {
 
   @Post('/save')
   @UseGuards(JwtAuthGuard)
-  async save(@Body() mlProduct: MLProductDTO): Promise<void> {
+  async save(@Body() mlProduct): Promise<void> {
     return this.mercadoLivreService.save(mlProduct);
   }
 

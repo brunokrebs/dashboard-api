@@ -7,7 +7,7 @@ import { ProductsService } from '../../products/products.service';
 import { IPaginationOpts } from '../../pagination/pagination';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Repository } from 'typeorm';
+import { Brackets, In, Repository } from 'typeorm';
 import { MLProductDTO } from './mercado-livre.dto';
 import { Transactional } from 'typeorm-transactional-cls-hooked';
 import { MLProduct } from './mercado-livre.entity';
@@ -189,7 +189,7 @@ export class MercadoLivreService {
       productInfos = {
         title: product.title,
         listingTypeId: product.MLProduct.adType,
-        saleTerms: product.MLProduct.warrantyType ? [] : [],
+        saleTerms: [],
       };
     } else {
       productInfos = {
@@ -261,7 +261,7 @@ export class MercadoLivreService {
       productInfos = {
         title: product.title,
         listingTypeId: product.MLProduct.adType,
-        saleTerms: product.MLProduct.warrantyType ? [] : [],
+        saleTerms: [],
       };
     } else {
       productInfos = {
@@ -420,7 +420,7 @@ export class MercadoLivreService {
   async paginate(options: IPaginationOpts): Promise<Pagination<Product>> {
     const queryBuilder = this.productRepository
       .createQueryBuilder('product')
-      .leftJoinAndSelect('product.MLProduct', 'ml')
+      .leftJoinAndSelect('product.MLProduct', 'ml', 'ml.product = product.id')
       .where({
         isActive: true,
       });
@@ -517,11 +517,12 @@ export class MercadoLivreService {
       categoryId: mlProductDTO.categoryId,
       product: mlProductDTO.product,
       adType: mlProductDTO.adType,
+
       isSynchronized: mlProductDTO.isSynchronized,
     };
     await this.mlProductRepository.save(mlProduct);
-
     //search the product for insert in mercado livre
+    this.testFindProducts();
     const product = await this.productsService.findProductsToML([
       mlProductDTO.product.id,
     ]);
@@ -664,7 +665,7 @@ export class MercadoLivreService {
   }
 
   async createOrderOnDigituz(url: string) {
-    this.mercadoLivre.get(url, async (err, response) => {
+    this.mercadoLivre.get('/orders/4259735359', async (err, response) => {
       this.saleOrderService.saveSaleOrderFromML(response);
     });
   }
@@ -694,5 +695,28 @@ export class MercadoLivreService {
       .createQueryBuilder('mlError')
       .delete()
       .execute();
+  }
+
+  async testFindProducts() {
+    const products = await this.mlProductRepository
+      .createQueryBuilder('MLProdcut')
+      .leftJoinAndSelect('MLProduct.product', 'product')
+      .getMany()
+      .catch(err => console.log(err));
+
+    console.log(products);
+    /* const productVariations: ProductVariation[] = products.reduce(
+      (variations, product) => {
+        console.log(product, variations);
+        //variations.push(...product.productVariations);
+        return variations;
+      },
+      [],
+    );
+ */
+    /* for (const variation of productVariations) {
+      const inventory = await this.inventoryService.findBySku(variation.sku);
+      variation.currentPosition = inventory.currentPosition;
+    } */
   }
 }

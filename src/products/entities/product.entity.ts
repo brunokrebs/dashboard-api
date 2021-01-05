@@ -152,7 +152,14 @@ export class Product extends BaseEntity {
   })
   isComposition?: boolean;
 
-  @OneToOne(() => MLProduct)
+  @OneToMany(
+    () => MLProduct,
+    mlproduct => mlproduct.product,
+    {
+      cascade: false,
+      eager: false,
+    },
+  )
   @JoinColumn({ name: 'ml_product' })
   MLProduct?: MLProduct;
 }
