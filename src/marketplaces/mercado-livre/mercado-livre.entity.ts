@@ -1,15 +1,15 @@
 import { Product } from '../../products/entities/product.entity';
-import { Entity, Column, OneToOne, JoinColumn, ManyToOne } from 'typeorm';
+import { Entity, Column, JoinColumn, ManyToOne } from 'typeorm';
 import { BaseEntity } from '../../util/base-entity';
-import { profile } from 'console';
 
 @Entity({
   name: 'ml_ad',
 })
-export class MLProduct extends BaseEntity {
+export class adProduct extends BaseEntity {
   @ManyToOne(
-    () => Product,
+    type => Product,
     product => product.id,
+    { nullable: false, cascade: false, eager: true },
   )
   @JoinColumn({ name: 'product_id' })
   product: Product;

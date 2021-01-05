@@ -240,7 +240,7 @@ export class SalesOrderService {
           description: `Originário da venda número ${saleOrder.id}`,
         };
         await this.inventoryService.saveMovement(movement, persistedSaleOrder);
-        res();
+        res('');
       });
     });
     await Promise.all(movementJobs);
@@ -378,7 +378,7 @@ export class SalesOrderService {
       const productVariations = await this.productVariationRepository
         .createQueryBuilder('pv')
         .leftJoinAndSelect('pv.product', 'product')
-        .leftJoinAndSelect('product.MLProduct', 'ml')
+        .leftJoinAndSelect('product.adProduct', 'ml')
         .where('ml.mercadoLivreId = :id', { id: item.item.id })
         .getMany();
 

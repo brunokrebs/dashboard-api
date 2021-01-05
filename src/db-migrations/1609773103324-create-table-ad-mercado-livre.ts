@@ -15,7 +15,7 @@ export class createTableAdMercadoLivre1609773103324
             is_active boolean,
             is_synchronized boolean,
             need_atualization boolean,
-            CONSTRAINT ml_product FOREIGN KEY (product_id) REFERENCES product(id)
+            CONSTRAINT ml_ad FOREIGN KEY (product_id) REFERENCES product(id)
         );
         `);
 

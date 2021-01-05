@@ -33,7 +33,7 @@ import { PurchaseOrderModule } from './purchase-order/purchase-order.module';
 import { Supplier } from './supplier/supplier.entity';
 import { SupplierModule } from './supplier/supplier.module';
 import { SendgridModule } from './sendgrid/sendgrid.module';
-import { MLProduct } from './marketplaces/mercado-livre/mercado-livre.entity';
+import { adProduct } from './marketplaces/mercado-livre/mercado-livre.entity';
 import { MLError } from './marketplaces/mercado-livre/mercado-livre-error.entity';
 
 @Module({
@@ -62,7 +62,7 @@ import { MLError } from './marketplaces/mercado-livre/mercado-livre-error.entity
         SaleOrderItem,
         Supplier,
         Tag,
-        MLProduct,
+        adProduct,
         MLError,
       ],
       synchronize: false,
