@@ -1,4 +1,4 @@
-import { HttpService, Injectable } from '@nestjs/common';
+import { forwardRef, HttpService, Inject, Injectable } from '@nestjs/common';
 import htmlToText from 'html-to-text';
 import meli from 'mercadolibre';
 import { KeyValuePairService } from '../../key-value-pair/key-value-pair.service';
@@ -632,7 +632,6 @@ export class MercadoLivreService {
       );
     });
     await Promise.resolve(shippingDetailsJob);
-    await this.updateMLInventory(mlOrder.order_items);
     const pdfURL = await this.getShippingPDF(mlOrder.shipping.id);
     this.saleOrderService.saveSaleOrderFromML(mlOrder, shippingDetails);
   }
@@ -708,12 +707,35 @@ export class MercadoLivreService {
     const updateMLJOb = items.map(async item => {
       return new Promise(async (res, rej) => {
         const variation = await this.productVariationRepository.findOne({
-          mlVariationId: item.item.variation_id,
+          relations: ['product'],
+          where: { mlVariationId: item.item.variation_id },
         });
-        if (variation) {
+        if (variation.product.variationsSize > 1) {
           const inventory = await this.inventoryService.getVariationCurrentPosition(
             variation.id,
           );
+          this.mercadoLivre.put(
+            `items/${item.item.id}/variations/${item.item.variation_id}`,
+            { available_quantity: inventory.currentPosition },
+            (err, response) => {
+              console.log(err);
+              console.log(response);
+              if (err) return rej(err);
+              res('atuailizado com sucesso');
+            },
+          );
+        } else {
+          const mlProduct = await this.mlProductRepository
+            .createQueryBuilder('ml')
+            .leftJoinAndSelect('ml.product', 'product')
+            .leftJoinAndSelect('product.productVariations', 'pv')
+            .where({ mercadoLivreId: item.item.id })
+            .getOne();
+
+          const inventory = await this.inventoryService.getVariationCurrentPosition(
+            mlProduct.product.productVariations[0].id,
+          );
+
           this.mercadoLivre.put(
             `items/${item.item.id}`,
             { available_quantity: inventory.currentPosition },
@@ -724,15 +746,6 @@ export class MercadoLivreService {
               res('atuailizado com sucesso');
             },
           );
-        } else {
-          const product = await this.mlProductRepository
-            .createQueryBuilder('ml')
-            .leftJoinAndSelect('ml.product', 'product')
-            .leftJoinAndSelect('product.productVariations', 'pv')
-            .where({ mercadoLivreId: item.id })
-            .getOne();
-
-          console.log(product);
         }
       });
     });

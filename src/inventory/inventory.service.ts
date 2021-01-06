@@ -259,7 +259,7 @@ export class InventoryService {
       saleOrder: saleOrder,
       purchaseOrder: purchaseOrder,
     };
-
+    //function to att a mercadolivre ad
     return await this.inventoryMovementRepository.save(movement);
   }
 
@@ -427,6 +427,4 @@ export class InventoryService {
       where: { productVariation: { id } },
     });
   }
-
-  async getProductCurrentPosition(id: number) {}
 }

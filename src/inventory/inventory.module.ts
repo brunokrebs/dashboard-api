@@ -8,6 +8,7 @@ import { ProductsModule } from '../products/products.module';
 import { Product } from '../products/entities/product.entity';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { ProductComposition } from '../products/entities/product-composition.entity';
+import { MarketplacesModule } from '../marketplaces/marketplaces.module';
 
 @Module({
   imports: [
