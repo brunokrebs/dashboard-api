@@ -132,7 +132,7 @@ export class MercadoLivreService {
         categoryId: mlProducts.category.id,
         categoryName: mlProducts.category.name,
         product: product,
-        adType: mlProducts.adType ? 'free' : mlProducts.adType,
+        adType: mlProducts.adType ? mlProducts.adType : 'free',
         isActive: true,
         needAtualization: false,
       };
@@ -174,12 +174,10 @@ export class MercadoLivreService {
       .filter(pi => pi.id !== null);
 
     if (productImages.length === 0) {
-      const mlError: MLError = {
+      this.saveError(
         product,
-        error:
-          'O produto não tem imagens compativeis com o mercado para ser cadastrado',
-      };
-      return this.mlErrorRepository.save(mlError);
+        'O produto não tem imagens compativeis com o mercado para ser cadastrado',
+      );
     }
     return product.variationsSize > 1
       ? this.mapProductWithVariationsForCreation(product, productImages)
@@ -542,7 +540,6 @@ export class MercadoLivreService {
             );
             res('Image update sucess');
           } catch (err) {
-            console.error(err);
             await this.imageRepository.update(
               {
                 id: image.id,
@@ -576,6 +573,7 @@ export class MercadoLivreService {
               },
               response.variations,
             );
+            await this.saveError(product, 'Ouve algum erro');
             return rej(`Unable to create ${product.sku} on Mercado Livre.`);
           }
           product.adProduct[0].mercadoLivreId = response.id;
@@ -603,9 +601,35 @@ export class MercadoLivreService {
   }
 
   async createOrderOnDigituz(url: string) {
-    this.mercadoLivre.get(url, async (err, response) => {
-      this.saleOrderService.saveSaleOrderFromML(response);
+    const accessToken = await this.keyValuePairService.get(ML_ACCESS_TOKEN_KEY);
+    let mlOrder: any;
+    const orderJob = new Promise((res, rej) => {
+      return this.mercadoLivre.get(
+        '/orders/4281367147',
+        adProduct,
+        async (err, response) => {
+          if (err) return err;
+          mlOrder = response;
+          res('getOrder');
+        },
+      );
     });
+
+    await Promise.resolve(orderJob);
+
+    let shippingDetails: any;
+    const shippingDetailsJob = new Promise((res, rej) => {
+      return this.mercadoLivre.get(
+        `shipments/${mlOrder.shipping.id}`,
+        async (err, response) => {
+          if (err) return err;
+          shippingDetails = response;
+          res('getOrder');
+        },
+      );
+    });
+    await Promise.resolve(shippingDetailsJob);
+    this.saleOrderService.saveSaleOrderFromML(mlOrder, shippingDetails);
   }
 
   async getErros(options: IPaginationOpts) {
@@ -618,10 +642,10 @@ export class MercadoLivreService {
   }
 
   @Transactional()
-  async saveError(response: any, product: Product) {
+  async saveError(product: Product, msg: string) {
     const mlError: MLError = {
       product,
-      error: response.error,
+      error: msg,
     };
     await this.mlErrorRepository.save(mlError);
     return;
@@ -634,4 +658,8 @@ export class MercadoLivreService {
       .delete()
       .execute();
   }
+
+  /*
+  
+    this.saleOrderService.saveSaleOrderFromML(mlOrder);*/
 }

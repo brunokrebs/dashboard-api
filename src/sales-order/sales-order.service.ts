@@ -339,8 +339,8 @@ export class SalesOrderService {
     return queryBuilder;
   }
 
-  async saveSaleOrderFromML(mlOrder: any) {
-    console.log(mlOrder);
+  async saveSaleOrderFromML(mlOrder: any, shippingDetails: any) {
+    console.log(shippingDetails);
     let cpf: string;
     if (
       process.env.NODE_ENV !== 'development' &&
@@ -350,15 +350,13 @@ export class SalesOrderService {
     } else {
       cpf = generate({ format: true });
     }
-    const searchCustomer: Customer = {
+    const mlCustomer: Customer = {
       name: `${mlOrder.buyer.first_name} ${mlOrder.buyer.last_name}`,
       email: `${mlOrder.buyer.email}`,
-      phoneNumber: `${mlOrder.buyer.phone.area_code}${mlOrder.buyer.phone.number}`,
+      phoneNumber: `${mlOrder.buyer.phone?.area_code}${mlOrder.buyer.phone?.number}`,
       cpf,
     };
-    const customer = await this.customersService.findUserByemail(
-      searchCustomer,
-    );
+    const customer = await this.customersService.findUserByemail(mlCustomer);
 
     let paymentStatus: PaymentStatus;
     switch (mlOrder.payments[0].status) {
@@ -422,15 +420,100 @@ export class SalesOrderService {
       shippingType: ShippingType.MERCADOLIVRE,
       shippingPrice: 0,
       customerName: customer.name,
-      shippingStreetAddress: '',
-      shippingStreetNumber: '',
-      shippingNeighborhood: '',
-      shippingCity: '',
-      shippingState: '',
-      shippingZipAddress: '',
+      shippingStreetAddress: shippingDetails.receiver_address.street_name,
+      shippingStreetNumber: shippingDetails.receiver_address.street_number,
+      shippingNeighborhood: shippingDetails.receiver_address.neighborhood.name,
+      shippingCity: shippingDetails.receiver_address.city.name,
+      shippingState: this.mapState(shippingDetails.receiver_address.state.name),
+      shippingZipAddress: shippingDetails.receiver_address.zip_code,
       creationDate: mlOrder.date_created,
     };
 
     await this.save(saleOrderDTO);
+  }
+
+  mapState(state: string) {
+    switch (state) {
+      case 'Acre':
+        return 'AC';
+
+      case 'Alagoas':
+        return 'AL';
+
+      case 'Amapá':
+        return 'AP';
+
+      case 'Amazonas':
+        return 'AM';
+
+      case 'Bahia':
+        return 'BA';
+
+      case 'Ceará':
+        return 'CE';
+
+      case 'Distrito Federal':
+        return 'DF';
+
+      case 'Espírito Santo':
+        return 'ES';
+
+      case 'Goiás':
+        return 'GO';
+
+      case 'Maranhão':
+        return 'MA';
+
+      case 'Mato Grosso':
+        return 'MT';
+
+      case 'Mato Grosso do Sul':
+        return 'MS';
+
+      case 'Minas Gerais':
+        return 'MG';
+
+      case 'Pará':
+        return 'PA';
+
+      case 'Paraíba':
+        return 'PB';
+
+      case 'Paraná':
+        return 'PR';
+
+      case 'Pernambuco':
+        return 'PE';
+
+      case 'Piauí':
+        return 'PI';
+
+      case 'Rio de Janeiro':
+        return 'RJ';
+
+      case 'Rio Grande do Norte':
+        return 'RN';
+
+      case 'Rio Grande do Sul':
+        return 'RS';
+
+      case 'Rondônia':
+        return 'RO';
+
+      case 'Roraima':
+        return 'RR';
+
+      case 'Santa Catarina':
+        return 'SC';
+
+      case 'São Paulo':
+        return 'SP';
+
+      case 'Sergipe':
+        return 'SE';
+
+      case 'Tocantins':
+        return 'TO';
+    }
   }
 }
