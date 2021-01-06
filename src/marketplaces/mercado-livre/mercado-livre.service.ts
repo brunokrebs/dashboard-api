@@ -629,6 +629,7 @@ export class MercadoLivreService {
       );
     });
     await Promise.resolve(shippingDetailsJob);
+    const pdfURL = await this.getShippingPDF(mlOrder.shipping.id);
     this.saleOrderService.saveSaleOrderFromML(mlOrder, shippingDetails);
   }
 
@@ -659,7 +660,30 @@ export class MercadoLivreService {
       .execute();
   }
 
-  /*
-  
-    this.saleOrderService.saveSaleOrderFromML(mlOrder);*/
+  async getShippingPDF(shippingId) {
+    const shippingPDFJob = new Promise((res, rej) => {
+      return this.mercadoLivre.get(
+        `/shipments_labels?shipment_ids=${shippingId}`,
+        async (err, response) => {
+          if (err) return err;
+          console.log(response);
+          res('getOrder');
+        },
+      );
+    });
+    return Promise.resolve(shippingPDFJob);
+
+    /*const accessToken = await this.keyValuePairService.get(ML_ACCESS_TOKEN_KEY);
+
+    this.httpService
+      .get(
+        `https://api.mercadolibre.com/shipment_labels?shipment_id=${shippingId}`,
+        {
+          headers: {
+            authorization: `Bearer ${accessToken.value}`,
+          },
+        },
+      )
+      .subscribe(response => console.log(response)); */
+  }
 }

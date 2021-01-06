@@ -340,7 +340,6 @@ export class SalesOrderService {
   }
 
   async saveSaleOrderFromML(mlOrder: any, shippingDetails: any) {
-    console.log(shippingDetails);
     let cpf: string;
     if (
       process.env.NODE_ENV !== 'development' &&
