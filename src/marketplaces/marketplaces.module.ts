@@ -12,6 +12,7 @@ import { Image } from '../media-library/image.entity';
 import { ProductImage } from '../products/entities/product-image.entity';
 import { SalesOrderModule } from '../sales-order/sales-order.module';
 import { ProductVariation } from '../products/entities/product-variation.entity';
+import { InventoryModule } from '../inventory/inventory.module';
 import { MLError } from './mercado-livre/mercado-livre-error.entity';
 
 @Module({
@@ -20,6 +21,7 @@ import { MLError } from './mercado-livre/mercado-livre-error.entity';
     ProductsModule,
     SalesOrderModule,
     KeyValuePairModule,
+    InventoryModule,
     TypeOrmModule.forFeature([
       MLError,
       adProduct,

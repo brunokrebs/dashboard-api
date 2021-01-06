@@ -14,6 +14,7 @@ export class createTableAdMercadoLivre1609773103324
             ad_type varchar(15),
             is_active boolean,
             is_synchronized boolean,
+            ad_disabled boolean,
             need_atualization boolean,
             CONSTRAINT ml_ad FOREIGN KEY (product_id) REFERENCES product(id)
         );

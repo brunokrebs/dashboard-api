@@ -420,4 +420,13 @@ export class InventoryService {
 
     return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
   }
+
+  async getVariationCurrentPosition(id: number) {
+    return this.inventoryRepository.findOne({
+      select: ['currentPosition'],
+      where: { productVariation: { id } },
+    });
+  }
+
+  async getProductCurrentPosition(id: number) {}
 }

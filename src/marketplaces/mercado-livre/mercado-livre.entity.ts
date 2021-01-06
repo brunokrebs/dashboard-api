@@ -66,4 +66,10 @@ export class adProduct extends BaseEntity {
     type: 'boolean',
   })
   isActive?: boolean;
+
+  @Column({
+    name: 'ad_disabled',
+    type: 'boolean',
+  })
+  adDisabled?: boolean;
 }

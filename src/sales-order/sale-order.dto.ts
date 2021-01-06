@@ -75,4 +75,7 @@ export class SaleOrderDTO {
 
   @Allow()
   blingStatus?: SaleOrderBlingStatus | string;
+
+  @Allow()
+  mlOrderId?: string;
 }

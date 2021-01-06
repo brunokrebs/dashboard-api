@@ -17,6 +17,8 @@ import { NotificationRecived } from './notificationReceived.interface';
 import { SalesOrderService } from '../../sales-order/sales-order.service';
 import { ProductVariation } from '../../products/entities/product-variation.entity';
 import { MLError } from './mercado-livre-error.entity';
+import { InventoryService } from '../../inventory/inventory.service';
+import { response } from 'express';
 
 const ML_REFRESH_TOKEN_KEY = 'ML_REFRESH_TOKEN';
 const ML_ACCESS_TOKEN_KEY = 'ML_ACCESS_TOKEN';
@@ -51,6 +53,7 @@ export class MercadoLivreService {
     @InjectRepository(Image)
     private imageRepository: Repository<Image>,
     private saleOrderService: SalesOrderService,
+    private inventoryService: InventoryService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -134,6 +137,7 @@ export class MercadoLivreService {
         product: product,
         adType: mlProducts.adType ? mlProducts.adType : 'free',
         isActive: true,
+        adDisabled: false,
         needAtualization: false,
       };
       return this.mlProductRepository.save(adProduct);
@@ -294,7 +298,7 @@ export class MercadoLivreService {
         picture_ids: images,
         attribute_combinations: [
           {
-            id: 'COLOR',
+            id: 'SIZE',
             name: 'Tamanho',
             value_name: variation.description,
           },
@@ -459,6 +463,7 @@ export class MercadoLivreService {
       adType: mlProductDTO.adType,
       isActive: true,
       isSynchronized: mlProductDTO.isSynchronized,
+      adDisabled: false,
       needAtualization: false,
     };
     await this.mlProductRepository.save(adProduct);
@@ -480,6 +485,7 @@ export class MercadoLivreService {
       variations.forEach(async variation => {
         return this.productVariationRepository.update(
           {
+            product: { id: productId },
             description: variation.attribute_combinations[0].value_name,
           },
           { mlVariationId: variation.id },
@@ -487,7 +493,7 @@ export class MercadoLivreService {
       });
     }
     return this.mlProductRepository.update(
-      { product: { id: productId } },
+      { product: { id: productId }, adDisabled: false },
       properties,
     );
   }
@@ -557,7 +563,8 @@ export class MercadoLivreService {
     return;
   }
 
-  createProductOnML(product: Product) {
+  async createProductOnML(product: Product) {
+    await this.closeAdML(product.id);
     return new Promise((res, rej) => {
       const adProduct = this.mapToMLProduct(product);
       return this.mercadoLivre.post(
@@ -566,6 +573,7 @@ export class MercadoLivreService {
         async (err, response) => {
           if (err) return err;
           if (!response.id) {
+            console.log(response);
             await this.updateProductProperties(
               product.id,
               {
@@ -601,18 +609,13 @@ export class MercadoLivreService {
   }
 
   async createOrderOnDigituz(url: string) {
-    const accessToken = await this.keyValuePairService.get(ML_ACCESS_TOKEN_KEY);
     let mlOrder: any;
     const orderJob = new Promise((res, rej) => {
-      return this.mercadoLivre.get(
-        '/orders/4281367147',
-        adProduct,
-        async (err, response) => {
-          if (err) return err;
-          mlOrder = response;
-          res('getOrder');
-        },
-      );
+      return this.mercadoLivre.get(url, adProduct, async (err, response) => {
+        if (err) return err;
+        mlOrder = response;
+        res('getOrder');
+      });
     });
 
     await Promise.resolve(orderJob);
@@ -629,6 +632,7 @@ export class MercadoLivreService {
       );
     });
     await Promise.resolve(shippingDetailsJob);
+    await this.updateMLInventory(mlOrder.order_items);
     const pdfURL = await this.getShippingPDF(mlOrder.shipping.id);
     this.saleOrderService.saveSaleOrderFromML(mlOrder, shippingDetails);
   }
@@ -661,9 +665,9 @@ export class MercadoLivreService {
   }
 
   async getShippingPDF(shippingId) {
-    const shippingPDFJob = new Promise((res, rej) => {
+    /* const shippingPDFJob = new Promise((res, rej) => {
       return this.mercadoLivre.get(
-        `/shipments_labels?shipment_ids=${shippingId}`,
+        `/shipment_labels?shipment_ids=${shippingId}&response_type=pdf`,
         async (err, response) => {
           if (err) return err;
           console.log(response);
@@ -671,19 +675,97 @@ export class MercadoLivreService {
         },
       );
     });
-    return Promise.resolve(shippingPDFJob);
+    return Promise.resolve(shippingPDFJob); */
 
-    /*const accessToken = await this.keyValuePairService.get(ML_ACCESS_TOKEN_KEY);
-
-    this.httpService
+    const accessToken = await this.keyValuePairService.get(ML_ACCESS_TOKEN_KEY);
+    const getPDFJob = request.get(
+      `https://api.mercadolibre.com/shipment_labels?shipment_ids=${shippingId}&response_type=pdf`,
+      {
+        headers: {
+          authorization: `Bearer ${accessToken.value}`,
+        },
+      },
+    );
+    const pdfResult = await getPDFJob;
+    console.log(pdfResult);
+    /*
+    const promise = this.httpService
       .get(
-        `https://api.mercadolibre.com/shipment_labels?shipment_id=${shippingId}`,
+        `https://api.mercadolibre.com/shipment_labels?shipment_ids=${shippingId}&response_type=pdf`,
         {
           headers: {
-            authorization: `Bearer ${accessToken.value}`,
+            Authorization: `Bearer ${accessToken.value}`,
           },
         },
       )
-      .subscribe(response => console.log(response)); */
+      .toPromise();
+
+    const pdf = await Promise.resolve(promise).catch(err => console.log(err));
+    console.log(pdf); */
+  }
+
+  async updateMLInventory(items: any) {
+    const updateMLJOb = items.map(async item => {
+      return new Promise(async (res, rej) => {
+        const variation = await this.productVariationRepository.findOne({
+          mlVariationId: item.item.variation_id,
+        });
+        if (variation) {
+          const inventory = await this.inventoryService.getVariationCurrentPosition(
+            variation.id,
+          );
+          this.mercadoLivre.put(
+            `items/${item.item.id}`,
+            { available_quantity: inventory.currentPosition },
+            (err, response) => {
+              console.log(err);
+              console.log(response);
+              if (err) return rej(err);
+              res('atuailizado com sucesso');
+            },
+          );
+        } else {
+          const product = await this.mlProductRepository
+            .createQueryBuilder('ml')
+            .leftJoinAndSelect('ml.product', 'product')
+            .leftJoinAndSelect('product.productVariations', 'pv')
+            .where({ mercadoLivreId: item.id })
+            .getOne();
+
+          console.log(product);
+        }
+      });
+    });
+    await Promise.all(updateMLJOb);
+    console.log(updateMLJOb);
+  }
+
+  async closeAdML(id: number) {
+    const ads = await this.mlProductRepository.find({
+      where: { product: { id }, isActive: false, adDisabled: false },
+    });
+    if (ads.length == 0) return null;
+    const closedAdJob = ads.map(ad => {
+      return new Promise((res, rej) => {
+        try {
+          this.mercadoLivre.put(
+            `items/${ad.mercadoLivreId}`,
+            { status: 'closed' },
+            (err, response) => {
+              if (err) return rej(err);
+              console.log(response);
+              this.mlProductRepository.update(
+                { mercadoLivreId: ad.mercadoLivreId, isActive: false },
+                { adDisabled: true },
+              );
+              res('updated product status with sucess');
+            },
+          );
+        } catch (err) {
+          console.log(err);
+        }
+      });
+    });
+    return Promise.all(closedAdJob);
   }
 }
