@@ -18,10 +18,10 @@ import { MLError } from './mercado-livre/mercado-livre-error.entity';
 @Module({
   imports: [
     HttpModule,
-    ProductsModule,
+    forwardRef(() => ProductsModule),
     SalesOrderModule,
     KeyValuePairModule,
-    InventoryModule,
+    forwardRef(() => InventoryModule),
     TypeOrmModule.forFeature([
       MLError,
       adProduct,
@@ -33,5 +33,6 @@ import { MLError } from './mercado-livre/mercado-livre-error.entity';
   ],
   controllers: [ShopifyController, MercadoLivreController],
   providers: [ShopifyService, MercadoLivreService],
+  exports: [MercadoLivreService],
 })
 export class MarketplacesModule {}

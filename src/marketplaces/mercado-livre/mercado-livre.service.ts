@@ -18,7 +18,7 @@ import { SalesOrderService } from '../../sales-order/sales-order.service';
 import { ProductVariation } from '../../products/entities/product-variation.entity';
 import { MLError } from './mercado-livre-error.entity';
 import { InventoryService } from '../../inventory/inventory.service';
-import { response } from 'express';
+import { InventoryMovement } from '../../inventory/inventory-movement.entity';
 
 const ML_REFRESH_TOKEN_KEY = 'ML_REFRESH_TOKEN';
 const ML_ACCESS_TOKEN_KEY = 'ML_ACCESS_TOKEN';
@@ -40,6 +40,7 @@ export class MercadoLivreService {
 
   constructor(
     private keyValuePairService: KeyValuePairService,
+    @Inject(forwardRef(() => ProductsService))
     private productsService: ProductsService,
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
@@ -53,6 +54,7 @@ export class MercadoLivreService {
     @InjectRepository(Image)
     private imageRepository: Repository<Image>,
     private saleOrderService: SalesOrderService,
+    @Inject(forwardRef(() => InventoryService))
     private inventoryService: InventoryService,
   ) {}
 
@@ -611,7 +613,7 @@ export class MercadoLivreService {
   async createOrderOnDigituz(url: string) {
     let mlOrder: any;
     const orderJob = new Promise((res, rej) => {
-      return this.mercadoLivre.get(url, adProduct, async (err, response) => {
+      return this.mercadoLivre.get(url, async (err, response) => {
         if (err) return err;
         mlOrder = response;
         res('getOrder');
@@ -632,7 +634,7 @@ export class MercadoLivreService {
       );
     });
     await Promise.resolve(shippingDetailsJob);
-    const pdfURL = await this.getShippingPDF(mlOrder.shipping.id);
+    /* const pdfURL = await this.getShippingPDF(mlOrder.shipping.id); */
     this.saleOrderService.saveSaleOrderFromML(mlOrder, shippingDetails);
   }
 
@@ -703,56 +705,6 @@ export class MercadoLivreService {
     console.log(pdf); */
   }
 
-  async updateMLInventory(items: any) {
-    const updateMLJOb = items.map(async item => {
-      return new Promise(async (res, rej) => {
-        const variation = await this.productVariationRepository.findOne({
-          relations: ['product'],
-          where: { mlVariationId: item.item.variation_id },
-        });
-        if (variation.product.variationsSize > 1) {
-          const inventory = await this.inventoryService.getVariationCurrentPosition(
-            variation.id,
-          );
-          this.mercadoLivre.put(
-            `items/${item.item.id}/variations/${item.item.variation_id}`,
-            { available_quantity: inventory.currentPosition },
-            (err, response) => {
-              console.log(err);
-              console.log(response);
-              if (err) return rej(err);
-              res('atuailizado com sucesso');
-            },
-          );
-        } else {
-          const mlProduct = await this.mlProductRepository
-            .createQueryBuilder('ml')
-            .leftJoinAndSelect('ml.product', 'product')
-            .leftJoinAndSelect('product.productVariations', 'pv')
-            .where({ mercadoLivreId: item.item.id })
-            .getOne();
-
-          const inventory = await this.inventoryService.getVariationCurrentPosition(
-            mlProduct.product.productVariations[0].id,
-          );
-
-          this.mercadoLivre.put(
-            `items/${item.item.id}`,
-            { available_quantity: inventory.currentPosition },
-            (err, response) => {
-              console.log(err);
-              console.log(response);
-              if (err) return rej(err);
-              res('atuailizado com sucesso');
-            },
-          );
-        }
-      });
-    });
-    await Promise.all(updateMLJOb);
-    console.log(updateMLJOb);
-  }
-
   async closeAdML(id: number) {
     const ads = await this.mlProductRepository.find({
       where: { product: { id }, isActive: false, adDisabled: false },
@@ -780,5 +732,90 @@ export class MercadoLivreService {
       });
     });
     return Promise.all(closedAdJob);
+  }
+
+  async updateMLInventory(moviment: InventoryMovement) {
+    let items;
+    if (moviment.purchaseOrder) {
+      items = moviment.purchaseOrder.items;
+    } else {
+      items = moviment.saleOrder.items;
+    }
+    const updateMLJob = items.map(async item => {
+      let variationId: string;
+      if (item.productVariation.mlVariationId !== null) {
+        variationId = item.productVariation.mlVariationId;
+      }
+      return new Promise(async (res, rej) => {
+        const variation = await this.productVariationRepository.findOne({
+          relations: ['product'],
+          where: { mlVariationId: variationId },
+        });
+
+        if (variation && variation.product.variationsSize > 1) {
+          const itemML = await this.mlProductRepository
+            .createQueryBuilder('ml')
+            .select('ml.mercadoLivreId')
+            .where({
+              product: { id: variation.product.id },
+              isActive: true,
+            })
+            .getOne();
+
+          const inventory = await this.inventoryService.getVariationCurrentPosition(
+            variation.id,
+          );
+          //aqui function com o link
+          this.mercadoLivre.put(
+            `items/${itemML.mercadoLivreId}/variations/${variationId}`,
+            { available_quantity: inventory.currentPosition },
+            (err, response) => {
+              if (err) return rej(err);
+              return res(
+                `Estoque da variação ${variation.sku} foi atuailizado com sucesso`,
+              );
+            },
+          );
+        } else {
+          let productId: number;
+          if (item.productVariation?.product) {
+            productId = item.productVariation.product.id;
+          } else {
+            const pv = await this.productVariationRepository
+              .createQueryBuilder('pv')
+              .leftJoinAndSelect('pv.product', 'product')
+              .where({ id: item.productVariation.id })
+              .getOne();
+
+            productId = pv.product.id;
+          }
+          const mlProduct = await this.mlProductRepository
+            .createQueryBuilder('ml')
+            .leftJoinAndSelect('ml.product', 'product')
+            .leftJoinAndSelect('product.productVariations', 'pv')
+            .where({
+              product: productId,
+              isActive: true,
+            })
+            .getOne();
+
+          const inventory = await this.inventoryService.getVariationCurrentPosition(
+            mlProduct.product.productVariations[0].id,
+          );
+          //function com link
+          this.mercadoLivre.put(
+            `items/${mlProduct.mercadoLivreId}`,
+            { available_quantity: inventory.currentPosition },
+            (err, response) => {
+              if (err) return rej(err);
+              return res(
+                `Estoque do produto ${mlProduct.product.sku} foi atuailizado com sucesso`,
+              );
+            },
+          );
+        }
+      });
+    });
+    return await Promise.all(updateMLJob);
   }
 }

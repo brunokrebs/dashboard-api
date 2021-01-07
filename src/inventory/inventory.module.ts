@@ -13,6 +13,7 @@ import { MarketplacesModule } from '../marketplaces/marketplaces.module';
 @Module({
   imports: [
     forwardRef(() => ProductsModule),
+    MarketplacesModule,
     TypeOrmModule.forFeature([
       Inventory,
       InventoryMovement,

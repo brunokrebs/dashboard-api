@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import randomize from 'randomatic';
 import moment from 'moment';
@@ -37,7 +37,9 @@ export class SalesOrderService {
     @InjectRepository(ProductVariation)
     private productVariationRepository: Repository<ProductVariation>,
     private customersService: CustomersService,
+    @Inject(forwardRef(() => ProductsService))
     private productsService: ProductsService,
+    @Inject(forwardRef(() => InventoryService))
     private inventoryService: InventoryService,
     private blingService: BlingService,
   ) {}
@@ -398,27 +400,28 @@ export class SalesOrderService {
       } else {
         return {
           sku: productVariations[0].sku,
-          price: Number.parseFloat(item.unit_pirce),
+          price: Number.parseFloat(item.full_unit_price),
           discount: 0,
-          amount: Number.parseInt(item.unit_pirce),
+          amount: Number.parseInt(item.quantity),
           currentPosition: productVariations[0].currentPosition,
         };
       }
     });
 
     const items: any = await Promise.all(products);
-
     const saleOrderDTO: SaleOrderDTO = {
       referenceCode: randomize('0', 10),
       customer,
       items: items,
-      total: mlOrder.total_amount,
+      total: Number.parseFloat(mlOrder.total_amount),
       discount: mlOrder.coupon.amount,
       paymentType,
       paymentStatus,
       installments: mlOrder.payments[0].installments,
       shippingType: ShippingType.MERCADOLIVRE,
-      shippingPrice: 0,
+      shippingPrice: Number.parseFloat(
+        shippingDetails.shipping_option.list_cost,
+      ),
       customerName: customer.name,
       shippingStreetAddress: shippingDetails.receiver_address.street_name,
       shippingStreetNumber: shippingDetails.receiver_address.street_number,

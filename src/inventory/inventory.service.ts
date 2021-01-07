@@ -16,6 +16,7 @@ import { Product } from '../products/entities/product.entity';
 import { ProductComposition } from '../products/entities/product-composition.entity';
 import { PurchaseOrder } from '../purchase-order/purchase-order.entity';
 import { Propagation, Transactional } from 'typeorm-transactional-cls-hooked';
+import { MercadoLivreService } from '../marketplaces/mercado-livre/mercado-livre.service';
 
 @Injectable()
 export class InventoryService {
@@ -30,6 +31,7 @@ export class InventoryService {
     private productVariationRepository: Repository<ProductVariation>,
     @InjectRepository(ProductComposition)
     private productCompositionRepository: Repository<ProductComposition>,
+    private mercadoLivreService: MercadoLivreService,
   ) {}
 
   async paginate(options: IPaginationOpts): Promise<Pagination<Inventory>> {
@@ -259,7 +261,9 @@ export class InventoryService {
       saleOrder: saleOrder,
       purchaseOrder: purchaseOrder,
     };
-    //function to att a mercadolivre ad
+
+    //persist atualization in mercadolivre inventory
+    await this.mercadoLivreService.updateMLInventory(movement);
     return await this.inventoryMovementRepository.save(movement);
   }
 
@@ -362,7 +366,6 @@ export class InventoryService {
         productCompositionInventory.currentPosition,
       description: description,
     };
-
     return await this.moveProduct(inventoryMovementDTO, saleOrder);
   }
 
