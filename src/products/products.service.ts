@@ -149,7 +149,7 @@ export class ProductsService {
           movements: [],
         };
         await this.inventoryService.save(inventory);
-        res();
+        res('');
       });
     });
 
@@ -194,7 +194,7 @@ export class ProductsService {
         variation.product = persistedProduct;
         variation.currentPosition = 0;
         await this.productVariationsRepository.save(variation);
-        res();
+        res('');
       });
     });
     await Promise.all(insertVariationJobs);

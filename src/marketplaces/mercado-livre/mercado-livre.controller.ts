@@ -4,16 +4,17 @@ import {
   Get,
   Query,
   UseGuards,
-  Put,
   Body,
   Delete,
+  Res,
+  HttpStatus,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { MercadoLivreService } from './mercado-livre.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { Pagination } from 'nestjs-typeorm-paginate';
 import { parseBoolean } from '../../util/parsers';
 import { Product } from '../../products/entities/product.entity';
-import { MLProductDTO } from './mercado-livre.dto';
 import { response } from 'express';
 import { NotificationRecived } from './notificationReceived.interface';
 import { MLError } from './mercado-livre-error.entity';
@@ -117,5 +118,15 @@ export class MercadoLivreController {
       page,
       limit,
     });
+  }
+
+  @Get('shipping-label')
+  @UseGuards(JwtAuthGuard)
+  async getShippingLabel(
+    @Query('id') shipppingLabel: string,
+    @Res() res: Response,
+  ) {
+    const pdf = await this.mercadoLivreService.getShippingPDF(shipppingLabel);
+    res.status(HttpStatus.OK).send(pdf);
   }
 }

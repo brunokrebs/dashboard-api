@@ -172,7 +172,7 @@ export class InventoryService {
           .where(`inventory_id = ${inventory.id}`)
           .execute();
         await this.inventoryRepository.delete(inventory);
-        res();
+        res('');
       });
     });
     await Promise.all(removeJobs);

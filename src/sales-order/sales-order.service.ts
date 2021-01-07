@@ -187,6 +187,7 @@ export class SalesOrderService {
     const saleOrder: SaleOrder = {
       id: saleOrderDTO.id || null,
       mlOrderId: saleOrderDTO.mlOrderId,
+      mlShippingId: saleOrderDTO.mlShippingId,
       referenceCode: saleOrderDTO.referenceCode || randomize('0', 10),
       customer,
       items,
@@ -431,6 +432,7 @@ export class SalesOrderService {
       shippingZipAddress: shippingDetails.receiver_address.zip_code,
       creationDate: mlOrder.date_created,
       mlOrderId: mlOrder.id,
+      mlShippingId: mlOrder.shipping.id,
     };
 
     await this.save(saleOrderDTO);

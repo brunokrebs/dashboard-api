@@ -78,4 +78,7 @@ export class SaleOrderDTO {
 
   @Allow()
   mlOrderId?: string;
+
+  @Allow()
+  mlShippingId?: string;
 }

@@ -92,4 +92,11 @@ export class SaleOrder extends BaseEntity {
     length: 30,
   })
   mlOrderId?: string;
+
+  @Column({
+    name: 'ml_shipping_id',
+    type: 'varchar',
+    length: 30,
+  })
+  mlShippingId?: string;
 }

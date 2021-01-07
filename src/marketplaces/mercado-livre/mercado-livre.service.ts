@@ -614,9 +614,9 @@ export class MercadoLivreService {
     let mlOrder: any;
     const orderJob = new Promise((res, rej) => {
       return this.mercadoLivre.get(url, async (err, response) => {
-        if (err) return err;
+        if (err) return rej(err);
         mlOrder = response;
-        res('getOrder');
+        res(response);
       });
     });
 
@@ -634,7 +634,6 @@ export class MercadoLivreService {
       );
     });
     await Promise.resolve(shippingDetailsJob);
-    /* const pdfURL = await this.getShippingPDF(mlOrder.shipping.id); */
     this.saleOrderService.saveSaleOrderFromML(mlOrder, shippingDetails);
   }
 
@@ -665,44 +664,18 @@ export class MercadoLivreService {
       .execute();
   }
 
-  async getShippingPDF(shippingId) {
-    /* const shippingPDFJob = new Promise((res, rej) => {
+  async getShippingPDF(shippingLabel: string) {
+    const shippingPDFJob = new Promise((res, rej) => {
       return this.mercadoLivre.get(
-        `/shipment_labels?shipment_ids=${shippingId}&response_type=pdf`,
+        `/shipment_labels`,
+        { shipment_ids: shippingLabel, response_type: 'pdf' },
         async (err, response) => {
           if (err) return err;
-          console.log(response);
-          res('getOrder');
+          res(response);
         },
       );
     });
-    return Promise.resolve(shippingPDFJob); */
-
-    const accessToken = await this.keyValuePairService.get(ML_ACCESS_TOKEN_KEY);
-    const getPDFJob = request.get(
-      `https://api.mercadolibre.com/shipment_labels?shipment_ids=${shippingId}&response_type=pdf`,
-      {
-        headers: {
-          authorization: `Bearer ${accessToken.value}`,
-        },
-      },
-    );
-    const pdfResult = await getPDFJob;
-    console.log(pdfResult);
-    /*
-    const promise = this.httpService
-      .get(
-        `https://api.mercadolibre.com/shipment_labels?shipment_ids=${shippingId}&response_type=pdf`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken.value}`,
-          },
-        },
-      )
-      .toPromise();
-
-    const pdf = await Promise.resolve(promise).catch(err => console.log(err));
-    console.log(pdf); */
+    return Promise.resolve(shippingPDFJob);
   }
 
   async closeAdML(id: number) {
@@ -718,7 +691,6 @@ export class MercadoLivreService {
             { status: 'closed' },
             (err, response) => {
               if (err) return rej(err);
-              console.log(response);
               this.mlProductRepository.update(
                 { mercadoLivreId: ad.mercadoLivreId, isActive: false },
                 { adDisabled: true },
