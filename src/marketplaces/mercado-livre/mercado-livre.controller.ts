@@ -86,7 +86,7 @@ export class MercadoLivreController {
 
   @Post('/')
   @UseGuards(JwtAuthGuard)
-  async saveAll(@Body() adProducts): Promise<void> {
+  async saveAll(@Body() adProducts): Promise<any> {
     return this.mercadoLivreService.createProducts(adProducts);
   }
 

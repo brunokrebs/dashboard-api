@@ -164,7 +164,7 @@ export class MercadoLivreService {
           const adProduct = await this.mapToMLProduct(product);
           this.mercadoLivre.post('items', adProduct, async (err, response) => {
             this.createProductOnML(product);
-            res('');
+            return res('sucess');
           });
         }, idx * 250);
       });
@@ -596,7 +596,7 @@ export class MercadoLivreService {
             },
             response.variations,
           );
-          res(`${product.sku} created successfully`);
+          return res(`${product.sku} created successfully`);
         },
       );
     });
