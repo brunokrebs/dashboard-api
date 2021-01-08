@@ -1,7 +1,7 @@
-import { Allow, MaxLength, Min, MinLength } from 'class-validator';
+import { Allow, MaxLength, Min, MinLength, IsBoolean } from 'class-validator';
 import { Product } from '../../products/entities/product.entity';
 
-export class MLProductDTO {
+export class adProductDTO {
   @Min(1)
   id?: number;
 
@@ -18,6 +18,6 @@ export class MLProductDTO {
   @Allow()
   product?: Product;
 
-  @Allow()
+  @IsBoolean()
   isSynchronized?: boolean;
 }

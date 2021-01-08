@@ -18,6 +18,7 @@ import { Product } from '../../products/entities/product.entity';
 import { response } from 'express';
 import { NotificationRecived } from './notificationReceived.interface';
 import { MLError } from './mercado-livre-error.entity';
+import { adProductDTO } from './mercado-livre.dto';
 
 @Controller('mercado-livre')
 export class MercadoLivreController {
@@ -92,7 +93,7 @@ export class MercadoLivreController {
 
   @Post('/save')
   @UseGuards(JwtAuthGuard)
-  async save(@Body() adProduct): Promise<void> {
+  async save(@Body() adProduct: adProductDTO): Promise<void> {
     return this.mercadoLivreService.save(adProduct);
   }
 

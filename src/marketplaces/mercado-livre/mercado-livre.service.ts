@@ -8,7 +8,7 @@ import { IPaginationOpts } from '../../pagination/pagination';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository } from 'typeorm';
-import { MLProductDTO } from './mercado-livre.dto';
+import { adProductDTO } from './mercado-livre.dto';
 import { Transactional } from 'typeorm-transactional-cls-hooked';
 import { adProduct } from './mercado-livre.entity';
 import { Image } from '../../media-library/image.entity';
@@ -50,7 +50,7 @@ export class MercadoLivreService {
     private productVariationRepository: Repository<ProductVariation>,
     private httpService: HttpService,
     @InjectRepository(adProduct)
-    private mlProductRepository: Repository<adProduct>,
+    private adProductRepository: Repository<adProduct>,
     @InjectRepository(Image)
     private imageRepository: Repository<Image>,
     private saleOrderService: SalesOrderService,
@@ -121,9 +121,9 @@ export class MercadoLivreService {
     return this.keyValuePairService.get(ML_ACCESS_TOKEN_KEY);
   }
 
-  async createProducts(mlProducts: any) {
-    const ids = mlProducts.products.map(product => product.id);
-    await this.mlProductRepository.update(
+  async createProducts(adProducts: any) {
+    const ids = adProducts.products.map(product => product.id);
+    await this.adProductRepository.update(
       {
         product: In(ids),
       },
@@ -131,18 +131,18 @@ export class MercadoLivreService {
         isActive: false,
       },
     );
-    const insertMLProductsJob = mlProducts.products.map((product, idx) => {
+    const insertMLProductsJob = adProducts.products.map((product, idx) => {
       const adProduct: adProduct = {
         id: product.mlId,
-        categoryId: mlProducts.category.id,
-        categoryName: mlProducts.category.name,
+        categoryId: adProducts.category.id,
+        categoryName: adProducts.category.name,
         product: product,
-        adType: mlProducts.adType ? mlProducts.adType : 'free',
+        adType: adProducts.adType ? adProducts.adType : 'free',
         isActive: true,
         adDisabled: false,
         needAtualization: false,
       };
-      return this.mlProductRepository.save(adProduct);
+      return this.adProductRepository.save(adProduct);
     });
     await Promise.all(insertMLProductsJob);
     await this.saveImagesOnML();
@@ -445,12 +445,12 @@ export class MercadoLivreService {
   }
 
   @Transactional()
-  async save(mlProductDTO: MLProductDTO) {
+  async save(adProductDTO: adProductDTO) {
     await this.saveImagesOnML();
 
-    await this.mlProductRepository.update(
+    await this.adProductRepository.update(
       {
-        product: mlProductDTO.product,
+        product: adProductDTO.product,
       },
       {
         isActive: false,
@@ -458,20 +458,20 @@ export class MercadoLivreService {
     );
 
     const adProduct: adProduct = {
-      id: mlProductDTO?.id,
-      categoryName: mlProductDTO.categoryName,
-      categoryId: mlProductDTO.categoryId,
-      product: mlProductDTO.product,
-      adType: mlProductDTO.adType,
+      id: adProductDTO?.id,
+      categoryName: adProductDTO.categoryName,
+      categoryId: adProductDTO.categoryId,
+      product: adProductDTO.product,
+      adType: adProductDTO.adType,
       isActive: true,
-      isSynchronized: mlProductDTO.isSynchronized,
+      isSynchronized: adProductDTO.isSynchronized,
       adDisabled: false,
       needAtualization: false,
     };
-    await this.mlProductRepository.save(adProduct);
+    await this.adProductRepository.save(adProduct);
     //search the product for insert in mercado livre
     const product = await this.productsService.findProductsToML([
-      mlProductDTO.product.id,
+      adProductDTO.product.id,
     ]);
 
     await this.createProductOnML(product[0]);
@@ -494,7 +494,7 @@ export class MercadoLivreService {
         );
       });
     }
-    return this.mlProductRepository.update(
+    return this.adProductRepository.update(
       { product: { id: productId }, adDisabled: false },
       properties,
     );
@@ -607,6 +607,10 @@ export class MercadoLivreService {
       case 'created_orders':
         this.createOrderOnDigituz(notification.resource);
         break;
+
+      case 'orders':
+        this.createOrderOnDigituz(notification.resource);
+        break;
     }
   }
 
@@ -670,7 +674,7 @@ export class MercadoLivreService {
         `/shipment_labels`,
         { shipment_ids: shippingLabel, response_type: 'pdf' },
         async (err, response) => {
-          if (err) return err;
+          if (err) return rej(err);
           res(response);
         },
       );
@@ -679,7 +683,7 @@ export class MercadoLivreService {
   }
 
   async closeAdML(id: number) {
-    const ads = await this.mlProductRepository.find({
+    const ads = await this.adProductRepository.find({
       where: { product: { id }, isActive: false, adDisabled: false },
     });
     if (ads.length == 0) return null;
@@ -691,7 +695,7 @@ export class MercadoLivreService {
             { status: 'closed' },
             (err, response) => {
               if (err) return rej(err);
-              this.mlProductRepository.update(
+              this.adProductRepository.update(
                 { mercadoLivreId: ad.mercadoLivreId, isActive: false },
                 { adDisabled: true },
               );
@@ -725,7 +729,7 @@ export class MercadoLivreService {
         });
 
         if (variation && variation.product.variationsSize > 1) {
-          const itemML = await this.mlProductRepository
+          const itemML = await this.adProductRepository
             .createQueryBuilder('ml')
             .select('ml.mercadoLivreId')
             .where({
@@ -761,7 +765,7 @@ export class MercadoLivreService {
 
             productId = pv.product.id;
           }
-          const mlProduct = await this.mlProductRepository
+          const mlProduct = await this.adProductRepository
             .createQueryBuilder('ml')
             .leftJoinAndSelect('ml.product', 'product')
             .leftJoinAndSelect('product.productVariations', 'pv')

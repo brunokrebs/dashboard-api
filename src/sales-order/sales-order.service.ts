@@ -362,11 +362,7 @@ export class SalesOrderService {
     const customer = await this.customersService.findUserByemail(mlCustomer);
 
     let paymentStatus: PaymentStatus;
-    switch (mlOrder.payments[0].status) {
-      case 'approved':
-        paymentStatus = PaymentStatus.APPROVED;
-        break;
-    }
+    paymentStatus = this.mapOrderStatus(mlOrder.status);
 
     let paymentType: PaymentType;
     switch (mlOrder.payments[0].payment_type) {
@@ -375,41 +371,8 @@ export class SalesOrderService {
         break;
     }
 
-    const products = mlOrder.order_items.map(async item => {
-      const productVariations = await this.productVariationRepository
-        .createQueryBuilder('pv')
-        .leftJoinAndSelect('pv.product', 'product')
-        .leftJoinAndSelect('product.adProduct', 'ml')
-        .where('ml.mercadoLivreId = :id', { id: item.item.id })
-        .getMany();
-
-      if (productVariations.length > 1) {
-        const variation = productVariations
-          .filter(
-            variation => variation.mlVariationId == item.item.variation_id,
-          )
-          .map(variation => {
-            return {
-              sku: variation.sku,
-              price: item.full_unit_price,
-              discount: 0,
-              amount: item.quantity,
-              currentPosition: variation.currentPosition,
-            };
-          });
-        return variation[0];
-      } else {
-        return {
-          sku: productVariations[0].sku,
-          price: Number.parseFloat(item.full_unit_price),
-          discount: 0,
-          amount: Number.parseInt(item.quantity),
-          currentPosition: productVariations[0].currentPosition,
-        };
-      }
-    });
-
-    const items: any = await Promise.all(products);
+    const itemsJob = this.mapItems(mlOrder.order_items);
+    const items: any = await Promise.all(itemsJob);
     const saleOrderDTO: SaleOrderDTO = {
       referenceCode: randomize('0', 10),
       customer,
@@ -521,5 +484,63 @@ export class SalesOrderService {
       case 'Tocantins':
         return 'TO';
     }
+  }
+
+  mapOrderStatus(status: string) {
+    switch (status) {
+      case 'paid':
+        return PaymentStatus.APPROVED;
+
+      case 'confirmed':
+        return PaymentStatus.IN_PROCESS;
+
+      case 'payment_required':
+        return PaymentStatus.IN_PROCESS;
+
+      case 'payment_in_process':
+        return PaymentStatus.IN_PROCESS;
+
+      case 'cancelled':
+        return PaymentStatus.CANCELLED;
+
+      case 'invalid':
+        return PaymentStatus.CANCELLED;
+    }
+  }
+
+  mapItems(items) {
+    return items.map(async item => {
+      const productVariations = await this.productVariationRepository
+        .createQueryBuilder('pv')
+        .leftJoinAndSelect('pv.product', 'product')
+        .leftJoinAndSelect('product.adProduct', 'ml')
+        .where('ml.mercadoLivreId = :id', { id: item.item.id })
+        .getMany();
+
+      if (productVariations.length > 1) {
+        const variation = productVariations
+          .filter(
+            variation => variation.mlVariationId == item.item.variation_id,
+          )
+          .map(variation => {
+            return {
+              sku: variation.sku,
+              price: item.full_unit_price,
+              discount: 0,
+              amount: item.quantity,
+              currentPosition: variation.currentPosition,
+            };
+          });
+        return variation[0];
+      } else {
+        return {
+          sku: productVariations[0].sku,
+          price: Number.parseFloat(item.full_unit_price),
+          discount: 0,
+          amount: Number.parseInt(item.quantity),
+          currentPosition: productVariations[0].currentPosition,
+        };
+      }
+    });
   }
 }
