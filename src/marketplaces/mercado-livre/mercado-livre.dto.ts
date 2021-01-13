@@ -9,7 +9,7 @@ export class adProductDTO {
   categoryId?: string;
 
   @MaxLength(30)
-  categoryName: string;
+  categoryName?: string;
 
   @MinLength(4)
   @MaxLength(15)

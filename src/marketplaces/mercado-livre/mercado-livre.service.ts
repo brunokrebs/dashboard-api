@@ -19,6 +19,7 @@ import { ProductVariation } from '../../products/entities/product-variation.enti
 import { MLError } from './mercado-livre-error.entity';
 import { InventoryService } from '../../inventory/inventory.service';
 import { InventoryMovement } from '../../inventory/inventory-movement.entity';
+import { Cron } from '@nestjs/schedule';
 
 const ML_REFRESH_TOKEN_KEY = 'ML_REFRESH_TOKEN';
 const ML_ACCESS_TOKEN_KEY = 'ML_ACCESS_TOKEN';
@@ -184,6 +185,10 @@ export class MercadoLivreService {
         product,
         'O produto não tem imagens compativeis com o mercado para ser cadastrado',
       );
+      //TODO - marcar como falha
+      this.updateProductProperties(product.id, {
+        isSynchronized: false,
+      });
     }
     return product.variationsSize > 1
       ? this.mapProductWithVariationsForCreation(product, productImages)
@@ -307,7 +312,6 @@ export class MercadoLivreService {
         ],
         atributes: [
           {
-            // TODO
             id: 'PACKAGE_HEIGHT',
             value_name: '25 cm',
           },
@@ -393,6 +397,7 @@ export class MercadoLivreService {
             queryBuilder.andWhere('ml.is_synchronized = :status', {
               status: queryParam.value,
             });
+
             break;
         }
       });
@@ -614,31 +619,76 @@ export class MercadoLivreService {
     }
   }
 
+  @Cron('0 */5 * * *')
   async createOrderOnDigituz(url: string) {
-    let mlOrder: any;
-    const orderJob = new Promise((res, rej) => {
-      return this.mercadoLivre.get(url, async (err, response) => {
+    const getSellerJob = new Promise((res, rej) => {
+      return this.mercadoLivre.get('users/me', (err, response) => {
         if (err) return rej(err);
-        mlOrder = response;
-        res(response);
+        return res(response);
       });
     });
 
-    await Promise.resolve(orderJob);
+    const seller: any = await Promise.resolve(getSellerJob);
 
-    let shippingDetails: any;
-    const shippingDetailsJob = new Promise((res, rej) => {
+    const getOrdersJob = new Promise((res, rej) => {
       return this.mercadoLivre.get(
-        `shipments/${mlOrder.shipping.id}`,
-        async (err, response) => {
-          if (err) return err;
-          shippingDetails = response;
-          res('getOrder');
+        `orders/search`,
+        {
+          seller: seller.id,
+          sort: 'date_desc',
+        },
+        (err, response) => {
+          if (err) return rej(err);
+          return res(response.results);
         },
       );
     });
-    await Promise.resolve(shippingDetailsJob);
-    this.saleOrderService.saveSaleOrderFromML(mlOrder, shippingDetails);
+
+    const orders: any = await Promise.resolve(getOrdersJob);
+
+    const packsIds = orders
+      .filter(order => order.pack_id)
+      .filter(order => {
+        return (
+          !this[JSON.stringify(order.pack_id)] &&
+          (this[JSON.stringify(order.pack_id)] = true)
+        );
+      })
+      .map(order => {
+        return order.pack_id;
+      });
+
+    const compositeOrders = packsIds.map(pack => {
+      const filterOrder = orders.filter(order => order.pack_id === pack);
+      let order: any = filterOrder[0];
+      const items: any = [];
+      for (let i = 0; i < filterOrder.length; i++) {
+        items.push(filterOrder[i].order_items);
+      }
+      order.order_items = items.flat();
+      return order;
+    });
+
+    const simpleOrder = orders.filter(order => !order.pack_id);
+    const allOrders: any = [].concat(simpleOrder, compositeOrders);
+
+    const mapShippingJob = allOrders.map(order => {
+      return new Promise((res, rej) => {
+        return this.mercadoLivre.get(
+          `shipments/${order.shipping.id}`,
+          async (err, response) => {
+            if (err) return err;
+            order.shipping = response;
+            res('getOrder');
+          },
+        );
+      });
+    });
+
+    await Promise.all(mapShippingJob);
+    await allOrders.forEach(async order => {
+      await this.saleOrderService.saveSaleOrderFromML(order);
+    });
   }
 
   async getErros(options: IPaginationOpts) {
@@ -775,6 +825,7 @@ export class MercadoLivreService {
             })
             .getOne();
 
+          if (!mlProduct) return res('this product not in mercado libre');
           const inventory = await this.inventoryService.getVariationCurrentPosition(
             mlProduct.product.productVariations[0].id,
           );

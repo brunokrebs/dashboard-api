@@ -343,7 +343,11 @@ export class SalesOrderService {
     return queryBuilder;
   }
 
-  async saveSaleOrderFromML(mlOrder: any, shippingDetails: any) {
+  async saveSaleOrderFromML(mlOrder: any) {
+    const isExistingOrder = await this.salesOrderRepository.findOne({
+      where: { mlOrderId: mlOrder.id },
+    });
+
     let cpf: string;
     if (
       process.env.NODE_ENV !== 'development' &&
@@ -365,15 +369,19 @@ export class SalesOrderService {
     paymentStatus = this.mapOrderStatus(mlOrder.status);
 
     let paymentType: PaymentType;
+
     switch (mlOrder.payments[0].payment_type) {
       case 'credit_card':
         paymentType = PaymentType.CREDIT_CARD;
         break;
+      case 'account_money':
+        paymentType = PaymentType.BANK_SLIP;
     }
 
     const itemsJob = this.mapItems(mlOrder.order_items);
     const items: any = await Promise.all(itemsJob);
-    const saleOrderDTO: SaleOrderDTO = {
+    if (items == false) return;
+    let saleOrderDTO: SaleOrderDTO = {
       referenceCode: randomize('0', 10),
       customer,
       items: items,
@@ -384,25 +392,36 @@ export class SalesOrderService {
       installments: mlOrder.payments[0].installments,
       shippingType: ShippingType.MERCADOLIVRE,
       shippingPrice: Number.parseFloat(
-        shippingDetails.shipping_option.list_cost,
+        mlOrder.shipping.shipping_option?.list_cost || 0,
       ),
       customerName: customer.name,
-      shippingStreetAddress: shippingDetails.receiver_address.street_name,
-      shippingStreetNumber: shippingDetails.receiver_address.street_number,
-      shippingNeighborhood: shippingDetails.receiver_address.neighborhood.name,
-      shippingCity: shippingDetails.receiver_address.city.name,
-      shippingState: this.mapState(shippingDetails.receiver_address.state.name),
-      shippingZipAddress: shippingDetails.receiver_address.zip_code,
+      shippingStreetAddress:
+        mlOrder.shipping.receiver_address?.street_name || '',
+      shippingStreetNumber:
+        mlOrder.shipping.receiver_address?.street_number || '',
+      shippingNeighborhood:
+        mlOrder.shipping.receiver_address?.neighborhood.name || '',
+      shippingCity: mlOrder.shipping.receiver_address?.city.name || '',
+      shippingState: this.mapState(
+        mlOrder.shipping.receiver_address?.state.name || null,
+      ),
+      shippingZipAddress: mlOrder.shipping.receiver_address?.zip_code || '',
       creationDate: mlOrder.date_created,
       mlOrderId: mlOrder.id,
       mlShippingId: mlOrder.shipping.id,
     };
+
+    if (isExistingOrder) {
+      saleOrderDTO = { ...saleOrderDTO, id: isExistingOrder.id };
+    }
 
     await this.save(saleOrderDTO);
   }
 
   mapState(state: string) {
     switch (state) {
+      case null:
+        return 'NA';
       case 'Acre':
         return 'AC';
 
@@ -532,7 +551,7 @@ export class SalesOrderService {
             };
           });
         return variation[0];
-      } else {
+      } else if (productVariations.length === 1) {
         return {
           sku: productVariations[0].sku,
           price: Number.parseFloat(item.full_unit_price),
@@ -540,7 +559,36 @@ export class SalesOrderService {
           amount: Number.parseInt(item.quantity),
           currentPosition: productVariations[0].currentPosition,
         };
+      } else {
+        return false;
       }
     });
+  }
+
+  async getMLOrdersIds() {
+    const mlOrders = await this.salesOrderRepository
+      .createQueryBuilder('so')
+      .where('so.mlOrderId IS NOT NULL')
+      .andWhere('so.creationDate >= :date', {
+        date: moment().subtract(30, 'd'),
+      })
+      .getMany();
+
+    const mlOrdersIds = mlOrders.map(order => {
+      return order.mlOrderId;
+    });
+    return mlOrdersIds;
+  }
+
+  async getMLOrders() {
+    const mlOrders = await this.salesOrderRepository
+      .createQueryBuilder('so')
+      .where('so.mlOrderId IS NOT NULL')
+      .andWhere('so.creationDate >= :date', {
+        date: moment().subtract(30, 'd'),
+      })
+      .getMany();
+
+    return mlOrders;
   }
 }
