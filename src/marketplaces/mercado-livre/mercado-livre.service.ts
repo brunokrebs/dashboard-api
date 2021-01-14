@@ -395,10 +395,15 @@ export class MercadoLivreService {
             );
             break;
           case 'status':
-            queryBuilder.andWhere('ml.is_synchronized = :status', {
-              status: queryParam.value,
-            });
-
+            if (queryParam.value.toString() === 'notSync') {
+              queryBuilder.andWhere(
+                'product.id NOT IN (SELECT product_id FROM ml_ad)',
+              );
+            } else {
+              queryBuilder.andWhere('ml.is_synchronized = :status', {
+                status: queryParam.value,
+              });
+            }
             break;
         }
       });
@@ -470,6 +475,7 @@ export class MercadoLivreService {
       adType: adProductDTO.adType,
       isActive: true,
       isSynchronized: adProductDTO.isSynchronized,
+      additionalPrice: adProductDTO.additionalPrice,
       adDisabled: false,
       needAtualization: false,
     };
@@ -609,20 +615,9 @@ export class MercadoLivreService {
     });
   }
 
-  notificationReceived(notification: NotificationRecived) {
-    switch (notification.topic) {
-      case 'created_orders':
-        this.createOrderOnDigituz(notification.resource);
-        break;
-
-      case 'orders':
-        this.createOrderOnDigituz(notification.resource);
-        break;
-    }
-  }
-
-  @Cron('0 */5 * * *')
+  @Cron('0 0/5 * * *')
   async createOrderOnDigituz(url: string) {
+    console.log('to rodando');
     const getSellerJob = new Promise((res, rej) => {
       return this.mercadoLivre.get('users/me', (err, response) => {
         if (err) return rej(err);
@@ -737,7 +732,7 @@ export class MercadoLivreService {
 
   @Transactional()
   async closeAdML(id: number, isInativeProduct: boolean = null) {
-    let ads;
+    let ads: adProduct[];
     if (isInativeProduct) {
       ads = await this.adProductRepository.find({
         where: { product: { id } },
@@ -756,10 +751,16 @@ export class MercadoLivreService {
             { status: 'closed' },
             (err, response) => {
               if (err) return rej(err);
-              this.adProductRepository.update(
-                { mercadoLivreId: ad.mercadoLivreId, isActive: false },
-                { adDisabled: true },
-              );
+              try {
+                this.adProductRepository.save({
+                  id: ad.id,
+                  mercadoLivreId: ad.mercadoLivreId,
+                  isActive: false,
+                  adDisabled: true,
+                });
+              } catch (err) {
+                console.log(err);
+              }
               res('updated product status with sucess');
             },
           );
@@ -803,7 +804,7 @@ export class MercadoLivreService {
           const inventory = await this.inventoryService.getVariationCurrentPosition(
             variation.id,
           );
-          //aqui function com o link
+
           this.mercadoLivre.put(
             `items/${itemML.mercadoLivreId}/variations/${variationId}`,
             { available_quantity: inventory.currentPosition },

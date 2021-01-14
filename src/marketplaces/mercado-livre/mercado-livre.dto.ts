@@ -20,4 +20,7 @@ export class adProductDTO {
 
   @IsBoolean()
   isSynchronized?: boolean;
+
+  @Allow()
+  additionalPrice?: number;
 }

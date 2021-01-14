@@ -28,12 +28,6 @@ export class MercadoLivreController {
 
   constructor(private mercadoLivreService: MercadoLivreService) {}
 
-  @Post('/notification')
-  getNotification(@Body() notification: NotificationRecived) {
-    this.mercadoLivreService.notificationReceived(notification);
-    return response.status(200);
-  }
-
   @Get()
   @UseGuards(JwtAuthGuard)
   fetchTokens(@Query('code') code: string) {
@@ -73,7 +67,7 @@ export class MercadoLivreController {
         },
         {
           key: 'status',
-          value: parseBoolean(status),
+          value: status,
         },
       ],
     });
