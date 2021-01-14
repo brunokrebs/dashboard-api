@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
-import { Cron } from '@nestjs/schedule';
 import { Repository, Brackets, In } from 'typeorm';
 import * as _ from 'lodash';
 import { minBy } from 'lodash';
@@ -20,6 +19,7 @@ import { ProductCategory } from './entities/product-category.enum';
 import { ProductComposition } from './entities/product-composition.entity';
 import { BlingService } from '../bling/bling.service';
 import { Transactional } from 'typeorm-transactional-cls-hooked';
+import { MercadoLivreService } from '../marketplaces/mercado-livre/mercado-livre.service';
 
 @Injectable()
 export class ProductsService {
@@ -36,6 +36,7 @@ export class ProductsService {
     private imagesService: ImagesService,
     private tagsService: TagsService,
     private blingService: BlingService,
+    private mercadoLivreService: MercadoLivreService,
   ) {}
 
   // every 30 min
@@ -442,7 +443,9 @@ export class ProductsService {
     };
 
     const persistedProduct = await this.productsRepository.save(updatedProduct);
-
+    if (persistedProduct.isActive === false) {
+      await this.mercadoLivreService.closeAdML(persistedProduct.id, true);
+    }
     // managing variations and inventories
     const previousVariations = previousProductVersion.productVariations;
 

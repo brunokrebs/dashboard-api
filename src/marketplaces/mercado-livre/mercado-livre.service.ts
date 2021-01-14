@@ -122,6 +122,7 @@ export class MercadoLivreService {
     return this.keyValuePairService.get(ML_ACCESS_TOKEN_KEY);
   }
 
+  @Transactional()
   async createProducts(adProducts: any) {
     const ids = adProducts.products.map(product => product.id);
     await this.adProductRepository.update(
@@ -141,6 +142,7 @@ export class MercadoLivreService {
         adType: adProducts.adType ? adProducts.adType : 'free',
         isActive: true,
         adDisabled: false,
+        additionalPrice: adProducts.additionalPrice,
         needAtualization: false,
       };
       return this.adProductRepository.save(adProduct);
@@ -164,6 +166,7 @@ export class MercadoLivreService {
         setTimeout(async () => {
           const adProduct = await this.mapToMLProduct(product);
           this.mercadoLivre.post('items', adProduct, async (err, response) => {
+            if (err) return rej(err);
             this.createProductOnML(product);
             return res('sucess');
           });
@@ -190,6 +193,8 @@ export class MercadoLivreService {
         isSynchronized: false,
       });
     }
+    product.sellingPrice =
+      product.sellingPrice + product.adProduct[0].additionalPrice;
     return product.variationsSize > 1
       ? this.mapProductWithVariationsForCreation(product, productImages)
       : this.mapProductWithoutVariationsForCreation(product, productImages);
@@ -207,13 +212,11 @@ export class MercadoLivreService {
     ) {
       productInfos = {
         title: product.title,
-        listingTypeId: product.adProduct[0].adType,
         saleTerms: [],
       };
     } else {
       productInfos = {
         title: 'Item de Teste - Por favor, NÃO OFERTAR!',
-        listingTypeId: 'gold_pro',
         saleTerms: [],
       };
     }
@@ -231,7 +234,7 @@ export class MercadoLivreService {
       tags: ['immediate_payment'],
       sale_terms: productInfos.saleTerms,
       title: productInfos.title,
-      listing_type_id: productInfos.listingTypeId,
+      listing_type_id: product.adProduct[0].adType,
       shipping: {
         mode: 'me2',
         local_pick_up: false,
@@ -279,13 +282,11 @@ export class MercadoLivreService {
     ) {
       productInfos = {
         title: product.title,
-        listingTypeId: product.adProduct[0].adType,
         saleTerms: [],
       };
     } else {
       productInfos = {
         title: 'Item de Teste - Por favor, NÃO OFERTAR!',
-        listingTypeId: 'gold_pro',
         saleTerms: [],
       };
     }
@@ -339,7 +340,7 @@ export class MercadoLivreService {
       tags: ['immediate_payment'],
       sale_terms: productInfos.saleTerms,
       title: productInfos.title,
-      listing_type_id: productInfos.listingTypeId,
+      listing_type_id: product.adProduct[0].adType,
       shipping: {
         mode: 'me2',
         local_pick_up: false,
@@ -417,7 +418,6 @@ export class MercadoLivreService {
     }
     const orderColumn = 'product.title';
     queryBuilder.orderBy(orderColumn, sortDirection, sortNulls);
-
     const results = await paginate<Product>(queryBuilder, options);
     return new Pagination(
       await Promise.all(
@@ -505,6 +505,7 @@ export class MercadoLivreService {
     );
   }
 
+  @Transactional()
   async saveImagesOnML() {
     const images = await this.imageRepository
       .createQueryBuilder('im')
@@ -570,6 +571,7 @@ export class MercadoLivreService {
     return;
   }
 
+  @Transactional()
   async createProductOnML(product: Product) {
     await this.closeAdML(product.id);
     return new Promise((res, rej) => {
@@ -691,6 +693,7 @@ export class MercadoLivreService {
     });
   }
 
+  @Transactional()
   async getErros(options: IPaginationOpts) {
     const queryBuilder = this.mlErrorRepository
       .createQueryBuilder('error')
@@ -732,10 +735,18 @@ export class MercadoLivreService {
     return Promise.resolve(shippingPDFJob);
   }
 
-  async closeAdML(id: number) {
-    const ads = await this.adProductRepository.find({
-      where: { product: { id }, isActive: false, adDisabled: false },
-    });
+  @Transactional()
+  async closeAdML(id: number, isInativeProduct: boolean = null) {
+    let ads;
+    if (isInativeProduct) {
+      ads = await this.adProductRepository.find({
+        where: { product: { id } },
+      });
+    } else {
+      ads = await this.adProductRepository.find({
+        where: { product: { id }, isActive: false, adDisabled: false },
+      });
+    }
     if (ads.length == 0) return null;
     const closedAdJob = ads.map(ad => {
       return new Promise((res, rej) => {
@@ -760,6 +771,7 @@ export class MercadoLivreService {
     return Promise.all(closedAdJob);
   }
 
+  @Transactional()
   async updateMLInventory(moviment: InventoryMovement) {
     let items;
     if (moviment.purchaseOrder) {

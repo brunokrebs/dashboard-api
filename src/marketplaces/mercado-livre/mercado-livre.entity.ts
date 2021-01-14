@@ -72,4 +72,10 @@ export class adProduct extends BaseEntity {
     type: 'boolean',
   })
   adDisabled?: boolean;
+
+  @Column({
+    name: 'additional_price',
+    type: 'numeric',
+  })
+  additionalPrice?: number;
 }

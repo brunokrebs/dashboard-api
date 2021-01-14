@@ -11,6 +11,7 @@ import { MediaLibraryModule } from '../media-library/media-library.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { BlingModule } from '../bling/bling.module';
 import { adProduct } from '../marketplaces/mercado-livre/mercado-livre.entity';
+import { MarketplacesModule } from '../marketplaces/marketplaces.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { adProduct } from '../marketplaces/mercado-livre/mercado-livre.entity';
     BlingModule,
     TagsModule,
     MediaLibraryModule,
+    MarketplacesModule,
     TypeOrmModule.forFeature([
       Product,
       ProductVariation,

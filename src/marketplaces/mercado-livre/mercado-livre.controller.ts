@@ -89,11 +89,13 @@ export class MercadoLivreController {
   @UseGuards(JwtAuthGuard)
   async saveAll(@Body() adProducts): Promise<any> {
     return this.mercadoLivreService.createProducts(adProducts);
+    // TODO await
   }
 
   @Post('/save')
   @UseGuards(JwtAuthGuard)
   async save(@Body() adProduct): Promise<void> {
+    // TODO verificar porque não é possivel adicionar o tipo
     return this.mercadoLivreService.save(adProduct);
   }
 
