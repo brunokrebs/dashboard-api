@@ -13,7 +13,6 @@ import { Transactional } from 'typeorm-transactional-cls-hooked';
 import { adProduct } from './mercado-livre.entity';
 import { Image } from '../../media-library/image.entity';
 import request from 'request-promise';
-import { NotificationRecived } from './notificationReceived.interface';
 import { SalesOrderService } from '../../sales-order/sales-order.service';
 import { ProductVariation } from '../../products/entities/product-variation.entity';
 import { MLError } from './mercado-livre-error.entity';
@@ -161,10 +160,22 @@ export class MercadoLivreService {
       );
     });
 
+    if (activeNoVariationProducts.length === 0) {
+      //TODO - marcar como falha
+      const updateAdJob = products.map(async product => {
+        await this.saveError(product, 'Este produto não tem imagens');
+        await this.adProductRepository.update(
+          { product: product },
+          { isSynchronized: false },
+        );
+      });
+      return await Promise.all(updateAdJob);
+    }
+
     const createJobs = activeNoVariationProducts.map((product, idx) => {
       return new Promise((res, rej) => {
         setTimeout(async () => {
-          const adProduct = await this.mapToMLProduct(product);
+          const adProduct = this.mapToMLProduct(product);
           this.mercadoLivre.post('items', adProduct, async (err, response) => {
             if (err) return rej(err);
             this.createProductOnML(product);
@@ -173,7 +184,7 @@ export class MercadoLivreService {
         }, idx * 250);
       });
     });
-    await Promise.all(createJobs);
+    return await Promise.all(createJobs);
   }
 
   private mapToMLProduct(product: Product) {
@@ -188,10 +199,10 @@ export class MercadoLivreService {
         product,
         'O produto não tem imagens compativeis com o mercado para ser cadastrado',
       );
-      //TODO - marcar como falha
       this.updateProductProperties(product.id, {
         isSynchronized: false,
       });
+      return;
     }
     product.sellingPrice =
       product.sellingPrice + product.adProduct[0].additionalPrice;
@@ -485,6 +496,13 @@ export class MercadoLivreService {
       adProductDTO.product.id,
     ]);
 
+    if (product[0].imagesSize === 0) {
+      await this.adProductRepository.update(
+        { product: product[0] },
+        { isSynchronized: false },
+      );
+      return;
+    }
     await this.createProductOnML(product[0]);
   }
 

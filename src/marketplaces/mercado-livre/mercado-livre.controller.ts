@@ -15,8 +15,6 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { Pagination } from 'nestjs-typeorm-paginate';
 import { parseBoolean } from '../../util/parsers';
 import { Product } from '../../products/entities/product.entity';
-import { response } from 'express';
-import { NotificationRecived } from './notificationReceived.interface';
 import { MLError } from './mercado-livre-error.entity';
 import { adProductDTO } from './mercado-livre.dto';
 
