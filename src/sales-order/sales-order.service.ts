@@ -532,7 +532,7 @@ export class SalesOrderService {
       const productVariations = await this.productVariationRepository
         .createQueryBuilder('pv')
         .leftJoinAndSelect('pv.product', 'product')
-        .leftJoinAndSelect('product.adProduct', 'ml')
+        .leftJoinAndSelect('product.mlAd', 'ml')
         .where('ml.mercadoLivreId = :id', { id: item.item.id })
         .getMany();
 

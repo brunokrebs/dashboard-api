@@ -63,7 +63,7 @@ export class ProductsService {
       .leftJoinAndSelect('product.productVariations', 'pv')
       .leftJoinAndSelect('product.productImages', 'pi')
       .leftJoinAndSelect('pi.image', 'i')
-      .leftJoinAndSelect('product.adProduct', 'ml')
+      .leftJoinAndSelect('product.mlAd', 'ml')
       .getMany();
 
     const productVariations: ProductVariation[] = products.reduce(
@@ -667,11 +667,7 @@ export class ProductsService {
       .leftJoinAndSelect('product.productVariations', 'pv')
       .leftJoinAndSelect('product.productImages', 'pi')
       .leftJoinAndSelect('pi.image', 'i')
-      .leftJoinAndSelect(
-        'product.adProduct',
-        'adProduct',
-        'adProduct.isActive = true',
-      )
+      .leftJoinAndSelect('product.mlAd', 'mlAd', 'mlAd.isActive = true')
       .where({ id: In(ids) })
       .getMany();
 

@@ -8,7 +8,7 @@ import { IPaginationOpts } from '../../pagination/pagination';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository } from 'typeorm';
-import { adProductDTO } from './mercado-livre.dto';
+import { MLAdDTO } from './ml-ad.dto';
 import { Transactional } from 'typeorm-transactional-cls-hooked';
 import { MLAd } from './ml-ad.entity';
 import { Image } from '../../media-library/image.entity';
@@ -122,8 +122,8 @@ export class MercadoLivreService {
   }
 
   @Transactional()
-  async createProducts(adProducts: any) {
-    const ids = adProducts.products.map(product => product.id);
+  async createProducts(mlAds: any) {
+    const ids = mlAds.products.map(product => product.id);
     await this.mlAdRepository.update(
       {
         product: In(ids),
@@ -132,19 +132,19 @@ export class MercadoLivreService {
         isActive: false,
       },
     );
-    const insertMLProductsJob = adProducts.products.map((product, idx) => {
-      const adProduct: MLAd = {
+    const insertMLProductsJob = mlAds.products.map((product, idx) => {
+      const mlAd: MLAd = {
         id: product.mlId,
-        categoryId: adProducts.category.id,
-        categoryName: adProducts.category.name,
+        categoryId: mlAds.category.id,
+        categoryName: mlAds.category.name,
         product: product,
-        adType: adProducts.adType ? adProducts.adType : 'free',
+        adType: mlAds.adType ? mlAds.adType : 'free',
         isActive: true,
         adDisabled: false,
-        additionalPrice: adProducts.additionalPrice,
+        additionalPrice: mlAds.additionalPrice,
         needAtualization: false,
       };
-      return this.mlAdRepository.save(adProduct);
+      return this.mlAdRepository.save(mlAd);
     });
     await Promise.all(insertMLProductsJob);
     await this.saveImagesOnML();
@@ -154,8 +154,8 @@ export class MercadoLivreService {
       return (
         product.productVariations.length >= 1 &&
         product.isActive &&
-        !product.adProduct[0].mercadoLivreId &&
-        product.adProduct[0].categoryId &&
+        !product.mlAd[0].mercadoLivreId &&
+        product.mlAd[0].categoryId &&
         product.productImages?.length > 0
       );
     });
@@ -175,8 +175,8 @@ export class MercadoLivreService {
     const createJobs = activeNoVariationProducts.map((product, idx) => {
       return new Promise((res, rej) => {
         setTimeout(async () => {
-          const adProduct = this.mapToMLProduct(product);
-          this.mercadoLivre.post('items', adProduct, async (err, response) => {
+          const mlAd = this.mapToMLProduct(product);
+          this.mercadoLivre.post('items', mlAd, async (err, response) => {
             if (err) return rej(err);
             await this.createProductOnML(product);
             return res('sucess');
@@ -205,7 +205,7 @@ export class MercadoLivreService {
       return;
     }
     product.sellingPrice =
-      product.sellingPrice + product.adProduct[0].additionalPrice;
+      product.sellingPrice + product.mlAd[0].additionalPrice;
     return product.variationsSize > 1
       ? this.mapProductWithVariationsForCreation(product, productImages)
       : this.mapProductWithoutVariationsForCreation(product, productImages);
@@ -232,7 +232,7 @@ export class MercadoLivreService {
       };
     }
     return {
-      category_id: product.adProduct[0].categoryId,
+      category_id: product.mlAd[0].categoryId,
       description: {
         plain_text: htmlToText.fromString(product.productDetails),
       },
@@ -245,7 +245,7 @@ export class MercadoLivreService {
       tags: ['immediate_payment'],
       sale_terms: productInfos.saleTerms,
       title: productInfos.title,
-      listing_type_id: product.adProduct[0].adType,
+      listing_type_id: product.mlAd[0].adType,
       shipping: {
         mode: 'me2',
         local_pick_up: false,
@@ -340,7 +340,7 @@ export class MercadoLivreService {
     });
 
     return {
-      category_id: product.adProduct[0].categoryId,
+      category_id: product.mlAd[0].categoryId,
       description: {
         plain_text: htmlToText.fromString(product.productDetails),
       },
@@ -351,7 +351,7 @@ export class MercadoLivreService {
       tags: ['immediate_payment'],
       sale_terms: productInfos.saleTerms,
       title: productInfos.title,
-      listing_type_id: product.adProduct[0].adType,
+      listing_type_id: product.mlAd[0].adType,
       shipping: {
         mode: 'me2',
         local_pick_up: false,
@@ -372,7 +372,7 @@ export class MercadoLivreService {
   async paginate(options: IPaginationOpts): Promise<Pagination<Product>> {
     const queryBuilder = this.productRepository
       .createQueryBuilder('product')
-      .leftJoinAndSelect('product.adProduct', 'ml', 'ml.isActive = true')
+      .leftJoinAndSelect('product.mlAd', 'ml', 'ml.isActive = true')
       .where({
         isActive: true,
       });
@@ -459,41 +459,41 @@ export class MercadoLivreService {
   async getProduct(sku: string) {
     const queryBuilder = await this.productRepository
       .createQueryBuilder('product')
-      .leftJoinAndSelect('product.adProduct', 'adProdcut')
+      .leftJoinAndSelect('product.mlAd', 'mlAd')
       .where({ sku })
       .getOne();
     return queryBuilder;
   }
 
   @Transactional()
-  async save(adProductDTO: adProductDTO) {
+  async save(mlAdDTO: MLAdDTO) {
     await this.saveImagesOnML();
 
     await this.mlAdRepository.update(
       {
-        product: adProductDTO.product,
+        product: mlAdDTO.product,
       },
       {
         isActive: false,
       },
     );
 
-    const adProduct: MLAd = {
-      id: adProductDTO?.id,
-      categoryName: adProductDTO.categoryName,
-      categoryId: adProductDTO.categoryId,
-      product: adProductDTO.product,
-      adType: adProductDTO.adType,
+    const mlAd: MLAd = {
+      id: mlAdDTO?.id,
+      categoryName: mlAdDTO.categoryName,
+      categoryId: mlAdDTO.categoryId,
+      product: mlAdDTO.product,
+      adType: mlAdDTO.adType,
       isActive: true,
-      isSynchronized: adProductDTO.isSynchronized,
-      additionalPrice: adProductDTO.additionalPrice,
+      isSynchronized: mlAdDTO.isSynchronized,
+      additionalPrice: mlAdDTO.additionalPrice,
       adDisabled: false,
       needAtualization: false,
     };
-    await this.mlAdRepository.save(adProduct);
+    await this.mlAdRepository.save(mlAd);
     //search the product for insert in mercado livre
     const product = await this.productsService.findProductsToML([
-      adProductDTO.product.id,
+      mlAdDTO.product.id,
     ]);
 
     if (product[0].imagesSize === 0) {
@@ -599,36 +599,32 @@ export class MercadoLivreService {
   async createProductOnML(product: Product) {
     await this.closeAdML(product.id);
     return new Promise((res, rej) => {
-      const adProduct = this.mapToMLProduct(product);
-      return this.mercadoLivre.post(
-        'items',
-        adProduct,
-        async (err, response) => {
-          if (err) return err;
-          if (!response.id) {
-            await this.updateProductProperties(
-              product.id,
-              {
-                isSynchronized: false,
-              },
-              response.variations,
-            );
-            await this.saveError(product, 'Ouve algum erro');
-            return res(`Unable to create ${product.sku} on Mercado Livre.`);
-          }
-          product.adProduct[0].mercadoLivreId = response.id;
-
+      const mlAd = this.mapToMLProduct(product);
+      return this.mercadoLivre.post('items', mlAd, async (err, response) => {
+        if (err) return err;
+        if (!response.id) {
           await this.updateProductProperties(
             product.id,
             {
-              mercadoLivreId: response.id,
-              isSynchronized: true,
+              isSynchronized: false,
             },
             response.variations,
           );
-          return res(`${product.sku} created successfully`);
-        },
-      );
+          await this.saveError(product, 'Ouve algum erro');
+          return res(`Unable to create ${product.sku} on Mercado Livre.`);
+        }
+        product.mlAd[0].mercadoLivreId = response.id;
+
+        await this.updateProductProperties(
+          product.id,
+          {
+            mercadoLivreId: response.id,
+            isSynchronized: true,
+          },
+          response.variations,
+        );
+        return res(`${product.sku} created successfully`);
+      });
     });
   }
 

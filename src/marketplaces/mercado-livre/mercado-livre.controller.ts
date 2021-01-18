@@ -16,7 +16,6 @@ import { Pagination } from 'nestjs-typeorm-paginate';
 import { parseBoolean } from '../../util/parsers';
 import { Product } from '../../products/entities/product.entity';
 import { MLError } from './mercado-livre-error.entity';
-import { adProductDTO } from './mercado-livre.dto';
 
 @Controller('mercado-livre')
 export class MercadoLivreController {
@@ -79,16 +78,16 @@ export class MercadoLivreController {
 
   @Post('/')
   @UseGuards(JwtAuthGuard)
-  async saveAll(@Body() adProducts): Promise<any> {
-    return this.mercadoLivreService.createProducts(adProducts);
+  async saveAll(@Body() mlAds): Promise<any> {
+    return this.mercadoLivreService.createProducts(mlAds);
     // TODO await
   }
 
   @Post('/save')
   @UseGuards(JwtAuthGuard)
-  async save(@Body() adProduct): Promise<void> {
+  async save(@Body() mlAd): Promise<void> {
     // TODO verificar porque não é possivel adicionar o tipo
-    return this.mercadoLivreService.save(adProduct);
+    return this.mercadoLivreService.save(mlAd);
   }
 
   @Get('category')

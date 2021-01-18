@@ -154,12 +154,12 @@ export class Product extends BaseEntity {
 
   @OneToMany(
     type => MLAd,
-    adProduct => adProduct.product,
+    mlAd => mlAd.product,
     {
       cascade: false,
       eager: false,
     },
   )
   @JoinColumn({ name: 'product_id' })
-  adProduct?: MLAd[];
+  mlAd?: MLAd[];
 }

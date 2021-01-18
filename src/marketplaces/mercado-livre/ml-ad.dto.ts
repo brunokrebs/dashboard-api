@@ -1,7 +1,7 @@
 import { Allow, MaxLength, Min, MinLength, IsBoolean } from 'class-validator';
 import { Product } from '../../products/entities/product.entity';
 
-export class adProductDTO {
+export class MLAdDTO {
   @Min(1)
   id?: number;
 
