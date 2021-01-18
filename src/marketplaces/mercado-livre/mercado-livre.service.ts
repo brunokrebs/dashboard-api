@@ -178,7 +178,7 @@ export class MercadoLivreService {
           const adProduct = this.mapToMLProduct(product);
           this.mercadoLivre.post('items', adProduct, async (err, response) => {
             if (err) return rej(err);
-            this.createProductOnML(product);
+            await this.createProductOnML(product);
             return res('sucess');
           });
         }, idx * 250);
@@ -615,7 +615,7 @@ export class MercadoLivreService {
               response.variations,
             );
             await this.saveError(product, 'Ouve algum erro');
-            return rej(`Unable to create ${product.sku} on Mercado Livre.`);
+            return res(`Unable to create ${product.sku} on Mercado Livre.`);
           }
           product.adProduct[0].mercadoLivreId = response.id;
 
