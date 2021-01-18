@@ -633,7 +633,7 @@ export class MercadoLivreService {
     });
   }
 
-  @Cron('0 0/5 * * *')
+  @Cron('0 */15 * * * *')
   async createOrderOnDigituz(url: string) {
     console.log('to rodando');
     const getSellerJob = new Promise((res, rej) => {
