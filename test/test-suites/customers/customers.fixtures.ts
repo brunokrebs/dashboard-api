@@ -7,7 +7,7 @@ export async function insertCustomersFixtures() {
   const authorizedRequest = await getCredentials();
 
   const insertCustomerJobs = customersFixtures.map(customer => {
-    return new Promise(async res => {
+    return new Promise<void>(async res => {
       await axios.post(
         'http://localhost:3005/v1/customers/',
         customer,

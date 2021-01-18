@@ -76,7 +76,7 @@ export class ShopifyService {
     console.log(`${products.length} produtos encontrados`);
 
     const syncJobs = products.map((product, idx) => {
-      return new Promise(res => {
+      return new Promise<void>(res => {
         setTimeout(async () => {
           await this.syncProduct(product);
           console.log(`${idx} - ${product.sku} sincronizado`);
@@ -94,7 +94,7 @@ export class ShopifyService {
       return [...productVariations];
     });
     allVariations.map((pv, idx) => {
-      return new Promise(res => {
+      return new Promise<void>(res => {
         setTimeout(async () => {
           // 4. save shopify ids
           try {

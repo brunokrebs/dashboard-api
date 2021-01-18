@@ -239,7 +239,7 @@ describe('sale orders must update inventory', () => {
 
     const validateInventoryMovementsJob = initialPositions.map(
       initialPosition => {
-        return new Promise(async res => {
+        return new Promise<void>(async res => {
           const skuPosition = await getSumOfMovementsBasedOnInventoryMovements(
             initialPosition.sku,
           );
