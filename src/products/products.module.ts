@@ -10,7 +10,7 @@ import { ProductImage } from './entities/product-image.entity';
 import { MediaLibraryModule } from '../media-library/media-library.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { BlingModule } from '../bling/bling.module';
-import { adProduct } from '../marketplaces/mercado-livre/mercado-livre.entity';
+import { MLAd } from '../marketplaces/mercado-livre/ml-ad.entity';
 import { MarketplacesModule } from '../marketplaces/marketplaces.module';
 
 @Module({
@@ -25,7 +25,7 @@ import { MarketplacesModule } from '../marketplaces/marketplaces.module';
       ProductVariation,
       ProductComposition,
       ProductImage,
-      adProduct,
+      MLAd,
     ]),
   ],
   providers: [ProductsService],

@@ -5,7 +5,7 @@ import { ProductImage } from './product-image.entity';
 import { NumericTransformer } from '../../util/numeric-transformer';
 import { ProductCategory } from './product-category.enum';
 import { ProductComposition } from './product-composition.entity';
-import { adProduct } from '../../marketplaces/mercado-livre/mercado-livre.entity';
+import { MLAd } from '../../marketplaces/mercado-livre/ml-ad.entity';
 
 @Entity()
 export class Product extends BaseEntity {
@@ -153,7 +153,7 @@ export class Product extends BaseEntity {
   isComposition?: boolean;
 
   @OneToMany(
-    type => adProduct,
+    type => MLAd,
     adProduct => adProduct.product,
     {
       cascade: false,
@@ -161,5 +161,5 @@ export class Product extends BaseEntity {
     },
   )
   @JoinColumn({ name: 'product_id' })
-  adProduct?: adProduct[];
+  adProduct?: MLAd[];
 }

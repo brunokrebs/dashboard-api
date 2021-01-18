@@ -5,7 +5,7 @@ import { BaseEntity } from '../../util/base-entity';
 @Entity({
   name: 'ml_ad',
 })
-export class adProduct extends BaseEntity {
+export class MLAd extends BaseEntity {
   @ManyToOne(
     type => Product,
     product => product.id,

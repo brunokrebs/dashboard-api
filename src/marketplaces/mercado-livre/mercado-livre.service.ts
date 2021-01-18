@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository } from 'typeorm';
 import { adProductDTO } from './mercado-livre.dto';
 import { Transactional } from 'typeorm-transactional-cls-hooked';
-import { adProduct } from './mercado-livre.entity';
+import { MLAd } from './ml-ad.entity';
 import { Image } from '../../media-library/image.entity';
 import request from 'request-promise';
 import { SalesOrderService } from '../../sales-order/sales-order.service';
@@ -49,8 +49,8 @@ export class MercadoLivreService {
     @InjectRepository(ProductVariation)
     private productVariationRepository: Repository<ProductVariation>,
     private httpService: HttpService,
-    @InjectRepository(adProduct)
-    private adProductRepository: Repository<adProduct>,
+    @InjectRepository(MLAd)
+    private mlAdRepository: Repository<MLAd>,
     @InjectRepository(Image)
     private imageRepository: Repository<Image>,
     private saleOrderService: SalesOrderService,
@@ -124,7 +124,7 @@ export class MercadoLivreService {
   @Transactional()
   async createProducts(adProducts: any) {
     const ids = adProducts.products.map(product => product.id);
-    await this.adProductRepository.update(
+    await this.mlAdRepository.update(
       {
         product: In(ids),
       },
@@ -133,7 +133,7 @@ export class MercadoLivreService {
       },
     );
     const insertMLProductsJob = adProducts.products.map((product, idx) => {
-      const adProduct: adProduct = {
+      const adProduct: MLAd = {
         id: product.mlId,
         categoryId: adProducts.category.id,
         categoryName: adProducts.category.name,
@@ -144,7 +144,7 @@ export class MercadoLivreService {
         additionalPrice: adProducts.additionalPrice,
         needAtualization: false,
       };
-      return this.adProductRepository.save(adProduct);
+      return this.mlAdRepository.save(adProduct);
     });
     await Promise.all(insertMLProductsJob);
     await this.saveImagesOnML();
@@ -164,7 +164,7 @@ export class MercadoLivreService {
       //TODO - marcar como falha
       const updateAdJob = products.map(async product => {
         await this.saveError(product, 'Este produto não tem imagens');
-        await this.adProductRepository.update(
+        await this.mlAdRepository.update(
           { product: product },
           { isSynchronized: false },
         );
@@ -469,7 +469,7 @@ export class MercadoLivreService {
   async save(adProductDTO: adProductDTO) {
     await this.saveImagesOnML();
 
-    await this.adProductRepository.update(
+    await this.mlAdRepository.update(
       {
         product: adProductDTO.product,
       },
@@ -478,7 +478,7 @@ export class MercadoLivreService {
       },
     );
 
-    const adProduct: adProduct = {
+    const adProduct: MLAd = {
       id: adProductDTO?.id,
       categoryName: adProductDTO.categoryName,
       categoryId: adProductDTO.categoryId,
@@ -490,14 +490,14 @@ export class MercadoLivreService {
       adDisabled: false,
       needAtualization: false,
     };
-    await this.adProductRepository.save(adProduct);
+    await this.mlAdRepository.save(adProduct);
     //search the product for insert in mercado livre
     const product = await this.productsService.findProductsToML([
       adProductDTO.product.id,
     ]);
 
     if (product[0].imagesSize === 0) {
-      await this.adProductRepository.update(
+      await this.mlAdRepository.update(
         { product: product[0] },
         { isSynchronized: false },
       );
@@ -509,7 +509,7 @@ export class MercadoLivreService {
   @Transactional()
   async updateProductProperties(
     productId: number,
-    properties: Partial<adProduct>,
+    properties: Partial<MLAd>,
     variations?: any[],
   ) {
     if (variations?.length > 0) {
@@ -523,7 +523,7 @@ export class MercadoLivreService {
         );
       });
     }
-    return this.adProductRepository.update(
+    return this.mlAdRepository.update(
       { product: { id: productId }, adDisabled: false },
       properties,
     );
@@ -748,13 +748,13 @@ export class MercadoLivreService {
 
   @Transactional()
   async closeAdML(id: number, isInativeProduct: boolean = null) {
-    let ads: adProduct[];
+    let ads: MLAd[];
     if (isInativeProduct) {
-      ads = await this.adProductRepository.find({
+      ads = await this.mlAdRepository.find({
         where: { product: { id } },
       });
     } else {
-      ads = await this.adProductRepository.find({
+      ads = await this.mlAdRepository.find({
         where: { product: { id }, isActive: false, adDisabled: false },
       });
     }
@@ -767,7 +767,7 @@ export class MercadoLivreService {
             { status: 'closed' },
             (err, response) => {
               if (err) return rej(err);
-              this.adProductRepository.save({
+              this.mlAdRepository.save({
                 id: ad.id,
                 mercadoLivreId: ad.mercadoLivreId,
                 isActive: false,
@@ -804,7 +804,7 @@ export class MercadoLivreService {
         });
 
         if (variation && variation.product.variationsSize > 1) {
-          const itemML = await this.adProductRepository
+          const itemML = await this.mlAdRepository
             .createQueryBuilder('ml')
             .select('ml.mercadoLivreId')
             .where({
@@ -840,7 +840,7 @@ export class MercadoLivreService {
 
             productId = pv.product.id;
           }
-          const mlProduct = await this.adProductRepository
+          const mlProduct = await this.mlAdRepository
             .createQueryBuilder('ml')
             .leftJoinAndSelect('ml.product', 'product')
             .leftJoinAndSelect('product.productVariations', 'pv')
