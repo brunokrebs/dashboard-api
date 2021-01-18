@@ -19,14 +19,9 @@ export class createTableAdMercadoLivre1609773103324
             CONSTRAINT ml_ad FOREIGN KEY (product_id) REFERENCES product(id)
         );
         `);
-
-    await queryRunner.query(
-      `ALTER TABLE product ADD COLUMN ml_product integer;`,
-    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`DROP TABLE ml_ad;`);
-    await queryRunner.query(`ALTER TABLE product DROP COLUMN ml_product;`);
   }
 }
