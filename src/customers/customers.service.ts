@@ -99,7 +99,7 @@ export class CustomersService {
     });
   }
 
-  async findUserByemail(customer: Customer) {
+  async findOrCreateCustomer(customer: Customer) {
     const existingCustomer = await this.customerRepository.findOne({
       where: { email: customer.email },
     });

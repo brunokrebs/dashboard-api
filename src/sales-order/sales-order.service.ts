@@ -363,10 +363,11 @@ export class SalesOrderService {
       phoneNumber: `${mlOrder.buyer.phone?.area_code}${mlOrder.buyer.phone?.number}`,
       cpf,
     };
-    const customer = await this.customersService.findUserByemail(mlCustomer);
+    const customer = await this.customersService.findOrCreateCustomer(
+      mlCustomer,
+    );
 
-    let paymentStatus: PaymentStatus;
-    paymentStatus = this.mapOrderStatus(mlOrder.status);
+    const paymentStatus = this.mapOrderStatus(mlOrder.status);
 
     let paymentType: PaymentType;
 
@@ -381,7 +382,7 @@ export class SalesOrderService {
     const itemsJob = this.mapItems(mlOrder.order_items);
     const items: any = await Promise.all(itemsJob);
     if (items == false) return;
-    let saleOrderDTO: SaleOrderDTO = {
+    const saleOrderDTO: SaleOrderDTO = {
       referenceCode: randomize('0', 10),
       customer,
       items: items,
@@ -412,7 +413,7 @@ export class SalesOrderService {
     };
 
     if (isExistingOrder) {
-      saleOrderDTO = { ...saleOrderDTO, id: isExistingOrder.id };
+      saleOrderDTO.id = isExistingOrder.id;
     }
 
     await this.save(saleOrderDTO);
