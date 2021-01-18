@@ -769,16 +769,12 @@ export class MercadoLivreService {
             { status: 'closed' },
             (err, response) => {
               if (err) return rej(err);
-              try {
-                this.adProductRepository.save({
-                  id: ad.id,
-                  mercadoLivreId: ad.mercadoLivreId,
-                  isActive: false,
-                  adDisabled: true,
-                });
-              } catch (err) {
-                console.log(err);
-              }
+              this.adProductRepository.save({
+                id: ad.id,
+                mercadoLivreId: ad.mercadoLivreId,
+                isActive: false,
+                adDisabled: true,
+              });
               res('updated product status with sucess');
             },
           );
