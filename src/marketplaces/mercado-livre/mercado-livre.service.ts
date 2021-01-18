@@ -606,7 +606,6 @@ export class MercadoLivreService {
         async (err, response) => {
           if (err) return err;
           if (!response.id) {
-            console.log(response);
             await this.updateProductProperties(
               product.id,
               {
@@ -634,8 +633,7 @@ export class MercadoLivreService {
   }
 
   @Cron('0 */15 * * * *')
-  async createOrderOnDigituz(url: string) {
-    console.log('to rodando');
+  async createOrderOnDigituz() {
     const getSellerJob = new Promise((res, rej) => {
       return this.mercadoLivre.get('users/me', (err, response) => {
         if (err) return rej(err);
