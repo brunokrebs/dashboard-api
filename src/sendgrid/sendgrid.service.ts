@@ -21,17 +21,17 @@ export class SendgridService {
     )
       return;
 
-    const users = await this.customerService.findAllUsersWithEmail();
+    const customers = await this.customerService.findCustomersWithEmail();
 
-    const sendgridContacts = users.map(user => {
-      const name = user.name.split(' ');
+    const sendgridContacts = customers.map(customer => {
+      const name = customer.name.split(' ');
       const firstName = name[0];
       const lastName = name.slice(1, name.length).join(' ');
       return {
-        email: user.email,
+        email: customer.email,
         first_name: firstName,
         last_name: lastName,
-        state_province_region: user.state,
+        state_province_region: customer.state,
       };
     });
 

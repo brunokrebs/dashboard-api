@@ -92,7 +92,7 @@ export class CustomersService {
     return this.save(customer);
   }
 
-  async findAllUsersWithEmail() {
+  async findCustomersWithEmail() {
     return this.customerRepository.find({
       select: ['email', 'name', 'state'],
       where: "TRIM(email) != '' AND email IS NOT NULL",
@@ -103,7 +103,7 @@ export class CustomersService {
     const existingCustomer = await this.customerRepository.findOne({
       where: { email: customer.email },
     });
-    if (existingCustomer) return Promise.resolve(existingCustomer);
+    if (existingCustomer) return existingCustomer;
     return this.save(customer);
   }
 }
