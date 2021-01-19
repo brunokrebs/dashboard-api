@@ -662,7 +662,7 @@ export class ProductsService {
   }
 
   async findProductsToML(ids: number[]): Promise<Product[]> {
-    const products = await this.productsRepository
+    return this.productsRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.productVariations', 'pv')
       .leftJoinAndSelect('product.productImages', 'pi')
@@ -670,19 +670,5 @@ export class ProductsService {
       .leftJoinAndSelect('product.mlAd', 'mlAd', 'mlAd.isActive = true')
       .where({ id: In(ids) })
       .getMany();
-
-    const productVariations: ProductVariation[] = products.reduce(
-      (variations, product) => {
-        variations.push(...product.productVariations);
-        return variations;
-      },
-      [],
-    );
-
-    for (const variation of productVariations) {
-      const inventory = await this.inventoryService.findBySku(variation.sku);
-      variation.currentPosition = inventory.currentPosition;
-    }
-    return Promise.resolve(products);
   }
 }

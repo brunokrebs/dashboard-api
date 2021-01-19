@@ -37,6 +37,7 @@ const REFRESH_RATE = 3 * 60 * 60 * 1000; // every three hours
 @Injectable()
 export class MercadoLivreService {
   private mercadoLivre;
+  private mercadoLivreSeller: any;
 
   constructor(
     private keyValuePairService: KeyValuePairService,
@@ -76,8 +77,12 @@ export class MercadoLivreService {
   private refreshTokens() {
     this.mercadoLivre.refreshAccessToken((err, res) => {
       if (err) return console.error(err);
-      console.log(res);
-      console.log('mercado livre access token refreshed successfully');
+      console.log('Mercado Livre access token refreshed successfully');
+
+      this.mercadoLivre.get('users/me', (err, response) => {
+        if (err) console.error(response);
+        this.mercadoLivreSeller = response;
+      });
     });
   }
 
@@ -132,25 +137,25 @@ export class MercadoLivreService {
         isActive: false,
       },
     );
-    const insertMLProductsJob = mlAds.products.map((product, idx) => {
-      const mlAd: MLAd = {
-        id: product.mlId,
-        categoryId: mlAds.category.id,
-        categoryName: mlAds.category.name,
-        product: product,
-        adType: mlAds.adType ? mlAds.adType : 'free',
-        isActive: true,
-        adDisabled: false,
-        additionalPrice: mlAds.additionalPrice,
-        needAtualization: false,
-      };
-      return this.mlAdRepository.save(mlAd);
-    });
-    await Promise.all(insertMLProductsJob);
-    await this.saveImagesOnML();
+
+    const ads = mlAds.products.map(product => ({
+      id: product.mlId,
+      categoryId: mlAds.category.id,
+      categoryName: mlAds.category.name,
+      product: product,
+      adType: mlAds.adType ? mlAds.adType : 'free',
+      isActive: true,
+      adDisabled: false,
+      additionalPrice: mlAds.additionalPrice,
+      needAtualization: false,
+    }));
+    await this.mlAdRepository.save(ads);
+
+    await this.saveImagesOnML(ids);
+
     const products = await this.productsService.findProductsToML(ids);
 
-    const activeNoVariationProducts = products.filter(product => {
+    const validProducts = products.filter(product => {
       return (
         product.productVariations.length >= 1 &&
         product.isActive &&
@@ -160,10 +165,15 @@ export class MercadoLivreService {
       );
     });
 
-    if (activeNoVariationProducts.length === 0) {
-      //TODO - marcar como falha
+    // TODO (fase 2) garantir que produtos inválidos sejam registrados
+    // como inválidos e que válidos sejam sincronizados
+
+    if (validProducts.length === 0) {
       const updateAdJob = products.map(async product => {
-        await this.saveError(product, 'Este produto não tem imagens');
+        await this.saveError(
+          product,
+          'Este produto não está qualificado para ser sincronizado com o Mercado Livre.',
+        );
         await this.mlAdRepository.update(
           { product: product },
           { isSynchronized: false },
@@ -172,19 +182,19 @@ export class MercadoLivreService {
       return await Promise.all(updateAdJob);
     }
 
-    const createJobs = activeNoVariationProducts.map((product, idx) => {
+    const createJobs = validProducts.map((product, idx) => {
       return new Promise((res, rej) => {
         setTimeout(async () => {
           const mlAd = this.mapToMLProduct(product);
-          this.mercadoLivre.post('items', mlAd, async (err, response) => {
+          this.mercadoLivre.post('items', mlAd, async err => {
             if (err) return rej(err);
             await this.createProductOnML(product);
-            return res('sucess');
+            return res('success');
           });
         }, idx * 250);
       });
     });
-    return await Promise.all(createJobs);
+    return await Promise.allSettled(createJobs);
   }
 
   private mapToMLProduct(product: Product) {
@@ -467,7 +477,7 @@ export class MercadoLivreService {
 
   @Transactional()
   async save(mlAdDTO: MLAdDTO) {
-    await this.saveImagesOnML();
+    await this.saveImagesOnML([mlAdDTO.product.id]);
 
     await this.mlAdRepository.update(
       {
@@ -530,21 +540,23 @@ export class MercadoLivreService {
   }
 
   @Transactional()
-  async saveImagesOnML() {
+  async saveImagesOnML(productIds: number[]) {
+    const inIds = productIds.join(',');
     const images = await this.imageRepository
       .createQueryBuilder('im')
       .where({ mlImageStatus: null })
-      .andWhere('im.id in (SELECT image_id	 from product_image);')
+      .andWhere(
+        'im.id in (select image_id from product_image where product_id in (:productIds));',
+        { productIds: inIds },
+      )
       .getMany();
+
+    const accessToken = await this.keyValuePairService.get(ML_ACCESS_TOKEN_KEY);
 
     const savedImages = images.map((image, idx) => {
       return new Promise(res => {
         setTimeout(async () => {
           try {
-            const accessToken = await this.keyValuePairService.get(
-              ML_ACCESS_TOKEN_KEY,
-            );
-
             const imageBuffer = await request({
               url: image.originalFileURL,
               encoding: null,
@@ -591,8 +603,7 @@ export class MercadoLivreService {
       });
     });
 
-    await Promise.all(savedImages);
-    return;
+    return Promise.all(savedImages);
   }
 
   @Transactional()
@@ -610,8 +621,8 @@ export class MercadoLivreService {
             },
             response.variations,
           );
-          await this.saveError(product, 'Ouve algum erro');
-          return res(`Unable to create ${product.sku} on Mercado Livre.`);
+          await this.saveError(product, 'Houve algum erro');
+          return rej(`Unable to create ${product.sku} on Mercado Livre.`);
         }
         product.mlAd[0].mercadoLivreId = response.id;
 
@@ -629,21 +640,13 @@ export class MercadoLivreService {
   }
 
   @Cron('0 */15 * * * *')
+  @Transactional()
   async createOrderOnDigituz() {
-    const getSellerJob = new Promise((res, rej) => {
-      return this.mercadoLivre.get('users/me', (err, response) => {
-        if (err) return rej(err);
-        return res(response);
-      });
-    });
-
-    const seller: any = await Promise.resolve(getSellerJob);
-
-    const getOrdersJob = new Promise((res, rej) => {
+    const getOrders = new Promise((res, rej) => {
       return this.mercadoLivre.get(
         `orders/search`,
         {
-          seller: seller.id,
+          seller: this.mercadoLivreSeller.id,
           sort: 'date_desc',
         },
         (err, response) => {
@@ -653,7 +656,7 @@ export class MercadoLivreService {
       );
     });
 
-    const orders: any = await Promise.resolve(getOrdersJob);
+    const orders: any = await getOrders;
 
     const packsIds = orders
       .filter(order => order.pack_id)
@@ -663,13 +666,11 @@ export class MercadoLivreService {
           (this[JSON.stringify(order.pack_id)] = true)
         );
       })
-      .map(order => {
-        return order.pack_id;
-      });
+      .map(order => order.pack_id);
 
     const compositeOrders = packsIds.map(pack => {
       const filterOrder = orders.filter(order => order.pack_id === pack);
-      let order: any = filterOrder[0];
+      const order: any = filterOrder[0];
       const items: any = [];
       for (let i = 0; i < filterOrder.length; i++) {
         items.push(filterOrder[i].order_items);
@@ -700,7 +701,6 @@ export class MercadoLivreService {
     });
   }
 
-  @Transactional()
   async getErros(options: IPaginationOpts) {
     const queryBuilder = this.mlErrorRepository
       .createQueryBuilder('error')
@@ -781,89 +781,29 @@ export class MercadoLivreService {
   }
 
   @Transactional()
-  async updateMLInventory(moviment: InventoryMovement) {
-    let items;
-    if (moviment.purchaseOrder) {
-      items = moviment.purchaseOrder.items;
-    } else {
-      items = moviment.saleOrder.items;
-    }
-    const updateMLJob = items.map(async item => {
-      let variationId: string;
-      if (item.productVariation.mlVariationId !== null) {
-        variationId = item.productVariation.mlVariationId;
-      }
-      return new Promise(async (res, rej) => {
-        const variation = await this.productVariationRepository.findOne({
-          relations: ['product'],
-          where: { mlVariationId: variationId },
-        });
+  async updateMLInventory(movement: InventoryMovement) {
+    return new Promise((res, rej) => {
+      const { inventory } = movement;
+      const { productVariation } = inventory;
+      const { product } = productVariation;
 
-        if (variation && variation.product.variationsSize > 1) {
-          const itemML = await this.mlAdRepository
-            .createQueryBuilder('ml')
-            .select('ml.mercadoLivreId')
-            .where({
-              product: { id: variation.product.id },
-              isActive: true,
-            })
-            .getOne();
+      if (!product.mlAd || !product.mlAd[0]) return;
 
-          const inventory = await this.inventoryService.getVariationCurrentPosition(
-            variation.id,
-          );
+      const lastMLAd = product.mlAd[0];
 
-          this.mercadoLivre.put(
-            `items/${itemML.mercadoLivreId}/variations/${variationId}`,
-            { available_quantity: inventory.currentPosition },
-            (err, response) => {
-              if (err) return rej(err);
-              return res(
-                `Estoque da variação ${variation.sku} foi atuailizado com sucesso`,
-              );
-            },
-          );
-        } else {
-          let productId: number;
-          if (item.productVariation?.product) {
-            productId = item.productVariation.product.id;
-          } else {
-            const pv = await this.productVariationRepository
-              .createQueryBuilder('pv')
-              .leftJoinAndSelect('pv.product', 'product')
-              .where({ id: item.productVariation.id })
-              .getOne();
+      const mlInventoryEndpoint =
+        product.variationsSize > 1
+          ? `items/${lastMLAd.mercadoLivreId}`
+          : `items/${lastMLAd.mercadoLivreId}/variations/${productVariation.mlVariationId}`;
 
-            productId = pv.product.id;
-          }
-          const mlProduct = await this.mlAdRepository
-            .createQueryBuilder('ml')
-            .leftJoinAndSelect('ml.product', 'product')
-            .leftJoinAndSelect('product.productVariations', 'pv')
-            .where({
-              product: productId,
-              isActive: true,
-            })
-            .getOne();
-
-          if (!mlProduct) return res('this product not in mercado libre');
-          const inventory = await this.inventoryService.getVariationCurrentPosition(
-            mlProduct.product.productVariations[0].id,
-          );
-          //function com link
-          this.mercadoLivre.put(
-            `items/${mlProduct.mercadoLivreId}`,
-            { available_quantity: inventory.currentPosition },
-            (err, response) => {
-              if (err) return rej(err);
-              return res(
-                `Estoque do produto ${mlProduct.product.sku} foi atuailizado com sucesso`,
-              );
-            },
-          );
-        }
-      });
+      this.mercadoLivre.put(
+        mlInventoryEndpoint,
+        { available_quantity: inventory.currentPosition },
+        err => {
+          if (err) return rej(err);
+          res(`Estoque do produto ${product.sku} foi atualizado com sucesso.`);
+        },
+      );
     });
-    return await Promise.all(updateMLJob);
   }
 }

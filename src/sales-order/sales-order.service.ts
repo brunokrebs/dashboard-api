@@ -390,7 +390,7 @@ export class SalesOrderService {
       discount: mlOrder.coupon.amount,
       paymentType,
       paymentStatus,
-      installments: mlOrder.payments[0].installments,
+      installments: mlOrder.payments[0].installments, // TODO (fase 3) does it accept more than one payment per transaction?
       shippingType: ShippingType.MERCADOLIVRE,
       shippingPrice: Number.parseFloat(
         mlOrder.shipping.shipping_option?.list_cost || 0,

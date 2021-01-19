@@ -124,8 +124,9 @@ export class InventoryService {
   findBySku(sku: string): Promise<Inventory> {
     return this.inventoryRepository
       .createQueryBuilder('i')
-      .leftJoinAndSelect('i.productVariation', 'p')
-      .where('p.sku = :sku', { sku })
+      .leftJoinAndSelect('i.productVariation', 'pv')
+      .leftJoinAndSelect('pv.product', 'p')
+      .where('pv.sku = :sku', { sku })
       .getOne();
   }
 
@@ -262,8 +263,9 @@ export class InventoryService {
       purchaseOrder: purchaseOrder,
     };
 
-    //persist atualization in mercadolivre inventory
+    // 4. update Mercado Livre inventory
     await this.mercadoLivreService.updateMLInventory(movement);
+
     return await this.inventoryMovementRepository.save(movement);
   }
 
