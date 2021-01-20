@@ -662,13 +662,23 @@ export class ProductsService {
   }
 
   async findProductsToML(ids: number[]): Promise<Product[]> {
+    return this.buildMLQuery()
+      .where({ id: In(ids) })
+      .getMany();
+  }
+
+  async findProductToML(id: number): Promise<Product> {
+    return this.buildMLQuery()
+      .where({ id })
+      .getOne();
+  }
+
+  private buildMLQuery() {
     return this.productsRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.productVariations', 'pv')
       .leftJoinAndSelect('product.productImages', 'pi')
       .leftJoinAndSelect('pi.image', 'i')
-      .leftJoinAndSelect('product.mlAd', 'mlAd', 'mlAd.isActive = true')
-      .where({ id: In(ids) })
-      .getMany();
+      .leftJoinAndSelect('product.mlAd', 'mlAd', 'mlAd.isActive = true');
   }
 }

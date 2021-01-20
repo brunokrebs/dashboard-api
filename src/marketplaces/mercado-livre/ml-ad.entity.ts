@@ -1,6 +1,7 @@
 import { Product } from '../../products/entities/product.entity';
 import { Entity, Column, JoinColumn, ManyToOne } from 'typeorm';
 import { BaseEntity } from '../../util/base-entity';
+import { NumericTransformer } from '../../util/numeric-transformer';
 
 @Entity({
   name: 'ml_ad',
@@ -76,6 +77,7 @@ export class MLAd extends BaseEntity {
   @Column({
     name: 'additional_price',
     type: 'numeric',
+    transformer: new NumericTransformer(),
   })
   additionalPrice?: number;
 }

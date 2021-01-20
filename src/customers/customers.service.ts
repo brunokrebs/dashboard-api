@@ -74,7 +74,7 @@ export class CustomersService {
       customer.cpf.replace(/\D/g, ''),
     );
     if (existingCustomer) return Promise.resolve(existingCustomer);
-    return this.save(customer);
+    return await this.save(customer);
   }
 
   save(customer: Customer): Promise<Customer> {
@@ -97,13 +97,5 @@ export class CustomersService {
       select: ['email', 'name', 'state'],
       where: "TRIM(email) != '' AND email IS NOT NULL",
     });
-  }
-
-  async findOrCreateCustomer(customer: Customer) {
-    const existingCustomer = await this.customerRepository.findOne({
-      where: { email: customer.email },
-    });
-    if (existingCustomer) return existingCustomer;
-    return this.save(customer);
   }
 }

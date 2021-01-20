@@ -363,9 +363,7 @@ export class SalesOrderService {
       phoneNumber: `${mlOrder.buyer.phone?.area_code}${mlOrder.buyer.phone?.number}`,
       cpf,
     };
-    const customer = await this.customersService.findOrCreateCustomer(
-      mlCustomer,
-    );
+    const customer = await this.customersService.findOrCreate(mlCustomer);
 
     const paymentStatus = this.mapOrderStatus(mlOrder.status);
 
