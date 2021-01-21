@@ -7,9 +7,8 @@ import { ProductsService } from '../../products/products.service';
 import { IPaginationOpts } from '../../pagination/pagination';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, In, Repository } from 'typeorm';
-import { MLAdDTO } from './ml-ad.dto';
-import { Propagation, Transactional } from 'typeorm-transactional-cls-hooked';
+import { Brackets, Not, Repository } from 'typeorm';
+import { Transactional } from 'typeorm-transactional-cls-hooked';
 import { MLAd } from './ml-ad.entity';
 import { Image } from '../../media-library/image.entity';
 import request from 'request-promise';
@@ -20,6 +19,7 @@ import { InventoryService } from '../../inventory/inventory.service';
 import { InventoryMovement } from '../../inventory/inventory-movement.entity';
 import { Cron } from '@nestjs/schedule';
 import { uniqBy } from 'lodash';
+import { CreateMLAdsDTO } from './create-ml-ads.dto';
 
 const ML_REFRESH_TOKEN_KEY = 'ML_REFRESH_TOKEN';
 const ML_ACCESS_TOKEN_KEY = 'ML_ACCESS_TOKEN';
@@ -81,6 +81,11 @@ export class MercadoLivreService {
       console.log(res);
       console.log('Mercado Livre access token refreshed successfully');
 
+      this.keyValuePairService.set({
+        key: ML_ACCESS_TOKEN_KEY,
+        value: res.access_token,
+      });
+
       this.mercadoLivre.get('users/me', (err, response) => {
         if (err) console.error(response);
         this.mercadoLivreSeller = response;
@@ -128,14 +133,12 @@ export class MercadoLivreService {
     return this.keyValuePairService.get(ML_ACCESS_TOKEN_KEY);
   }
 
-  async syncAds(mlAds: any) {
-    if (mlAds.product) {
-      mlAds.products.push(mlAds.product);
-    }
+  @Transactional()
+  async syncAds(mlAds: CreateMLAdsDTO) {
     const createAdJobs = mlAds.products.map(async product => {
-      const adDTO = {
-        categoryId: mlAds.category.id,
-        categoryName: mlAds.category.name,
+      const adDTO: MLAd = {
+        categoryId: mlAds.categoryId,
+        categoryName: mlAds.categoryName,
         product: product,
         adType: mlAds.adType ? mlAds.adType : 'free',
         isActive: true,
@@ -159,7 +162,7 @@ export class MercadoLivreService {
     if (productImages.length === 0) {
       this.saveError(
         product,
-        'O produto não tem imagens compativeis com o mercado para ser cadastrado',
+        'O produto não tem imagens compativeis com o Mercado Livre para ser cadastrado.',
       );
       this.updateProductProperties(product.id, {
         isSynchronized: false,
@@ -183,7 +186,7 @@ export class MercadoLivreService {
   private mapProductWithoutVariationsForCreation(
     product: Product,
     productImages: { id: string }[],
-    additionalPrice: number = 0,
+    additionalPrice = 0,
   ) {
     const singleVariation = product.productVariations[0];
     let productInfos: any;
@@ -255,7 +258,7 @@ export class MercadoLivreService {
   private mapProductWithVariationsForCreation(
     product: Product,
     productImages: { id: string }[],
-    additionalPrice: number = 0,
+    additionalPrice = 0,
   ) {
     let productInfos: any;
     if (
@@ -418,13 +421,14 @@ export class MercadoLivreService {
   }
 
   async getMLCategory(query: string) {
-    const categories = this.httpService
+    const response = await this.httpService
       .get(
-        `https://api.mercadolibre.com/sites/MLB/domain_discovery/search?limit=4&q=${query}`,
+        `https://api.mercadolibre.com/sites/MLB/domain_discovery/search?limit=4&q=${encodeURI(
+          query,
+        )}`,
       )
       .toPromise();
-
-    return (await categories).data;
+    return response.data;
   }
 
   async getProduct(sku: string) {
@@ -436,8 +440,7 @@ export class MercadoLivreService {
     return queryBuilder;
   }
 
-  @Transactional({ propagation: Propagation.REQUIRES_NEW })
-  async createAd(mlAdDTO: MLAdDTO) {
+  private async createAd(mlAdDTO: MLAd) {
     // load product details
     const product = await this.productsService.findProductToML(
       mlAdDTO.product.id,
@@ -455,16 +458,6 @@ export class MercadoLivreService {
     // sync product images with ML
     await this.saveImagesOnML([mlAdDTO.product.id]);
 
-    // deactivate past ads (if any)
-    await this.mlAdRepository.update(
-      {
-        product: mlAdDTO.product,
-      },
-      {
-        isActive: false,
-      },
-    );
-
     // map and save new ML ad
     const mlAd: MLAd = {
       categoryId: mlAdDTO.categoryId,
@@ -476,16 +469,18 @@ export class MercadoLivreService {
       adDisabled: false,
       needAtualization: false,
     };
-    await this.mlAdRepository.save(mlAd);
+
+    product.mlAd.push(mlAd);
 
     // close existing ads on ML
     await this.closeAdML(product.id);
 
     // create new ad
-    return new Promise((res, rej) => {
+    const adCreated = await new Promise<boolean>(res => {
       const mlAd = this.mapToMLProduct(product);
+      if (!mlAd) return res(false);
       return this.mercadoLivre.post('items', mlAd, async (err, response) => {
-        if (err) return err;
+        if (err) return res(false);
         if (!response.id) {
           await this.updateProductProperties(
             product.id,
@@ -495,9 +490,9 @@ export class MercadoLivreService {
             response.variations,
           );
           await this.saveError(product, 'Houve algum erro');
-          rej(`Unable to create ${product.sku} on Mercado Livre.`);
+          return res(false);
         }
-        product.mlAd[0].mercadoLivreId = response.id;
+        product.mlAd[product.mlAd.length - 1].mercadoLivreId = response.id;
 
         await this.updateProductProperties(
           product.id,
@@ -507,9 +502,25 @@ export class MercadoLivreService {
           },
           response.variations,
         );
-        res(`${product.sku} created successfully`);
+        res(true);
       });
     });
+
+    if (!adCreated) return;
+
+    // add new ad to the database
+    await this.mlAdRepository.save(mlAd);
+
+    // deactivate past ads (if any)
+    await this.mlAdRepository.update(
+      {
+        product: mlAdDTO.product,
+        mercadoLivreId: Not(product.mlAd[0].mercadoLivreId),
+      },
+      {
+        isActive: false,
+      },
+    );
   }
 
   @Transactional()
@@ -535,8 +546,7 @@ export class MercadoLivreService {
     );
   }
 
-  @Transactional({ propagation: Propagation.REQUIRES_NEW })
-  async saveImagesOnML(productIds: number[]) {
+  private async saveImagesOnML(productIds: number[]) {
     const inIds = productIds.join(',');
     const images = await this.imageRepository
       .createQueryBuilder('im')
@@ -550,7 +560,7 @@ export class MercadoLivreService {
     const accessToken = await this.keyValuePairService.get(ML_ACCESS_TOKEN_KEY);
 
     const savedImages = images.map((image, idx) => {
-      return new Promise((res, rej) => {
+      return new Promise<void>(res => {
         setTimeout(async () => {
           try {
             const imageBuffer = await request({
@@ -584,7 +594,7 @@ export class MercadoLivreService {
                 mlImageStatus: true,
               },
             );
-            return res('Image update sucess');
+            return res();
           } catch (err) {
             await this.imageRepository.update(
               {
@@ -594,7 +604,7 @@ export class MercadoLivreService {
                 mlImageStatus: false,
               },
             );
-            return rej();
+            return res();
           }
         }, 550 * idx);
       });
