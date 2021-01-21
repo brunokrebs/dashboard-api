@@ -16,6 +16,7 @@ import { Pagination } from 'nestjs-typeorm-paginate';
 import { parseBoolean } from '../../util/parsers';
 import { Product } from '../../products/entities/product.entity';
 import { MLError } from './mercado-livre-error.entity';
+import { CreateMLAdsDTO } from './create-ml-ads.dto';
 
 @Controller('mercado-livre')
 export class MercadoLivreController {
@@ -78,14 +79,8 @@ export class MercadoLivreController {
 
   @Post('/')
   @UseGuards(JwtAuthGuard)
-  async saveAll(@Body() mlAds): Promise<any> {
+  async saveAll(@Body() mlAds: CreateMLAdsDTO): Promise<any> {
     return this.mercadoLivreService.syncAds(mlAds);
-  }
-
-  @Post('/save')
-  @UseGuards(JwtAuthGuard)
-  async save(@Body() mlAd): Promise<any> {
-    return this.mercadoLivreService.syncAds([mlAd]);
   }
 
   @Get('category')
