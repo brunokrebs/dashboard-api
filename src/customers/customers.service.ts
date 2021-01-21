@@ -63,15 +63,16 @@ export class CustomersService {
     return this.customerRepository.findOne(id);
   }
 
-  findByCPF(cpf: string): Promise<Customer> {
+  findByCPFOrEmail(cpf?: string, email?: string): Promise<Customer> {
     return this.customerRepository.findOne({
-      cpf,
+      where: [{ cpf }, { email }],
     });
   }
 
   async findOrCreate(customer: Customer): Promise<Customer> {
-    const existingCustomer = await this.findByCPF(
+    const existingCustomer = await this.findByCPFOrEmail(
       customer.cpf.replace(/\D/g, ''),
+      customer.email,
     );
     if (existingCustomer) return Promise.resolve(existingCustomer);
     return await this.save(customer);
