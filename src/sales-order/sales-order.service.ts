@@ -348,6 +348,7 @@ export class SalesOrderService {
       where: { mlOrderId: mlOrder.id },
     });
 
+    // TODO arrumar ambiente de dev para que não crie infinitos clientes iguais
     let cpf: string;
     if (
       process.env.NODE_ENV !== 'development' &&

@@ -128,7 +128,7 @@ export class MercadoLivreService {
     return this.keyValuePairService.get(ML_ACCESS_TOKEN_KEY);
   }
 
-  async createProducts(mlAds: any) {
+  async syncAds(mlAds: any) {
     const createAdJobs = mlAds.products.map(async product => {
       const adDTO = {
         id: product.mlId,
@@ -601,7 +601,7 @@ export class MercadoLivreService {
     await Promise.allSettled(savedImages);
   }
 
-  @Cron('0 */15 * * * *')
+  @Cron('0 * * * * *')
   @Transactional()
   async createOrderOnDigituz() {
     const getOrders = new Promise((res, rej) => {
@@ -637,14 +637,14 @@ export class MercadoLivreService {
     });
 
     const simpleOrder = orders.filter(order => !order.pack_id);
-    const allOrders: any = [].concat(simpleOrder, compositeOrders);
+    const allOrders: any = [...simpleOrder, ...compositeOrders];
 
     const mapShippingJob = allOrders.map(order => {
       return new Promise((res, rej) => {
         return this.mercadoLivre.get(
           `shipments/${order.shipping.id}`,
           async (err, response) => {
-            if (err) return err;
+            if (err) return rej(err);
             order.shipping = response;
             res('getOrder');
           },
@@ -653,9 +653,9 @@ export class MercadoLivreService {
     });
 
     await Promise.all(mapShippingJob);
-    await allOrders.forEach(async order => {
+    for (const order of allOrders) {
       await this.saleOrderService.saveSaleOrderFromML(order);
-    });
+    }
   }
 
   async getErros(options: IPaginationOpts) {
