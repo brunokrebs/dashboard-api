@@ -129,9 +129,11 @@ export class MercadoLivreService {
   }
 
   async syncAds(mlAds: any) {
+    if (mlAds.product) {
+      mlAds.products.push(mlAds.product);
+    }
     const createAdJobs = mlAds.products.map(async product => {
       const adDTO = {
-        id: product.mlId,
         categoryId: mlAds.category.id,
         categoryName: mlAds.category.name,
         product: product,
@@ -445,7 +447,7 @@ export class MercadoLivreService {
     if (
       product.productVariations.length < 1 ||
       !product.isActive ||
-      !product.mlAd[0].categoryId ||
+      !mlAdDTO.categoryId ||
       product.productImages?.length < 1
     )
       return;
@@ -601,7 +603,7 @@ export class MercadoLivreService {
     await Promise.allSettled(savedImages);
   }
 
-  @Cron('0 * * * * *')
+  @Cron('0 */15 * * * *')
   @Transactional()
   async createOrderOnDigituz() {
     const getOrders = new Promise((res, rej) => {

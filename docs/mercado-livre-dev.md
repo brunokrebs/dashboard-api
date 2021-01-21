@@ -33,7 +33,7 @@ curl -H 'Authorization: Bearer '\$JWT localhost:3005/v1/mercado-livre/token
 
 # copy the token from the command above
 
-MLTOKEN=eyJ...Zxk
+MLTOKEN=APP_USR...065
 
 para criar usuarios de teste basta utilizar esta url
 https://api.mercadolibre.com/users/test_user?access_token=MLTOKEN
