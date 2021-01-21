@@ -1,48 +1,42 @@
-Para fazer a integração com o mercado livre funcionar siga estas etapas
+# Integração com o Mercado Livre (ML) dev
 
-1. esteja logado na sua conta do mercado livre e entre no digituz
-2. no mercado livre preencha as informações do seu endereço
-3. adicione as variaveis de ambiente
+Para fazer a integração com o ML funcionar siga estas etapas
 
-r uma api para teste entre com sua conta do mercado livre através deste link
+1. esteja logado na sua conta do ML e entre no digituz
+
+2. no menu que aparece após entrar no ML quando passa o mouse pelo seu nome, clique na opção meus dados e preencha as informações do seu endereço,
+
+3) adicione as variaveis de ambiente
+
+r uma api para teste entre com sua conta do ML através deste link
 
 ## Acessar Conta do Desenvolvedor no ML
 
-Vá para a seguinte página, e acesse com suas credenciais.
+Vá para a seguinte página https://developers.mercadolivre.com.br/, e acesse com suas credenciais.
 
 ## Credenciais do Desenvolvedor no ML
 
-Após logar como desenvolvedor no ML, siga as instrucoes aqui (link), para criar seu `CLIENT_ID` e `CLIENT_SECRET`.0j9pICVyBzxaQ8zGI4UdGlj5HkjWXn6Q
+Após logar como desenvolvedor no ML, siga as instrucoes aqui
+https://developers.mercadolivre.com.br/pt_br/registre-o-seu-aplicativo, para criar seu `CLIENT_ID` e `CLIENT_SECRET`
 
 ## Var. de Ambiente
-
-....
-
-https://developers.mercadolivre.com.br/
-
-para teste ‘sua url de redirecionamento’ pode ser criada através do ngrok se necessario
-
-Variáveis de Teste:
 
 ```text
 ML_CLIENT_ID = 8549654584565096,
 ML_CLIENT_SECRET = hnmngMTYNe6Uf8ogcdDzZ9VemjkayZ4s,
 ML_REDIRECT_URL = 'https://2ad5522b7c94.ngrok.io/mercado-livre';
+ML_SITE_ID=MLB
 ```
 
-#####production keys
-ML_CLIENT_ID = '6962689565848218';
-ML_CLIENT_SECRET = '0j9pICVyBzxaQ8zGI4UdGlj5HkjWXn6Q';
-ML_REDIRECT_URL = 'https://digituz.com.br/api/v1/mercado-livre';
+para pegar seu token para as requisições de teste
+curl -H 'Authorization: Bearer '\$JWT localhost:3005/v1/mercado-livre/token
 
-4. vá no digituz entre na opção do mercado livre e clique no botão para vincular sua conta
+# copy the token from the command above
 
-5. agora sincornize os produtos com o mercado livre
-
-6. depois de sincronizar algum produto vá ao mercado livre e veja seus anuncios, vá no menu do anuncio e clique alterar e selecione a forma de entrega como mercado envios( para que sejá habilitado a geração de etiquetas para envio)
+MLTOKEN=eyJ...Zxk
 
 para criar usuarios de teste basta utilizar esta url
-https://api.mercadolibre.com/users/test_user?access_token=$token
+https://api.mercadolibre.com/users/test_user?access_token=MLTOKEN
 
 para ver suas informações como vendedor
-https://api.mercadolibre.com/users/me?access_token=$token
+https://api.mercadolibre.com/users/me?access_token=MLTOKEN
