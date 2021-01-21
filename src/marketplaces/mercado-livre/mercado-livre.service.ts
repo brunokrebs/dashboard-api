@@ -7,7 +7,7 @@ import { ProductsService } from '../../products/products.service';
 import { IPaginationOpts } from '../../pagination/pagination';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Not, Repository } from 'typeorm';
+import { Brackets, IsNull, Not, Repository } from 'typeorm';
 import { Transactional } from 'typeorm-transactional-cls-hooked';
 import { MLAd } from './ml-ad.entity';
 import { Image } from '../../media-library/image.entity';
@@ -474,6 +474,7 @@ export class MercadoLivreService {
     // close existing ads on ML
     await this.closeAdML(product.id);
 
+    let response: any;
     // create new ad
     const syncAdJob = new Promise<boolean>(async res => {
       const adMappedToML = await this.mapToMLProduct(product);
@@ -481,22 +482,22 @@ export class MercadoLivreService {
       return this.mercadoLivre.post(
         'items',
         adMappedToML,
-        async (err, response) => {
+        async (err, resp) => {
           if (err) return res(false);
-          if (!response.id) {
+          if (!resp.id) {
             await this.updateProductProperties(
               // FIXME
               product.id,
               {
                 isSynchronized: false,
               },
-              response.variations,
+              resp.variations,
             );
             await this.saveError(product, 'Houve algum erro');
             return res(false);
           }
-          product.mlAd[product.mlAd.length - 1].mercadoLivreId = response.id;
-
+          product.mlAd[product.mlAd.length - 1].mercadoLivreId = resp.id;
+          response = resp;
           res(true);
         },
       );
@@ -507,7 +508,18 @@ export class MercadoLivreService {
     if (!adCreated) return;
 
     // add new ad to the database
-    await this.mlAdRepository.save(mlAd); // FIXME
+    const persistedAd = await this.mlAdRepository.save(mlAd); // FIXME
+
+    // deactivate past ads (if any)
+    await this.mlAdRepository.update(
+      {
+        id: Not(persistedAd.id),
+        product: mlAdDTO.product,
+      },
+      {
+        isActive: false,
+      },
+    );
 
     await this.updateProductProperties(
       // FIXME
@@ -517,17 +529,6 @@ export class MercadoLivreService {
         isSynchronized: true,
       },
       response.variations,
-    );
-
-    // deactivate past ads (if any)
-    await this.mlAdRepository.update(
-      {
-        product: mlAdDTO.product,
-        mercadoLivreId: Not(product.mlAd[0].mercadoLivreId),
-      },
-      {
-        isActive: false,
-      },
     );
   }
 
@@ -550,7 +551,7 @@ export class MercadoLivreService {
       await Promise.all(updateVariationsOnDBJobs);
     }
     return this.mlAdRepository.update(
-      { product: { id: productId }, adDisabled: false },
+      { product: { id: productId }, isActive: true, adDisabled: false },
       properties,
     );
   }
@@ -623,7 +624,7 @@ export class MercadoLivreService {
     await Promise.all(savedImages);
   }
 
-  @Cron('0 */15 * * * *')
+  @Cron('0 * * * * *')
   @Transactional()
   async createOrderOnDigituz() {
     const getOrders = new Promise((res, rej) => {

@@ -249,7 +249,7 @@ export class SalesOrderService {
       });
     });
     await Promise.all(movementJobs);
-    console.log('veio até o fim com sucesso');
+
     return Promise.resolve(persistedSaleOrder);
   }
 
@@ -381,7 +381,7 @@ export class SalesOrderService {
 
     const itemsJob = this.mapItems(mlOrder.order_items);
     const items: any = await Promise.all(itemsJob);
-    if (items == false) return;
+
     const saleOrderDTO: SaleOrderDTO = {
       referenceCode: randomize('0', 10),
       customer,

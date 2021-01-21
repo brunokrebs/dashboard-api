@@ -242,7 +242,9 @@ export class InventoryService {
 
     // 1. updating inventory current position
     inventory.currentPosition += inventoryMovementDTO.amount;
-    await this.inventoryRepository.save(inventory);
+    await this.inventoryRepository
+      .save(inventory)
+      .catch(err => console.log(err));
 
     // 2. updating product variation current position
     await this.productVariationRepository.update(
