@@ -13,7 +13,7 @@ export class MLAd extends BaseEntity {
     { nullable: false, cascade: false, eager: true },
   )
   @JoinColumn({ name: 'product_id' })
-  product: Product;
+  product: Partial<Product>;
 
   @Column({
     name: 'mercado_livre_id',
