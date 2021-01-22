@@ -761,19 +761,20 @@ export class MercadoLivreService {
 
   @Transactional()
   async updateMLInventory(movement: InventoryMovement) {
-    return new Promise((res, rej) => {
+    return new Promise(async (res, rej) => {
       const { inventory } = movement;
       const { productVariation } = inventory;
       const { product } = productVariation;
+      const mlAd = await this.mlAdRepository.findOne({
+        where: { product: product, isActive: true, adDisabled: false },
+      });
 
-      if (!product.mlAd || !product.mlAd[0]) return;
-
-      const lastMLAd = product.mlAd[0];
+      if (!mlAd) return;
 
       const mlInventoryEndpoint =
         product.variationsSize > 1
-          ? `items/${lastMLAd.mercadoLivreId}`
-          : `items/${lastMLAd.mercadoLivreId}/variations/${productVariation.mlVariationId}`;
+          ? `items/${mlAd.mercadoLivreId}/variations/${productVariation.mlVariationId}`
+          : `items/${mlAd.mercadoLivreId}`;
 
       this.mercadoLivre.put(
         mlInventoryEndpoint,

@@ -244,7 +244,7 @@ export class SalesOrderService {
           description: `Originário da venda número ${saleOrder.id}`,
         };
         await this.inventoryService.saveMovement(movement, persistedSaleOrder);
-        console.log('moviment create');
+
         res('');
       });
     });
