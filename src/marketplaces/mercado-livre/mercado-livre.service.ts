@@ -624,7 +624,7 @@ export class MercadoLivreService {
     await Promise.all(savedImages);
   }
 
-  @Cron('0 * * * * *')
+  @Cron('0 */15 * * * *')
   @Transactional()
   async createOrderOnDigituz() {
     const getOrders = new Promise((res, rej) => {

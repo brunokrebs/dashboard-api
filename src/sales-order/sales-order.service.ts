@@ -383,7 +383,7 @@ export class SalesOrderService {
     const items: any = await Promise.all(itemsJob);
 
     const saleOrderDTO: SaleOrderDTO = {
-      referenceCode: randomize('0', 10),
+      referenceCode: mlOrder.id,
       customer,
       items: items,
       total: Number.parseFloat(mlOrder.total_amount),
