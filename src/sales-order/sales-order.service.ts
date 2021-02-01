@@ -185,6 +185,9 @@ export class SalesOrderService {
       shipmentDetails,
       creationDate: saleOrderDTO.creationDate,
       approvalDate: saleOrderDTO.approvalDate,
+      couponCode: saleOrderDTO.promoCode?.code || null,
+      couponValue: saleOrderDTO.promoCode?.couponValue || null,
+      couponType: saleOrderDTO.promoCode?.type || null,
     };
 
     if (!isANewSaleOrder) {
@@ -331,5 +334,25 @@ export class SalesOrderService {
       .orderBy('so.approvalDate', 'DESC')
       .getMany();
     return queryBuilder;
+  }
+
+  async getCustomerSalesOrders(cpf: string) {
+    const customer = await this.customersService.findByCPF(
+      cpf.replace(/\D/g, ''),
+    );
+
+    const queryBuilder = await this.salesOrderRepository
+      .createQueryBuilder('so')
+      .leftJoinAndSelect('so.customer', 'c')
+      .leftJoinAndSelect('so.items', 'i')
+      .leftJoinAndSelect('i.productVariation', 'pv')
+      .leftJoinAndSelect('pv.product', 'p')
+      .leftJoinAndSelect('p.productImages', 'pi')
+      .leftJoinAndSelect('pi.image', 'image')
+      .where({ customer })
+      .orderBy({ 'so.creationDate': 'DESC' })
+      .getMany();
+
+    return JSON.stringify(queryBuilder);
   }
 }

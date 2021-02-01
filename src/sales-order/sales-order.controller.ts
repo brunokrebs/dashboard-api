@@ -100,6 +100,11 @@ export class SalesOrderController {
     };
   }
 
+  @Get('/customer/:cpf')
+  async getSalesForCustomer(@Param('cpf') cpf: string) {
+    return await this.salesOrderService.getCustomerSalesOrders(cpf);
+  }
+
   @Get('/report')
   async getReportGroupBy(
     @Query('startDate') startDate: any,
