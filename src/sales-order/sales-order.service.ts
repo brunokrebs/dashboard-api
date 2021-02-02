@@ -185,9 +185,6 @@ export class SalesOrderService {
       shipmentDetails,
       creationDate: saleOrderDTO.creationDate,
       approvalDate: saleOrderDTO.approvalDate,
-      couponCode: saleOrderDTO.promoCode?.code || null,
-      couponValue: saleOrderDTO.promoCode?.couponValue || null,
-      couponType: saleOrderDTO.promoCode?.type || null,
     };
 
     if (!isANewSaleOrder) {

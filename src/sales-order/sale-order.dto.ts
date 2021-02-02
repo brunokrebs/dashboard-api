@@ -5,7 +5,6 @@ import { PaymentStatus } from './entities/payment-status.enum';
 import { ShippingType } from './entities/shipping-type.enum';
 import { SaleOrderBlingStatus } from './entities/sale-order-bling-status.enum';
 import { Allow } from 'class-validator';
-import { PromoCode } from './entities/promo-code.dto';
 
 export class SaleOrderDTO {
   @Allow()
@@ -76,7 +75,4 @@ export class SaleOrderDTO {
 
   @Allow()
   blingStatus?: SaleOrderBlingStatus | string;
-
-  @Allow()
-  promoCode?: PromoCode;
 }

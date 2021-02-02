@@ -85,25 +85,4 @@ export class SaleOrder extends BaseEntity {
     nullable: true,
   })
   cancellationDate?: Date;
-
-  @Column({
-    name: 'coupon_code',
-    type: 'varchar',
-    nullable: true,
-  })
-  couponCode?: string;
-
-  @Column({
-    name: 'coupon_value',
-    type: 'integer',
-    nullable: true,
-  })
-  couponValue?: number;
-
-  @Column({
-    name: 'coupon_type',
-    type: 'varchar',
-    nullable: true,
-  })
-  couponType?: string;
 }
