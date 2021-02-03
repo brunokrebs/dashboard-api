@@ -100,6 +100,51 @@ export class SalesOrderController {
     };
   }
 
+  @Get('/customer/:cpf')
+  async getSalesForCustomer(@Param('cpf') cpf: string) {
+    const orders = await this.salesOrderService.getCustomerSalesOrders(cpf);
+    return orders.map(saleOrder => {
+      return {
+        id: saleOrder.id,
+        referenceCode: saleOrder.referenceCode,
+        customer: saleOrder.customer,
+        items: saleOrder.items.map(item => ({
+          sku: item.productVariation.sku,
+          completeDescription: `${item.productVariation.product.title} (${item.productVariation.description})`,
+          price: item.price,
+          discount: item.discount,
+          amount: item.amount,
+          currentPosition: item.productVariation.currentPosition,
+          image: item.productVariation.product.productImages
+            .filter(pi => pi.order === 1)
+            .map(pi => {
+              const s3Domain = 'https://s3.sa-east-1.amazonaws.com/';
+              return pi.image.originalFileURL.replace(s3Domain, 'https://');
+            }),
+        })),
+        discount: saleOrder.paymentDetails.discount,
+        paymentType: saleOrder.paymentDetails.paymentType,
+        paymentStatus: saleOrder.paymentDetails.paymentStatus,
+        installments: saleOrder.paymentDetails.installments,
+        shippingType: saleOrder.shipmentDetails.shippingType,
+        shippingPrice: saleOrder.shipmentDetails.shippingPrice,
+        customerName: saleOrder.shipmentDetails.customerName,
+        shippingStreetAddress: saleOrder.shipmentDetails.shippingStreetAddress,
+        shippingStreetNumber: saleOrder.shipmentDetails.shippingStreetNumber,
+        shippingStreetNumber2: saleOrder.shipmentDetails.shippingStreetNumber2,
+        shippingNeighborhood: saleOrder.shipmentDetails.shippingNeighborhood,
+        shippingCity: saleOrder.shipmentDetails.shippingCity,
+        shippingState: saleOrder.shipmentDetails.shippingState,
+        shippingZipAddress: saleOrder.shipmentDetails.shippingZipAddress,
+        creationDate: saleOrder.creationDate,
+        approvalDate: saleOrder.approvalDate,
+        cancellationDate: saleOrder.cancellationDate,
+        total: saleOrder.paymentDetails.total,
+        blingStatus: saleOrder.blingStatus,
+      };
+    });
+  }
+
   @Get('/report')
   async getReportGroupBy(
     @Query('startDate') startDate: any,

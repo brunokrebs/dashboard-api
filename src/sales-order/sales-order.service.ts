@@ -332,4 +332,24 @@ export class SalesOrderService {
       .getMany();
     return queryBuilder;
   }
+
+  async getCustomerSalesOrders(cpf: string) {
+    const customer = await this.customersService.findByCPF(
+      cpf.replace(/\D/g, ''),
+    );
+
+    const customerOrders = await this.salesOrderRepository
+      .createQueryBuilder('so')
+      .leftJoinAndSelect('so.customer', 'c')
+      .leftJoinAndSelect('so.items', 'i')
+      .leftJoinAndSelect('i.productVariation', 'pv')
+      .leftJoinAndSelect('pv.product', 'p')
+      .leftJoinAndSelect('p.productImages', 'pi')
+      .leftJoinAndSelect('pi.image', 'image')
+      .where({ customer })
+      .orderBy({ 'so.creationDate': 'DESC' })
+      .getMany();
+
+    return customerOrders;
+  }
 }
