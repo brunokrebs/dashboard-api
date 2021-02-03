@@ -338,7 +338,7 @@ export class SalesOrderService {
       cpf.replace(/\D/g, ''),
     );
 
-    const queryBuilder = await this.salesOrderRepository
+    const customerOrders = await this.salesOrderRepository
       .createQueryBuilder('so')
       .leftJoinAndSelect('so.customer', 'c')
       .leftJoinAndSelect('so.items', 'i')
@@ -350,6 +350,6 @@ export class SalesOrderService {
       .orderBy({ 'so.creationDate': 'DESC' })
       .getMany();
 
-    return JSON.stringify(queryBuilder);
+    return customerOrders;
   }
 }
