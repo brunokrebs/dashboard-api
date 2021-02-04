@@ -100,9 +100,15 @@ export class SalesOrderController {
     };
   }
 
-  @Get('/customer/:cpf')
-  async getSalesForCustomer(@Param('cpf') cpf: string) {
-    const orders = await this.salesOrderService.getCustomerSalesOrders(cpf);
+  @Get('/customer')
+  async getSalesForCustomer(
+    @Query('cpf') cpf: string,
+    @Query('email') email: string,
+  ) {
+    const orders = await this.salesOrderService.getCustomerSalesOrders(
+      cpf,
+      email,
+    );
     return orders.map(saleOrder => {
       return {
         id: saleOrder.id,
