@@ -335,7 +335,7 @@ export class SalesOrderService {
 
   async getCustomerSalesOrders(cpf: string, email: string) {
     let customer;
-    if (!cpf || cpf === '' || cpf === 'undefined' || cpf === 'null') {
+    if (!cpf) {
       customer = await this.customersService.findByEmail(email);
     } else {
       customer = await this.customersService.findByCPF(cpf.replace(/\D/g, ''));
