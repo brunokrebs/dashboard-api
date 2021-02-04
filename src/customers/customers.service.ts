@@ -98,4 +98,8 @@ export class CustomersService {
       where: "TRIM(email) != '' AND email IS NOT NULL",
     });
   }
+
+  async findByEmail(email: string): Promise<Customer> {
+    return this.customerRepository.findOne({ where: { email } });
+  }
 }

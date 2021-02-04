@@ -333,10 +333,13 @@ export class SalesOrderService {
     return queryBuilder;
   }
 
-  async getCustomerSalesOrders(cpf: string) {
-    const customer = await this.customersService.findByCPF(
-      cpf.replace(/\D/g, ''),
-    );
+  async getCustomerSalesOrders(cpf: string, email: string) {
+    let customer;
+    if (!cpf || cpf === '' || cpf === 'undefined' || cpf === 'null') {
+      customer = await this.customersService.findByEmail(email);
+    } else {
+      customer = await this.customersService.findByCPF(cpf.replace(/\D/g, ''));
+    }
 
     const customerOrders = await this.salesOrderRepository
       .createQueryBuilder('so')
