@@ -227,7 +227,7 @@ export class SalesOrderService {
 
     // creating movements to update inventory position
     const movementJobs = persistedItems.map(item => {
-      return new Promise(async res => {
+      return new Promise<void>(async res => {
         const movement: InventoryMovementDTO = {
           sku: item.productVariation.sku,
           amount: -item.amount,

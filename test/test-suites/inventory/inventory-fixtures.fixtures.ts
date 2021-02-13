@@ -17,7 +17,7 @@ export async function insertInventoryFixtures() {
   }
 
   const moveInventoryJobs = productVariations.map((p, index) => {
-    return new Promise(async res => {
+    return new Promise<void>(async res => {
       const movement: InventoryMovementDTO = {
         sku: p.sku,
         amount: index,

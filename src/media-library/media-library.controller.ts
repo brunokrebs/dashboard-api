@@ -54,7 +54,7 @@ export class MediaLibraryController {
   ) {}
 
   private removeFileFromDisk(file: string) {
-    return new Promise((res, rej) => {
+    return new Promise<any>((res, rej) => {
       execa('rm', [file])
         .then(res)
         .catch(rej);
@@ -62,7 +62,7 @@ export class MediaLibraryController {
   }
 
   private resize(imagePath: string, fileSuffix: string, imageType: ImageType) {
-    return new Promise((res, rej) => {
+    return new Promise<any>((res, rej) => {
       const resizeJobConfig = {
         file: imagePath,
         lossy: true,

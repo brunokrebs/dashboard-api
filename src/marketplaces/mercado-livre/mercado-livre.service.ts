@@ -104,7 +104,7 @@ export class MercadoLivreService {
       );
     });
     const createJobs = activeNoVariationProducts.map((product, idx) => {
-      return new Promise((res, rej) => {
+      return new Promise<void>((res, rej) => {
         setTimeout(async () => {
           const mlProduct = await this.mapToMLProduct(product);
           this.mercadoLivre.post('items', mlProduct, async (err, response) => {
@@ -242,7 +242,7 @@ export class MercadoLivreService {
   }
 
   private async updateProductExposure(product: Product) {
-    return new Promise((res, rej) => {
+    return new Promise<void>((res, rej) => {
       const exposure: any = {
         id: 'gold_pro',
       };
@@ -264,7 +264,7 @@ export class MercadoLivreService {
 
   private async updateProductDescription(product: Product) {
     if (!product.productDetails) return Promise.resolve();
-    return new Promise((res, rej) => {
+    return new Promise<void>((res, rej) => {
       const updatedProperties: any = {
         plain_text: htmlToText.fromString(product.productDetails),
       };
@@ -289,7 +289,7 @@ export class MercadoLivreService {
     updateTitle: boolean,
     updateExposure?: boolean,
   ) {
-    return new Promise((res, rej) => {
+    return new Promise<void>((res, rej) => {
       const updatedProperties: any = {
         attributes: [
           {

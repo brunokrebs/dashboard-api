@@ -141,7 +141,7 @@ export class ProductsService {
   async createInventories(variations: ProductVariation[]) {
     // starting the inventory info
     const inventoryCreationJob = variations.map(variation => {
-      return new Promise(async res => {
+      return new Promise<void>(async res => {
         const inventory: Inventory = {
           productVariation: variation,
           currentPosition: 0,
@@ -189,7 +189,7 @@ export class ProductsService {
 
     // inserting variations
     const insertVariationJobs = variations.map(variation => {
-      return new Promise(async res => {
+      return new Promise<void>(async res => {
         variation.product = persistedProduct;
         variation.currentPosition = 0;
         await this.productVariationsRepository.save(variation);

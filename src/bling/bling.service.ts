@@ -218,7 +218,7 @@ export class BlingService {
     const updateParentProductsJobs = allProducts
       .filter(p => p.productVariations.length > 1)
       .map((p, idx) => {
-        return new Promise(res => {
+        return new Promise<void>(res => {
           setTimeout(async () => {
             try {
               await this.createOrUpdateProduct(p);
@@ -232,7 +232,7 @@ export class BlingService {
     await Promise.all(updateParentProductsJobs);
 
     const updateVariationsJobs = allProductVariations.map((pv, idx) => {
-      return new Promise(res => {
+      return new Promise<void>(res => {
         setTimeout(async () => {
           try {
             await this.createOrUpdateProductVariation(pv);

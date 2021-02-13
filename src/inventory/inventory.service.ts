@@ -159,7 +159,7 @@ export class InventoryService {
 
   async removeInventoryAndMovements(productVariations: ProductVariation[]) {
     const removeJobs = productVariations.map(productVariation => {
-      return new Promise(async res => {
+      return new Promise<void>(async res => {
         const inventory = await this.inventoryRepository.findOne({
           where: { productVariation },
         });

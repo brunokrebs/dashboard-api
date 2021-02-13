@@ -7,7 +7,7 @@ export async function createSaleOrders(): Promise<unknown> {
   const authorizedRequest = await getCredentials();
   const insertJobs = saleOrderScenarios.map(
     (saleOrder: SaleOrderDTO, idx: number) => {
-      return new Promise(res => {
+      return new Promise<void>(res => {
         setTimeout(async () => {
           await axios.post(
             'http://localhost:3005/v1/sales-order',

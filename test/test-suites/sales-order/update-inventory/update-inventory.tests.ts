@@ -67,7 +67,7 @@ describe('sale orders must update inventory', () => {
 
   async function getCurrentPositions(items): Promise<ItemPosition[]> {
     const getPositionJobs = items.map(item => {
-      return new Promise(async res => {
+      return new Promise<void>(async res => {
         const initialPosition = await getCurrentPosition(item.sku);
         res({
           sku: item.sku,
@@ -239,7 +239,7 @@ describe('sale orders must update inventory', () => {
 
     const validateInventoryMovementsJob = initialPositions.map(
       initialPosition => {
-        return new Promise(async res => {
+        return new Promise<void>(async res => {
           const skuPosition = await getSumOfMovementsBasedOnInventoryMovements(
             initialPosition.sku,
           );
