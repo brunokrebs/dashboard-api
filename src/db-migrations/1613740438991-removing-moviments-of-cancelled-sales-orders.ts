@@ -1,4 +1,5 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
+import { uniqBy } from 'lodash';
 
 export class removingMovimentsOfCancelledSalesOrders1613740438991
   implements MigrationInterface {
@@ -18,6 +19,31 @@ export class removingMovimentsOfCancelledSalesOrders1613740438991
       };
     });
 
+    const filteresMoviments = uniqBy(
+      fixIventoryQuantity
+        .filter(moviment => {
+          return (
+            !this[JSON.stringify(moviment)] &&
+            (this[JSON.stringify(moviment)] = true)
+          );
+        })
+        .map(moviment => {
+          const total = fixIventoryQuantity
+            .filter(inventory => inventory.inventoryId === moviment.id)
+            .reduce((amountTotal, inventory) => {
+              return (amountTotal += inventory.amount);
+            }, 0);
+          return {
+            id: moviment.id,
+            inventoryId: moviment.inventoryId,
+            productVariation: moviment.productVariation,
+            currentPosition: moviment.currentPosition,
+            amount: total,
+          };
+        }),
+      'inventoryId',
+    );
+
     await queryRunner.query(
       `DELETE FROM inventory_movement im WHERE id in (
           SELECT im.id FROM inventory_movement im 
@@ -25,15 +51,15 @@ export class removingMovimentsOfCancelledSalesOrders1613740438991
             WHERE so.payment_status = 'CANCELLED')`,
     );
 
-    const updateInventoryJob = fixIventoryQuantity.map(async i => {
-      const currentPosition = i.currentPosition + i.amount;
+    const updateInventoryJob = filteresMoviments.map(async (inventory: any) => {
+      const currentPosition = inventory.currentPosition + inventory.amount;
       await queryRunner.query(`
             UPDATE inventory SET current_position=${currentPosition}
-                WHERE id=${i.inventoryId};
+                WHERE id=${inventory.inventoryId};
         `);
       await queryRunner.query(`
         UPDATE product_variation SET current_position=${currentPosition}
-            WHERE id=${i.productVariation};
+            WHERE id=${inventory.productVariation};
         `);
     });
 
