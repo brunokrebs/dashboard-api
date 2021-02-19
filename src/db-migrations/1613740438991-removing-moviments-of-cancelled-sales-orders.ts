@@ -20,27 +20,20 @@ export class removingMovimentsOfCancelledSalesOrders1613740438991
     });
 
     const filteresMoviments = uniqBy(
-      fixIventoryQuantity
-        .filter(moviment => {
-          return (
-            !this[JSON.stringify(moviment)] &&
-            (this[JSON.stringify(moviment)] = true)
-          );
-        })
-        .map(moviment => {
-          const total = fixIventoryQuantity
-            .filter(inventory => inventory.inventoryId === moviment.id)
-            .reduce((amountTotal, inventory) => {
-              return (amountTotal += inventory.amount);
-            }, 0);
-          return {
-            id: moviment.id,
-            inventoryId: moviment.inventoryId,
-            productVariation: moviment.productVariation,
-            currentPosition: moviment.currentPosition,
-            amount: total,
-          };
-        }),
+      fixIventoryQuantity.map(moviment => {
+        const total = fixIventoryQuantity
+          .filter(inventory => inventory.inventoryId === moviment.id)
+          .reduce((amountTotal, inventory) => {
+            return (amountTotal += inventory.amount);
+          }, 0);
+        return {
+          id: moviment.id,
+          inventoryId: moviment.inventoryId,
+          productVariation: moviment.productVariation,
+          currentPosition: moviment.currentPosition,
+          amount: total,
+        };
+      }),
       'inventoryId',
     );
 
@@ -54,12 +47,12 @@ export class removingMovimentsOfCancelledSalesOrders1613740438991
     const updateInventoryJob = filteresMoviments.map(async (inventory: any) => {
       const currentPosition = inventory.currentPosition + inventory.amount;
       await queryRunner.query(`
-            UPDATE inventory SET current_position=${currentPosition}
-                WHERE id=${inventory.inventoryId};
+        UPDATE inventory SET current_position=${currentPosition}
+          WHERE id=${inventory.inventoryId};
         `);
       await queryRunner.query(`
         UPDATE product_variation SET current_position=${currentPosition}
-            WHERE id=${inventory.productVariation};
+          WHERE id=${inventory.productVariation};
         `);
     });
 
