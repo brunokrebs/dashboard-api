@@ -67,7 +67,7 @@ describe('sale orders must update inventory', () => {
 
   async function getCurrentPositions(items): Promise<ItemPosition[]> {
     const getPositionJobs = items.map(item => {
-      return new Promise<void>(async res => {
+      return new Promise<any>(async res => {
         const initialPosition = await getCurrentPosition(item.sku);
         res({
           sku: item.sku,
@@ -230,7 +230,6 @@ describe('sale orders must update inventory', () => {
     const { saleOrder, positions: initialPositions } = await persistSaleOrder(
       order,
     );
-
     await changeOrderStatus(saleOrder.referenceCode, 'CANCELLED');
 
     const positionsAfterUpdate = await getCurrentPositions(order.items);
@@ -264,5 +263,23 @@ describe('sale orders must update inventory', () => {
       await changeOrderStatus(saleOrder.referenceCode, 'APPROVED');
       fail('should have raised an error');
     } catch (err) {}
+  });
+
+  it('should incrase inventory when a order is CANCELLED', async () => {
+    await executeQuery(`update inventory set current_position = 10`);
+    const order: SaleOrderDTO = saleOrderScenarios[0];
+
+    const { saleOrder } = await persistSaleOrder(order);
+    const decreasedPosition = await executeQuery(
+      `SELECT current_position FROM inventory i where i.current_position<10`,
+    );
+
+    expect(decreasedPosition.length).toBe(4);
+    await changeOrderStatus(saleOrder.referenceCode, 'CANCELLED');
+    const incrasePosition = await executeQuery(
+      `SELECT current_position FROM inventory i where i.current_position<10`,
+    );
+    console.log(incrasePosition);
+    expect(incrasePosition.length).toBe(0);
   });
 });
