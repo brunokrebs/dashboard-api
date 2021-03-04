@@ -265,7 +265,7 @@ describe('sale orders must update inventory', () => {
     } catch (err) {}
   });
 
-  it('should incrase inventory when a order is CANCELLED', async () => {
+  it.only('should incrase inventory when a order is CANCELLED', async () => {
     await executeQuery(`update inventory set current_position = 10`);
     const order: SaleOrderDTO = saleOrderScenarios[0];
 
@@ -275,11 +275,26 @@ describe('sale orders must update inventory', () => {
     );
 
     expect(decreasedPosition.length).toBe(4);
+
+    let movements = await executeQuery(`SELECT * FROM inventory_movement im 
+      LEFT JOIN sale_order so on so.id = im.sale_order_id
+      LEFT JOIN inventory i on i.id = im.inventory_id
+      WHERE so.id = ${saleOrder.id};`);
+
+    expect(movements.length).toBe(4);
+
     await changeOrderStatus(saleOrder.referenceCode, 'CANCELLED');
     const incrasePosition = await executeQuery(
       `SELECT current_position FROM inventory i where i.current_position<10`,
     );
-    console.log(incrasePosition);
+
     expect(incrasePosition.length).toBe(0);
+
+    movements = await executeQuery(`SELECT * FROM inventory_movement im 
+      LEFT JOIN sale_order so on so.id = im.sale_order_id
+      LEFT JOIN inventory i on i.id = im.inventory_id
+      WHERE  so.id = ${saleOrder.id}`);
+
+    expect(movements.length).toBe(0);
   });
 });
