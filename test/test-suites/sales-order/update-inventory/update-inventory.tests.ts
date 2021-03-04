@@ -265,7 +265,7 @@ describe('sale orders must update inventory', () => {
     } catch (err) {}
   });
 
-  it.only('should incrase inventory when a order is CANCELLED', async () => {
+  it('should incrase inventory when a order is CANCELLED', async () => {
     await executeQuery(`update inventory set current_position = 10`);
     const order: SaleOrderDTO = saleOrderScenarios[0];
 
