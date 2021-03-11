@@ -5,8 +5,13 @@ import { InvoiceService } from './invoice.service';
 export class InvoiceController {
   constructor(private invoiceService: InvoiceService) {}
 
-  @Get()
+  @Get('/status')
   public checkStatus(): void {
     this.invoiceService.checkStatus();
+  }
+
+  @Get('/emit')
+  public emitInvoice(): void {
+    this.invoiceService.emitInvoice();
   }
 }
