@@ -33,6 +33,7 @@ import { PurchaseOrderModule } from './purchase-order/purchase-order.module';
 import { Supplier } from './supplier/supplier.entity';
 import { SupplierModule } from './supplier/supplier.module';
 import { SendgridModule } from './sendgrid/sendgrid.module';
+import { InvoiceModule } from './invoice/invoice.module';
 
 @Module({
   imports: [
@@ -89,8 +90,7 @@ import { SendgridModule } from './sendgrid/sendgrid.module';
     KeyValuePairModule,
     ChartModule,
     SendgridModule,
+    InvoiceModule,
   ],
-  controllers: [],
-  providers: [],
 })
 export class AppModule {}
