@@ -411,7 +411,7 @@ export class InventoryService {
       .where("so.paymentStatus = 'IN_PROCESS'");
 
     if (category !== 'ALL')
-      processingOrders.where('product.category= :category', { category });
+      processingOrders.andWhere('product.category= :category', { category });
 
     const blockedStock = await processingOrders.getRawMany();
 
@@ -430,7 +430,7 @@ export class InventoryService {
     });
 
     if (xlsx) return this.generateXLSX(reportResults);
-    console.log(category, reportResults);
+
     return {
       items: reportResults,
       meta: {
