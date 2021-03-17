@@ -8,6 +8,7 @@ import { ProductsModule } from '../products/products.module';
 import { Product } from '../products/entities/product.entity';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { ProductComposition } from '../products/entities/product-composition.entity';
+import { SaleOrderItem } from '../sales-order/entities/sale-order-item.entity';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ProductComposition } from '../products/entities/product-composition.ent
       Product,
       ProductComposition,
       ProductVariation,
+      SaleOrderItem,
     ]),
   ],
   controllers: [InventoryController],

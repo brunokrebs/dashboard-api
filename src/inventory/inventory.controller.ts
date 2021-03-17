@@ -65,10 +65,16 @@ export class InventoryController {
     return Promise.resolve(paginatedResults);
   }
 
-  @Get('/xls')
-  async exportXls(@Res() res: Response) {
-    const buff = await this.inventoryService.exportXls();
-    res.status(HttpStatus.OK).send(buff);
+  @Get('/report')
+  async exportXls(
+    @Query('category') category,
+    @Query('xlsx') xlsx: string,
+    @Res() res: Response,
+  ) {
+    const asXLSX = parseBoolean(xlsx);
+    const response = await this.inventoryService.exportXls(category, asXLSX);
+    console.log(response);
+    res.status(HttpStatus.OK).send(response);
   }
 
   @Get(':id')

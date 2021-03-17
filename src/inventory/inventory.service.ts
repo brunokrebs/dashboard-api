@@ -11,6 +11,7 @@ import { Repository, Brackets, In } from 'typeorm';
 import { IPaginationOpts } from '../pagination/pagination';
 import { InventoryMovementDTO } from './inventory-movement.dto';
 import { SaleOrder } from '../sales-order/entities/sale-order.entity';
+import { SaleOrderItem } from '../sales-order/entities/sale-order-item.entity';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { Product } from '../products/entities/product.entity';
 import { ProductComposition } from '../products/entities/product-composition.entity';
@@ -30,6 +31,8 @@ export class InventoryService {
     private productVariationRepository: Repository<ProductVariation>,
     @InjectRepository(ProductComposition)
     private productCompositionRepository: Repository<ProductComposition>,
+    @InjectRepository(SaleOrderItem)
+    private saleOrderItemRepository: Repository<SaleOrderItem>,
   ) {}
 
   async paginate(options: IPaginationOpts): Promise<Pagination<Inventory>> {
@@ -377,9 +380,9 @@ export class InventoryService {
   }
 
   //export to xls
-  async exportXls() {
+  async exportXls(category: string, xlsx: boolean) {
     // get inventory info for all product variations ordered by ncm
-    const reportData = await this.inventoryRepository
+    const reportData = this.inventoryRepository
       .createQueryBuilder('inventory')
       .leftJoin('inventory.productVariation', 'productVariation')
       .leftJoin('productVariation.product', 'product')
@@ -387,19 +390,61 @@ export class InventoryService {
         'product.ncm as NCM',
         'productVariation.sku as SKU',
         'product.title as Titulo',
+        'product.category as Categoria',
         'productVariation.description as Tamanho',
-        'inventory.current_position as Quantidade',
-      ])
+        'inventory.current_position as Disponivel',
+      ]);
+
+    if (category !== 'ALL')
+      reportData.where('product.category= :category', { category });
+
+    const inventoryByCategory = await reportData
       .orderBy('product.ncm')
       .getRawMany();
 
-    const data = reportData.map(item => {
-      if (item.tamanho === 'Tamanho Único') {
-        item.tamanho = '';
+    const processingOrders = this.saleOrderItemRepository
+      .createQueryBuilder('soi')
+      .leftJoin('soi.saleOrder', 'so')
+      .leftJoin('soi.productVariation', 'pv')
+      .leftJoin('pv.product', 'product')
+      .select('soi.amount,so.id,pv.sku')
+      .where("so.paymentStatus = 'IN_PROCESS'");
+
+    if (category !== 'ALL')
+      processingOrders.where('product.category= :category', { category });
+
+    const blockedStock = await processingOrders.getRawMany();
+
+    //the name of the variables is in Portuguese because it is the name that appears in xls
+    const reportResults = inventoryByCategory.map(i => {
+      if (i.tamanho === 'Tamanho Único') {
+        i.tamanho = '';
       }
-      return item;
+      const separado = blockedStock
+        .filter(orderItem => orderItem.sku === i.sku)
+        .reduce((amountTotal, orderItem) => {
+          return (amountTotal += parseInt(orderItem.amount));
+        }, 0);
+      const total = i.disponivel + separado;
+      return { ...i, separado, total };
     });
 
+    if (xlsx) return this.generateXLSX(reportResults);
+    console.log(category, reportResults);
+    return {
+      items: reportResults,
+      meta: {
+        totalItems: reportResults.length,
+        itemCount: reportResults.length,
+        itemsPerPage: reportResults.length,
+        totalPages: 1,
+        currentPage: 1,
+      },
+      links: { first: '', previous: '', next: '', last: '' },
+    };
+  }
+
+  generateXLSX(data) {
     const wb = XLSX.utils.book_new();
     wb.Props = {
       Title: 'Relatório de Estoque',
@@ -417,7 +462,6 @@ export class InventoryService {
 
     workSheet['!cols'] = wscols;
     XLSX.utils.book_append_sheet(wb, workSheet, 'Estoque');
-
     return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
   }
 }
