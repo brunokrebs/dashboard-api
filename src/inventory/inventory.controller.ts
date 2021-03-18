@@ -18,6 +18,7 @@ import { InventoryMovementDTO } from './inventory-movement.dto';
 import { InventoryMovement } from './inventory-movement.entity';
 import { InventoryDTO } from './inventory.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ProductCategory } from '../products/entities/product-category.enum';
 
 @Controller('inventory')
 @UseGuards(JwtAuthGuard)
@@ -31,6 +32,7 @@ export class InventoryController {
     @Query('sortedBy') sortedBy: string,
     @Query('sortDirectionAscending') sortDirectionAscending: string,
     @Query('query') query: string,
+    @Query('category') category: ProductCategory,
   ): Promise<Pagination<InventoryDTO>> {
     const result = await this.inventoryService.paginate({
       page,
@@ -41,6 +43,10 @@ export class InventoryController {
         {
           key: 'query',
           value: query,
+        },
+        {
+          key: 'category',
+          value: category,
         },
       ],
     });
@@ -65,10 +71,10 @@ export class InventoryController {
     return Promise.resolve(paginatedResults);
   }
 
-  @Get('/xls')
-  async exportXls(@Res() res: Response) {
-    const buff = await this.inventoryService.exportXls();
-    res.status(HttpStatus.OK).send(buff);
+  @Get('/report')
+  async exportXls(@Query('category') category, @Res() res: Response) {
+    const response = await this.inventoryService.exportXls(category);
+    res.status(HttpStatus.OK).send(response);
   }
 
   @Get(':id')

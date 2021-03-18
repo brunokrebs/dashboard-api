@@ -11,11 +11,14 @@ import { Repository, Brackets, In } from 'typeorm';
 import { IPaginationOpts } from '../pagination/pagination';
 import { InventoryMovementDTO } from './inventory-movement.dto';
 import { SaleOrder } from '../sales-order/entities/sale-order.entity';
+import { SaleOrderItem } from '../sales-order/entities/sale-order-item.entity';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { Product } from '../products/entities/product.entity';
 import { ProductComposition } from '../products/entities/product-composition.entity';
 import { PurchaseOrder } from '../purchase-order/purchase-order.entity';
 import { Propagation, Transactional } from 'typeorm-transactional-cls-hooked';
+import { ProductCategory } from '../products/entities/product-category.enum';
+import { PaymentStatus } from '../sales-order/entities/payment-status.enum';
 
 @Injectable()
 export class InventoryService {
@@ -30,6 +33,8 @@ export class InventoryService {
     private productVariationRepository: Repository<ProductVariation>,
     @InjectRepository(ProductComposition)
     private productCompositionRepository: Repository<ProductComposition>,
+    @InjectRepository(SaleOrderItem)
+    private saleOrderItemRepository: Repository<SaleOrderItem>,
   ) {}
 
   async paginate(options: IPaginationOpts): Promise<Pagination<Inventory>> {
@@ -74,6 +79,15 @@ export class InventoryService {
                   query: `%${queryParam.value.toString()}%`,
                 }).orWhere(`lower(p.title) like lower(:query)`, {
                   query: `%${queryParam.value.toString()}%`,
+                });
+              }),
+            );
+            break;
+          case 'category':
+            queryBuilder.andWhere(
+              new Brackets(qb => {
+                qb.where(`p.category = :category`, {
+                  category: queryParam.value,
                 });
               }),
             );
@@ -377,29 +391,58 @@ export class InventoryService {
   }
 
   //export to xls
-  async exportXls() {
+  async exportXls(category: ProductCategory) {
     // get inventory info for all product variations ordered by ncm
-    const reportData = await this.inventoryRepository
+    const reportData = this.inventoryRepository
       .createQueryBuilder('inventory')
       .leftJoin('inventory.productVariation', 'productVariation')
       .leftJoin('productVariation.product', 'product')
       .select([
-        'product.ncm as NCM',
         'productVariation.sku as SKU',
         'product.title as Titulo',
+        'product.ncm as NCM',
+        'product.category as Categoria',
         'productVariation.description as Tamanho',
-        'inventory.current_position as Quantidade',
-      ])
-      .orderBy('product.ncm')
-      .getRawMany();
+        'inventory.current_position as Disponivel',
+      ]);
 
-    const data = reportData.map(item => {
-      if (item.tamanho === 'Tamanho Único') {
-        item.tamanho = '';
+    if (category) reportData.where('product.category= :category', { category });
+
+    const inventory = await reportData.orderBy('product.ncm').getRawMany();
+
+    const inProcessOrders = this.saleOrderItemRepository
+      .createQueryBuilder('soi')
+      .leftJoin('soi.saleOrder', 'so')
+      .leftJoin('soi.productVariation', 'pv')
+      .leftJoin('pv.product', 'product')
+      .select('soi.amount,so.id,pv.sku')
+      .where('so.paymentStatus = :paymentSatus', {
+        paymentSatus: PaymentStatus.IN_PROCESS,
+      });
+
+    if (category)
+      inProcessOrders.andWhere('product.category= :category', { category });
+
+    const blockedStock = await inProcessOrders.getRawMany();
+
+    //the name of the variables is in Portuguese because it is the name that appears in xls
+    const reportResults = inventory.map(i => {
+      if (i.tamanho === 'Tamanho Único') {
+        i.tamanho = '';
       }
-      return item;
+      const separado = blockedStock
+        .filter(orderItem => orderItem.sku === i.sku)
+        .reduce((amountTotal, orderItem) => {
+          return (amountTotal += parseInt(orderItem.amount));
+        }, 0);
+      const total = i.disponivel + separado;
+      return { ...i, separado, total };
     });
 
+    return this.generateXLSX(reportResults);
+  }
+
+  generateXLSX(data) {
     const wb = XLSX.utils.book_new();
     wb.Props = {
       Title: 'Relatório de Estoque',
@@ -417,7 +460,6 @@ export class InventoryService {
 
     workSheet['!cols'] = wscols;
     XLSX.utils.book_append_sheet(wb, workSheet, 'Estoque');
-
     return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
   }
 }
