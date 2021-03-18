@@ -17,6 +17,8 @@ import { Product } from '../products/entities/product.entity';
 import { ProductComposition } from '../products/entities/product-composition.entity';
 import { PurchaseOrder } from '../purchase-order/purchase-order.entity';
 import { Propagation, Transactional } from 'typeorm-transactional-cls-hooked';
+import { ProductCategory } from '../products/entities/product-category.enum';
+import { PaymentStatus } from '../sales-order/entities/payment-status.enum';
 
 @Injectable()
 export class InventoryService {
@@ -77,6 +79,15 @@ export class InventoryService {
                   query: `%${queryParam.value.toString()}%`,
                 }).orWhere(`lower(p.title) like lower(:query)`, {
                   query: `%${queryParam.value.toString()}%`,
+                });
+              }),
+            );
+            break;
+          case 'category':
+            queryBuilder.andWhere(
+              new Brackets(qb => {
+                qb.where(`p.category = :category`, {
+                  category: queryParam.value,
                 });
               }),
             );
@@ -380,43 +391,42 @@ export class InventoryService {
   }
 
   //export to xls
-  async exportXls(category: string, xlsx: boolean) {
+  async exportXls(category: ProductCategory) {
     // get inventory info for all product variations ordered by ncm
     const reportData = this.inventoryRepository
       .createQueryBuilder('inventory')
       .leftJoin('inventory.productVariation', 'productVariation')
       .leftJoin('productVariation.product', 'product')
       .select([
-        'product.ncm as NCM',
         'productVariation.sku as SKU',
         'product.title as Titulo',
+        'product.ncm as NCM',
         'product.category as Categoria',
         'productVariation.description as Tamanho',
         'inventory.current_position as Disponivel',
       ]);
 
-    if (category !== 'ALL')
-      reportData.where('product.category= :category', { category });
+    if (category) reportData.where('product.category= :category', { category });
 
-    const inventoryByCategory = await reportData
-      .orderBy('product.ncm')
-      .getRawMany();
+    const inventory = await reportData.orderBy('product.ncm').getRawMany();
 
-    const processingOrders = this.saleOrderItemRepository
+    const inProcessOrders = this.saleOrderItemRepository
       .createQueryBuilder('soi')
       .leftJoin('soi.saleOrder', 'so')
       .leftJoin('soi.productVariation', 'pv')
       .leftJoin('pv.product', 'product')
       .select('soi.amount,so.id,pv.sku')
-      .where("so.paymentStatus = 'IN_PROCESS'");
+      .where('so.paymentStatus = :paymentSatus', {
+        paymentSatus: PaymentStatus.IN_PROCESS,
+      });
 
-    if (category !== 'ALL')
-      processingOrders.andWhere('product.category= :category', { category });
+    if (category)
+      inProcessOrders.andWhere('product.category= :category', { category });
 
-    const blockedStock = await processingOrders.getRawMany();
+    const blockedStock = await inProcessOrders.getRawMany();
 
     //the name of the variables is in Portuguese because it is the name that appears in xls
-    const reportResults = inventoryByCategory.map(i => {
+    const reportResults = inventory.map(i => {
       if (i.tamanho === 'Tamanho Único') {
         i.tamanho = '';
       }
@@ -429,19 +439,7 @@ export class InventoryService {
       return { ...i, separado, total };
     });
 
-    if (xlsx) return this.generateXLSX(reportResults);
-
-    return {
-      items: reportResults,
-      meta: {
-        totalItems: reportResults.length,
-        itemCount: reportResults.length,
-        itemsPerPage: reportResults.length,
-        totalPages: 1,
-        currentPage: 1,
-      },
-      links: { first: '', previous: '', next: '', last: '' },
-    };
+    return this.generateXLSX(reportResults);
   }
 
   generateXLSX(data) {

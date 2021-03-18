@@ -18,6 +18,7 @@ import { InventoryMovementDTO } from './inventory-movement.dto';
 import { InventoryMovement } from './inventory-movement.entity';
 import { InventoryDTO } from './inventory.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ProductCategory } from '../products/entities/product-category.enum';
 
 @Controller('inventory')
 @UseGuards(JwtAuthGuard)
@@ -31,6 +32,7 @@ export class InventoryController {
     @Query('sortedBy') sortedBy: string,
     @Query('sortDirectionAscending') sortDirectionAscending: string,
     @Query('query') query: string,
+    @Query('category') category: ProductCategory,
   ): Promise<Pagination<InventoryDTO>> {
     const result = await this.inventoryService.paginate({
       page,
@@ -41,6 +43,10 @@ export class InventoryController {
         {
           key: 'query',
           value: query,
+        },
+        {
+          key: 'category',
+          value: category,
         },
       ],
     });
@@ -66,14 +72,8 @@ export class InventoryController {
   }
 
   @Get('/report')
-  async exportXls(
-    @Query('category') category,
-    @Query('xlsx') xlsx: string,
-    @Res() res: Response,
-  ) {
-    const asXLSX = parseBoolean(xlsx);
-    const response = await this.inventoryService.exportXls(category, asXLSX);
-    console.log(response);
+  async exportXls(@Query('category') category, @Res() res: Response) {
+    const response = await this.inventoryService.exportXls(category);
     res.status(HttpStatus.OK).send(response);
   }
 
