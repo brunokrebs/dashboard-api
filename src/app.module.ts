@@ -33,6 +33,7 @@ import { PurchaseOrderModule } from './purchase-order/purchase-order.module';
 import { Supplier } from './supplier/supplier.entity';
 import { SupplierModule } from './supplier/supplier.module';
 import { SendgridModule } from './sendgrid/sendgrid.module';
+import { CouponModule } from './coupon/coupon.module';
 
 @Module({
   imports: [
@@ -89,6 +90,7 @@ import { SendgridModule } from './sendgrid/sendgrid.module';
     KeyValuePairModule,
     ChartModule,
     SendgridModule,
+    CouponModule,
   ],
   controllers: [],
   providers: [],
