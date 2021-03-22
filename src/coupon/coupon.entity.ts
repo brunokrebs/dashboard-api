@@ -32,7 +32,7 @@ export class Coupon extends BaseEntity {
     unique: false,
     nullable: true,
   })
-  description?: string;
+  description: string;
 
   @IsDecimal()
   @Column({
@@ -41,7 +41,7 @@ export class Coupon extends BaseEntity {
     unique: false,
     nullable: true,
   })
-  value?: string;
+  value: string;
 
   @IsBoolean()
   @Column({
@@ -50,5 +50,13 @@ export class Coupon extends BaseEntity {
     unique: false,
     nullable: false,
   })
-  active?: string;
+  active: string;
+
+  @Column({
+    name: 'expiration_date',
+    type: 'date',
+    unique: false,
+    nullable: false,
+  })
+  expirationDate?: Date;
 }

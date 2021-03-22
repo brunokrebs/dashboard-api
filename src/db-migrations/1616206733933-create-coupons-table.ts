@@ -9,6 +9,7 @@ export class createCouponsTable1616206733933 implements MigrationInterface {
             type varchar(10) not null,
             description varchar(120),
             value decimal(15,2),
+            expiration_date date,
             active boolean,
             creation_date timestamp
         )`);
