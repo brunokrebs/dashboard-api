@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { IPaginationOpts } from 'src/pagination/pagination';
 import { Brackets, Repository } from 'typeorm';
+import { CoupontDTO } from './coupon.dto';
 import { Coupon } from './coupon.entity';
 
 @Injectable()
@@ -54,14 +55,14 @@ export class CouponService {
     }
     const orderColumn = 'code';
     queryBuilder.orderBy(orderColumn, sortDirection, sortNulls);
-    const test = queryBuilder;
-    console.log(await test.getMany().catch(e => console.log(e)));
     return paginate<Coupon>(queryBuilder, options);
   }
 
-  async save(coupon: Coupon): Promise<Coupon> {
+  async save(coupon: CoupontDTO): Promise<Coupon> {
     coupon.code = coupon.code.toUpperCase().trim();
-    return await this.couponRepository.save(coupon);
+    console.log(coupon);
+    //await this.couponRepository.save(coupon);
+    return;
   }
 
   async isCodeAvailable(code: string) {
