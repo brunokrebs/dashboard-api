@@ -1,8 +1,16 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { Pagination } from 'nestjs-typeorm-paginate';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { parseBoolean } from '../util/parsers';
-import { CoupontDTO } from './coupon.dto';
+import { CouponDTO } from './coupon.dto';
 import { Coupon } from './coupon.entity';
 import { CouponService } from './coupon.service';
 
@@ -32,8 +40,13 @@ export class CouponController {
     });
   }
 
+  @Get(':code')
+  findOne(@Param('code') code: string): Promise<Coupon> {
+    return this.couponService.findCouponByCode(code);
+  }
+
   @Post('/save')
-  async save(@Body() coupon: CoupontDTO): Promise<Coupon> {
+  async save(@Body() coupon: CouponDTO): Promise<Coupon> {
     return this.couponService.save(coupon);
   }
 

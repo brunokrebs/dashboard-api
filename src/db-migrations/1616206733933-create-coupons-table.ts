@@ -7,7 +7,7 @@ export class createCouponsTable1616206733933 implements MigrationInterface {
             version integer,
             code varchar(20) not null,
             type varchar(10) not null,
-            description varchar(120),
+            description varchar(30),
             value decimal(15,2),
             expiration_date date,
             active boolean,

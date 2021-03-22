@@ -22,6 +22,7 @@ import { isNullOrUndefined } from '../util/numeric-transformer';
 import { SaleOrderBlingStatus } from './entities/sale-order-bling-status.enum';
 import { BlingService } from '../bling/bling.service';
 import { Propagation, Transactional } from 'typeorm-transactional-cls-hooked';
+import { CouponService } from '../coupon/coupon.service';
 
 @Injectable()
 export class SalesOrderService {
@@ -30,6 +31,7 @@ export class SalesOrderService {
     private salesOrderRepository: Repository<SaleOrder>,
     @InjectRepository(SaleOrderItem)
     private salesOrderItemRepository: Repository<SaleOrderItem>,
+    private couponService: CouponService,
     private customersService: CustomersService,
     private productsService: ProductsService,
     private inventoryService: InventoryService,
@@ -150,11 +152,45 @@ export class SalesOrderService {
     const customer = await this.customersService.findOrCreate(
       saleOrderDTO.customer,
     );
-    const itemsTotal = items.reduce((currentValue, item) => {
-      return (item.price - item.discount) * item.amount + currentValue;
-    }, 0);
-    const total =
-      itemsTotal - (saleOrderDTO.discount || 0) + saleOrderDTO.shippingPrice;
+
+    let itemsTotal: number;
+    let total: number;
+    if (saleOrderDTO.coupon) {
+      const coupon = await this.couponService.findCouponByCode(
+        saleOrderDTO.coupon.code,
+      );
+      switch (coupon.type) {
+        case 'R$':
+          itemsTotal = items.reduce((currentValue, item) => {
+            return (item.price - item.discount) * item.amount + currentValue;
+          }, 0);
+
+          total =
+            itemsTotal -
+            (saleOrderDTO.discount || 0) +
+            saleOrderDTO.shippingPrice -
+            coupon.value;
+          break;
+        case 'percentage':
+          itemsTotal = items.reduce((currentValue, item) => {
+            return (
+              (item.price - item.price * (coupon.value / 100)) * item.amount +
+              currentValue
+            );
+          }, 0);
+          total =
+            itemsTotal -
+            (saleOrderDTO.discount || 0) +
+            saleOrderDTO.shippingPrice;
+          break;
+      }
+    } else {
+      itemsTotal = items.reduce((currentValue, item) => {
+        return (item.price - item.discount) * item.amount + currentValue;
+      }, 0);
+      total =
+        itemsTotal - (saleOrderDTO.discount || 0) + saleOrderDTO.shippingPrice;
+    }
 
     const paymentDetails: SaleOrderPayment = {
       discount: saleOrderDTO.discount || 0,

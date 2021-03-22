@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { IPaginationOpts } from 'src/pagination/pagination';
 import { Brackets, Repository } from 'typeorm';
-import { CoupontDTO } from './coupon.dto';
+import { CouponDTO } from './coupon.dto';
 import { Coupon } from './coupon.entity';
 
 @Injectable()
@@ -58,11 +58,18 @@ export class CouponService {
     return paginate<Coupon>(queryBuilder, options);
   }
 
-  async save(coupon: CoupontDTO): Promise<Coupon> {
-    coupon.code = coupon.code.toUpperCase().trim();
-    console.log(coupon);
-    //await this.couponRepository.save(coupon);
-    return;
+  async save(couponDTO: CouponDTO): Promise<Coupon> {
+    couponDTO.code = couponDTO.code.toUpperCase().trim();
+    const coupon: Coupon = {
+      code: couponDTO.code,
+      description: couponDTO.description,
+      type: couponDTO.type,
+      value: couponDTO.value,
+      expirationDate: couponDTO.expirationDate,
+      active: couponDTO.active,
+    };
+
+    return await this.couponRepository.save(coupon);
   }
 
   async isCodeAvailable(code: string) {
@@ -72,6 +79,11 @@ export class CouponService {
       .select('c.code')
       .where('c.code = :code', { code })
       .getOne();
+    console.log(existingCode);
     return !!existingCode;
+  }
+
+  async findCouponByCode(code: string) {
+    return await this.couponRepository.findOne({ code, active: true });
   }
 }

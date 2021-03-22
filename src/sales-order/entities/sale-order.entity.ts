@@ -7,6 +7,7 @@ import { SaleOrderPayment } from './sale-order-payment.entity';
 import { Customer } from '../../customers/customer.entity';
 import { SaleOrderItem } from './sale-order-item.entity';
 import { SaleOrderBlingStatus } from './sale-order-bling-status.enum';
+import { Coupon } from '../../coupon/coupon.entity';
 
 @Entity()
 export class SaleOrder extends BaseEntity {
@@ -61,6 +62,9 @@ export class SaleOrder extends BaseEntity {
 
   @Column(type => SaleOrderShipment, { prefix: false })
   shipmentDetails: SaleOrderShipment;
+
+  @JoinColumn({ name: 'coupon_id' })
+  coupon?: Coupon;
 
   @Column({
     name: 'creation_date',

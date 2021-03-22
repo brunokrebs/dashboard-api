@@ -1,10 +1,10 @@
 import { Allow, IsBoolean, IsDecimal, Length } from 'class-validator';
 
-export class CoupontDTO {
+export class CouponDTO {
   @Length(1, 20)
   code: string;
 
-  @Length(1, 120)
+  @Length(1, 30)
   description: string;
 
   @Allow()
@@ -13,7 +13,7 @@ export class CoupontDTO {
   @IsDecimal()
   value: number;
 
-  expirationDate?: Date | string;
+  expirationDate?: Date;
 
   @IsBoolean()
   active: boolean;

@@ -28,7 +28,7 @@ export class Coupon extends BaseEntity {
   @Column({
     name: 'description',
     type: 'varchar',
-    length: 120,
+    length: 30,
     unique: false,
     nullable: true,
   })
@@ -41,7 +41,7 @@ export class Coupon extends BaseEntity {
     unique: false,
     nullable: true,
   })
-  value: string;
+  value: number;
 
   @IsBoolean()
   @Column({
@@ -50,7 +50,7 @@ export class Coupon extends BaseEntity {
     unique: false,
     nullable: false,
   })
-  active: string;
+  active: boolean;
 
   @Column({
     name: 'expiration_date',
