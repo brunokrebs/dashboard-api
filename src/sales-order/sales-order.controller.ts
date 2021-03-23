@@ -231,7 +231,6 @@ export class SalesOrderController {
     const saleOrder = await this.salesOrderService.getByReferenceCode(
       referenceCode,
     );
-
     return {
       id: saleOrder.id,
       referenceCode: saleOrder.referenceCode,

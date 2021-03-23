@@ -100,6 +100,60 @@ export class CouponService {
     return await this.couponRepository.findOne({ id });
   }
 
+  calculateCouponDiscount(saleOrderDTO, items, coupon) {
+    let itemsTotal: number;
+    let total: number;
+    switch (coupon.type) {
+      case 'R$':
+        itemsTotal = items.reduce((currentValue, item) => {
+          return (item.price - item.discount) * item.amount + currentValue;
+        }, 0);
+
+        total =
+          itemsTotal -
+          (saleOrderDTO.discount || 0) +
+          saleOrderDTO.shippingPrice -
+          coupon.value;
+        return { total, shippingPrice: saleOrderDTO.shippingPrice };
+      case 'percentage':
+        itemsTotal = this.calculatePercentageDiscount(items, coupon);
+        total =
+          itemsTotal -
+          (saleOrderDTO.discount || 0) +
+          saleOrderDTO.shippingPrice;
+        return { total, shippingPrice: saleOrderDTO.shippingPrice };
+      case 'EQUIPE':
+        saleOrderDTO.shippingPrice = 0;
+        itemsTotal = itemsTotal = this.calculatePercentageDiscount(
+          items,
+          coupon,
+        );
+        total =
+          itemsTotal -
+          (saleOrderDTO.discount || 0) +
+          saleOrderDTO.shippingPrice;
+        return { total, shippingPrice: saleOrderDTO.shippingPrice };
+      case 'SHIPPING':
+        itemsTotal = items.reduce((currentValue, item) => {
+          return (item.price - item.discount) * item.amount + currentValue;
+        }, 0);
+
+        total = itemsTotal - (saleOrderDTO.discount || 0);
+        return { total, shippingPrice: saleOrderDTO.shippingPrice };
+      default:
+        return;
+    }
+  }
+
+  calculatePercentageDiscount(items, coupon) {
+    return items.reduce((currentValue, item) => {
+      return (
+        (item.price - item.price * (coupon.value / 100)) * item.amount +
+        currentValue
+      );
+    }, 0);
+  }
+
   @Cron('0 */1 * * * *')
   async expirateCoupon() {
     console.log('gerei a função');

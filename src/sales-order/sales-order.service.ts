@@ -161,49 +161,13 @@ export class SalesOrderService {
       coupon = await this.couponService.findCouponByCode(
         saleOrderDTO.coupon.code.toUpperCase(),
       );
-      switch (coupon.type) {
-        case 'R$':
-          itemsTotal = items.reduce((currentValue, item) => {
-            return (item.price - item.discount) * item.amount + currentValue;
-          }, 0);
-
-          total =
-            itemsTotal -
-            (saleOrderDTO.discount || 0) +
-            saleOrderDTO.shippingPrice -
-            coupon.value;
-          break;
-        case 'percentage':
-          itemsTotal = items.reduce((currentValue, item) => {
-            return (
-              (item.price - item.price * (coupon.value / 100)) * item.amount +
-              currentValue
-            );
-          }, 0);
-          total =
-            itemsTotal -
-            (saleOrderDTO.discount || 0) +
-            saleOrderDTO.shippingPrice;
-          break;
-        case 'EQUIPE':
-          saleOrderDTO.shippingPrice = 0;
-          itemsTotal = items.reduce((currentValue, item) => {
-            return (
-              (item.price - item.price * (coupon.value / 100)) * item.amount +
-              currentValue
-            );
-          }, 0);
-          total =
-            itemsTotal -
-            (saleOrderDTO.discount || 0) +
-            saleOrderDTO.shippingPrice;
-          break;
-        case 'SHIPPING':
-          saleOrderDTO.shippingPrice = 0;
-          break;
-        default:
-          return;
-      }
+      const resultCouponDiscount = this.couponService.calculateCouponDiscount(
+        saleOrderDTO,
+        items,
+        coupon,
+      );
+      total = resultCouponDiscount.total;
+      saleOrderDTO.shippingPrice = resultCouponDiscount.shippingPrice;
     } else {
       itemsTotal = items.reduce((currentValue, item) => {
         return (item.price - item.discount) * item.amount + currentValue;

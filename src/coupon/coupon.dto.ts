@@ -1,7 +1,7 @@
 import { Allow, IsBoolean, IsDecimal, IsNumber, Length } from 'class-validator';
 
 export class CouponDTO {
-  @IsNumber()
+  @Allow()
   id?: number;
 
   @Length(1, 20)
