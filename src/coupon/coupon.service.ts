@@ -127,7 +127,7 @@ export class CouponService {
           saleOrderDTO.shippingPrice -
           coupon.value;
         return { total, shippingPrice: saleOrderDTO.shippingPrice };
-      case 'percentage':
+      case 'PERCENTAGE':
         itemsTotal = this.calculatePercentageDiscount(items, coupon);
         total =
           itemsTotal -

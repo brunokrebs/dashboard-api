@@ -18,7 +18,7 @@ export class Coupon extends BaseEntity {
   @Column({
     name: 'type',
     type: 'varchar',
-    length: 10,
+    length: 20,
     unique: false,
     nullable: false,
   })

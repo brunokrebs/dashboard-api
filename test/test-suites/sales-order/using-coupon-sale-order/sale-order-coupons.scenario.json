@@ -91,7 +91,7 @@
     ],
     "coupon": {
       "code": "PRIMEIRACOMPRA",
-      "type": "percentage",
+      "type": "PERCENTAGE",
       "value": 10,
       "description": "10% de desc"
     },

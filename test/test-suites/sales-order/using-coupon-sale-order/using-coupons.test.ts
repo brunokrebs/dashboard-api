@@ -29,7 +29,7 @@ describe('sale order with coupons use', () => {
   });
 
   saleOrderCouponsScenarios.forEach((saleOrder: any, idx: number) => {
-    it.only(`should persist sale orders with coupon(scenario #${idx})`, async () => {
+    it(`should persist sale orders with coupon(scenario #${idx})`, async () => {
       const response = await axios.post(
         'http://localhost:3005/v1/sales-order',
         saleOrder,
@@ -43,7 +43,7 @@ describe('sale order with coupons use', () => {
         case 'R$':
           expect(saleOrderCreated.paymentDetails.total).toBe(99.9);
           break;
-        case 'percentage':
+        case 'PERCENTAGE':
           expect(saleOrderCreated.paymentDetails.total).toBe(100.9);
           break;
         case 'EQUIPE':
