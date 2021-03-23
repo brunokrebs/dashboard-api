@@ -40,18 +40,18 @@ export class CouponController {
     });
   }
 
-  @Get(':code')
-  findOne(@Param('code') code: string): Promise<Coupon> {
-    return this.couponService.findCouponByCode(code);
+  @Get('/is-code-available')
+  async isCodeAvaliable(@Query('code') code: string) {
+    return this.isCodeAvaliable(code);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: number): Promise<Coupon> {
+    return this.couponService.findCouponById(id);
   }
 
   @Post('/save')
   async save(@Body() coupon: CouponDTO): Promise<Coupon> {
     return this.couponService.save(coupon);
-  }
-
-  @Get('/is-code-available')
-  async isCodeAvaliable(@Query('code') code: string) {
-    return this.isCodeAvaliable(code);
   }
 }

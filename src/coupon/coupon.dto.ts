@@ -1,18 +1,22 @@
-import { Allow, IsBoolean, IsDecimal, Length } from 'class-validator';
+import { Allow, IsBoolean, IsDecimal, IsNumber, Length } from 'class-validator';
 
 export class CouponDTO {
+  @IsNumber()
+  id?: number;
+
   @Length(1, 20)
   code: string;
 
   @Length(1, 30)
   description: string;
 
-  @Allow()
+  @Length(1, 10)
   type: string;
 
-  @IsDecimal()
-  value: number;
+  @Allow()
+  value?: number;
 
+  @Allow()
   expirationDate?: Date;
 
   @IsBoolean()

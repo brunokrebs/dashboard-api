@@ -175,7 +175,6 @@ export class SalesOrderService {
           break;
         case 'percentage':
           itemsTotal = items.reduce((currentValue, item) => {
-            console.log(item.price);
             return (
               (item.price - item.price * (coupon.value / 100)) * item.amount +
               currentValue
@@ -187,9 +186,23 @@ export class SalesOrderService {
             saleOrderDTO.shippingPrice;
           break;
         case 'EQUIPE':
+          saleOrderDTO.shippingPrice = 0;
+          itemsTotal = items.reduce((currentValue, item) => {
+            return (
+              (item.price - item.price * (coupon.value / 100)) * item.amount +
+              currentValue
+            );
+          }, 0);
+          total =
+            itemsTotal -
+            (saleOrderDTO.discount || 0) +
+            saleOrderDTO.shippingPrice;
           break;
         case 'SHIPPING':
+          saleOrderDTO.shippingPrice = 0;
           break;
+        default:
+          return;
       }
     } else {
       itemsTotal = items.reduce((currentValue, item) => {

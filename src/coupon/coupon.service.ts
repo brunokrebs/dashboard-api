@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
+import moment from 'moment';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { IPaginationOpts } from 'src/pagination/pagination';
 import { Brackets, Repository } from 'typeorm';
@@ -60,7 +62,14 @@ export class CouponService {
 
   async save(couponDTO: CouponDTO): Promise<Coupon> {
     couponDTO.code = couponDTO.code.toUpperCase().trim();
+    if (moment(couponDTO.expirationDate).isBefore(new Date())) {
+      throw new Error(
+        "A coupon's expiration date cannot be less than the current date",
+      );
+    }
+
     const coupon: Coupon = {
+      id: couponDTO.id,
       code: couponDTO.code,
       description: couponDTO.description,
       type: couponDTO.type,
@@ -85,5 +94,20 @@ export class CouponService {
 
   async findCouponByCode(code: string) {
     return await this.couponRepository.findOne({ code, active: true });
+  }
+
+  async findCouponById(id: number) {
+    return await this.couponRepository.findOne({ id });
+  }
+
+  @Cron('0 */1 * * * *')
+  async expirateCoupon() {
+    console.log('gerei a função');
+    await this.couponRepository
+      .createQueryBuilder('c')
+      .update(Coupon)
+      .set({ active: false })
+      .where('active = true')
+      .andWhere('DATE(expiration_date) < CURRENT_DATE');
   }
 }
