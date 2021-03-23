@@ -61,8 +61,16 @@ export class CouponService {
   }
 
   async save(couponDTO: CouponDTO): Promise<Coupon> {
+    const today = new Date();
     couponDTO.code = couponDTO.code.toUpperCase().trim();
-    if (moment(couponDTO.expirationDate).isBefore(new Date())) {
+    // see a better solution
+    if (
+      moment(couponDTO.expirationDate).isBefore(
+        new Date(
+          Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
+        ),
+      )
+    ) {
       throw new Error(
         "A coupon's expiration date cannot be less than the current date",
       );
