@@ -61,8 +61,12 @@ export class CouponService {
   }
 
   async save(couponDTO: CouponDTO): Promise<Coupon> {
-    const today = new Date();
     couponDTO.code = couponDTO.code.toUpperCase().trim();
+    const existingCoupon = await this.couponRepository.findOne({
+      code: couponDTO.code,
+    });
+    if (existingCoupon) return existingCoupon;
+    const today = new Date();
     // see a better solution
     if (
       moment(couponDTO.expirationDate).isBefore(
