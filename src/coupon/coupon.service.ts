@@ -154,14 +154,16 @@ export class CouponService {
     }, 0);
   }
 
-  @Cron('0 */1 * * * *')
+  @Cron('* * 23 * * *')
   async expirateCoupon() {
-    console.log('gerei a função');
     await this.couponRepository
       .createQueryBuilder('c')
       .update(Coupon)
       .set({ active: false })
       .where('active = true')
-      .andWhere('DATE(expiration_date) < CURRENT_DATE');
+      .andWhere('DATE(expiration_date) < :date', {
+        date: new Date(),
+      })
+      .execute();
   }
 }
