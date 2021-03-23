@@ -1,0 +1,25 @@
+[
+  {
+    "code": "PRIMEIRACOMPRA",
+    "type": "percentage",
+    "value": 10
+  },
+  {
+    "code": "R$",
+    "type": "R$",
+    "value": 10,
+    "description": "10R$ de desc"
+  },
+  {
+    "code": "EQUIPE",
+    "type": "EQUIPE",
+    "value": 10,
+    "description": "10% de desc"
+  },
+  {
+    "code": "SHIPPING",
+    "type": "SHIPPING",
+    "value": 0,
+    "description": "10% de desc"
+  }
+]

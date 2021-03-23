@@ -136,10 +136,7 @@ export class CouponService {
         return { total, shippingPrice: saleOrderDTO.shippingPrice };
       case 'EQUIPE':
         saleOrderDTO.shippingPrice = 0;
-        itemsTotal = itemsTotal = this.calculatePercentageDiscount(
-          items,
-          coupon,
-        );
+        itemsTotal = this.calculatePercentageDiscount(items, coupon);
         total =
           itemsTotal -
           (saleOrderDTO.discount || 0) +
@@ -151,7 +148,7 @@ export class CouponService {
         }, 0);
 
         total = itemsTotal - (saleOrderDTO.discount || 0);
-        return { total, shippingPrice: saleOrderDTO.shippingPrice };
+        return { total, shippingPrice: 0 };
       default:
         return;
     }
@@ -160,7 +157,8 @@ export class CouponService {
   calculatePercentageDiscount(items, coupon) {
     return items.reduce((currentValue, item) => {
       return (
-        (item.price - item.price * (coupon.value / 100)) * item.amount +
+        (item.price - item.discount - item.price * (coupon.value / 100)) *
+          item.amount +
         currentValue
       );
     }, 0);

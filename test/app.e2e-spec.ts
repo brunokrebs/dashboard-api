@@ -56,4 +56,5 @@ describe('AppController (e2e)', () => {
   require('./test-suites/purchase-orders/querying-purchase-orders/querying-purchase-orders.tests');
   require('./test-suites/images/images.tests');
   require('./test-suites/users/users.tests');
+  require('./test-suites/sales-order/using-coupon-sale-order/using-coupons.test');
 });
