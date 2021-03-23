@@ -23,6 +23,7 @@ import { SaleOrderBlingStatus } from './entities/sale-order-bling-status.enum';
 import { BlingService } from '../bling/bling.service';
 import { Propagation, Transactional } from 'typeorm-transactional-cls-hooked';
 import { CouponService } from '../coupon/coupon.service';
+import { Coupon } from 'src/coupon/coupon.entity';
 
 @Injectable()
 export class SalesOrderService {
@@ -155,9 +156,10 @@ export class SalesOrderService {
 
     let itemsTotal: number;
     let total: number;
+    let coupon: Coupon;
     if (saleOrderDTO.coupon) {
-      const coupon = await this.couponService.findCouponByCode(
-        saleOrderDTO.coupon.code,
+      coupon = await this.couponService.findCouponByCode(
+        saleOrderDTO.coupon.code.toUpperCase(),
       );
       switch (coupon.type) {
         case 'R$':
@@ -173,6 +175,7 @@ export class SalesOrderService {
           break;
         case 'percentage':
           itemsTotal = items.reduce((currentValue, item) => {
+            console.log(item.price);
             return (
               (item.price - item.price * (coupon.value / 100)) * item.amount +
               currentValue
@@ -182,6 +185,10 @@ export class SalesOrderService {
             itemsTotal -
             (saleOrderDTO.discount || 0) +
             saleOrderDTO.shippingPrice;
+          break;
+        case 'EQUIPE':
+          break;
+        case 'SHIPPING':
           break;
       }
     } else {
@@ -221,6 +228,7 @@ export class SalesOrderService {
       shipmentDetails,
       creationDate: saleOrderDTO.creationDate,
       approvalDate: saleOrderDTO.approvalDate,
+      coupon: coupon ? coupon : null,
     };
 
     if (!isANewSaleOrder) {
@@ -339,6 +347,7 @@ export class SalesOrderService {
       .createQueryBuilder('so')
       .leftJoinAndSelect('so.customer', 'c')
       .leftJoinAndSelect('so.items', 'i')
+      .leftJoinAndSelect('so.coupon', 'coupon')
       .leftJoinAndSelect('i.productVariation', 'pv')
       .leftJoinAndSelect('pv.product', 'p')
       .where('so.referenceCode = :referenceCode', {

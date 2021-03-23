@@ -231,6 +231,7 @@ export class SalesOrderController {
     const saleOrder = await this.salesOrderService.getByReferenceCode(
       referenceCode,
     );
+
     return {
       id: saleOrder.id,
       referenceCode: saleOrder.referenceCode,
@@ -262,6 +263,7 @@ export class SalesOrderController {
       cancellationDate: saleOrder.cancellationDate,
       total: saleOrder.paymentDetails.total,
       blingStatus: saleOrder.blingStatus,
+      coupon: saleOrder.coupon,
     };
   }
 }

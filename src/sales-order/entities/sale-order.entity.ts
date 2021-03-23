@@ -1,5 +1,12 @@
 import { Transform } from 'class-transformer';
-import { Entity, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+  OneToOne,
+} from 'typeorm';
 
 import { BaseEntity } from '../../util/base-entity';
 import { SaleOrderShipment } from './sale-order-shipment.entity';
@@ -63,6 +70,7 @@ export class SaleOrder extends BaseEntity {
   @Column(type => SaleOrderShipment, { prefix: false })
   shipmentDetails: SaleOrderShipment;
 
+  @OneToOne(type => Coupon)
   @JoinColumn({ name: 'coupon_id' })
   coupon?: Coupon;
 
