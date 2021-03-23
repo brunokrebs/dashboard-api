@@ -7,7 +7,7 @@ export class CouponDTO {
   @Length(1, 20)
   code: string;
 
-  @Length(1, 30)
+  @Length(1, 60)
   description: string;
 
   @Allow()
