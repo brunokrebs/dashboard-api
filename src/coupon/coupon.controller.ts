@@ -57,7 +57,7 @@ export class CouponController {
     return this.couponService.isCodeAvailable(code);
   }
 
-  @Get('valid-coupons')
+  @Get('/valid-coupons')
   async getValidCoupons() {
     return this.couponService.getValidCoupons();
   }
