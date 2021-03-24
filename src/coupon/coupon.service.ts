@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import moment from 'moment';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { IPaginationOpts } from 'src/pagination/pagination';
+import { ShippingType } from 'src/sales-order/entities/shipping-type.enum';
 import { Brackets, Repository } from 'typeorm';
 import { CouponDTO } from './coupon.dto';
 import { Coupon } from './coupon.entity';
@@ -152,12 +153,15 @@ export class CouponService {
           saleOrderDTO.shippingPrice;
         return { total, shippingPrice: saleOrderDTO.shippingPrice };
       case 'SHIPPING':
+        if (saleOrderDTO.shippingType === ShippingType.PAC) {
+          saleOrderDTO.shippingPrice = 0;
+        }
         itemsTotal = items.reduce((currentValue, item) => {
           return (item.price - item.discount) * item.amount + currentValue;
         }, 0);
 
         total = itemsTotal - (saleOrderDTO.discount || 0);
-        return { total, shippingPrice: 0 };
+        return { total, shippingPrice: saleOrderDTO.shippingPrice };
       default:
         return;
     }
