@@ -110,7 +110,6 @@ export class CouponService {
       .select('c.code')
       .where('c.code = :code', { code })
       .getOne();
-    console.log(existingCode);
     return !!existingCode;
   }
 
