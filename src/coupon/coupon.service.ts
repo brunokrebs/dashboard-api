@@ -44,6 +44,10 @@ export class CouponService {
             queryBuilder.andWhere(`c.active = :status`, {
               status: queryParam.value,
             });
+          case 'type':
+            queryBuilder.andWhere('c.type = :type', {
+              type: queryParam.value,
+            });
         }
       });
 
@@ -71,7 +75,8 @@ export class CouponService {
     const existingCoupon = await this.couponRepository.findOne({
       code: couponDTO.code,
     });
-    if (existingCoupon) return existingCoupon;
+    if (existingCoupon)
+      throw new Error('there is already a coupon with this code');
 
     const today = new Date();
     // see a better solution

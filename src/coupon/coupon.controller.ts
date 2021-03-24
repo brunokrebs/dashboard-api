@@ -27,6 +27,7 @@ export class CouponController {
     @Query('sortDirectionAscending') sortDirectionAscending: string,
     @Query('query') query: string,
     @Query('status') status: string,
+    @Query('type') type: string,
   ): Promise<Pagination<Coupon>> {
     const isActive = parseBoolean(status);
     return this.couponService.paginate({
@@ -42,6 +43,10 @@ export class CouponController {
         {
           key: 'status',
           value: isActive,
+        },
+        {
+          key: 'type',
+          value: type,
         },
       ],
     });
