@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import moment from 'moment';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { IPaginationOpts } from 'src/pagination/pagination';
-import { ShippingType } from 'src/sales-order/entities/shipping-type.enum';
+import { ShippingType } from '../sales-order/entities/shipping-type.enum';
 import { Brackets, Repository } from 'typeorm';
 import { CouponDTO } from './coupon.dto';
 import { Coupon } from './coupon.entity';
@@ -188,5 +188,9 @@ export class CouponService {
         date: new Date(),
       })
       .execute();
+  }
+
+  async getValidCoupons() {
+    return await this.couponRepository.find({ where: { active: true } });
   }
 }

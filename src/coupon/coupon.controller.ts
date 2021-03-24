@@ -49,7 +49,12 @@ export class CouponController {
 
   @Get('/is-code-available')
   async isCodeAvaliable(@Query('code') code: string) {
-    return this.isCodeAvaliable(code);
+    return this.couponService.isCodeAvailable(code);
+  }
+
+  @Get('valid-coupons')
+  async getValidCoupons() {
+    return this.couponService.getValidCoupons();
   }
 
   @Get(':id')
