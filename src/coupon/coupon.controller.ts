@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -25,7 +26,9 @@ export class CouponController {
     @Query('sortedBy') sortedBy: string,
     @Query('sortDirectionAscending') sortDirectionAscending: string,
     @Query('query') query: string,
+    @Query('status') status: string,
   ): Promise<Pagination<Coupon>> {
+    const isActive = parseBoolean(status);
     return this.couponService.paginate({
       page,
       limit,
@@ -35,6 +38,10 @@ export class CouponController {
         {
           key: 'query',
           value: query,
+        },
+        {
+          key: 'status',
+          value: isActive,
         },
       ],
     });
@@ -50,8 +57,13 @@ export class CouponController {
     return this.couponService.findCouponById(id);
   }
 
-  @Post('/save')
-  async save(@Body() coupon: CouponDTO): Promise<Coupon> {
-    return this.couponService.save(coupon);
+  @Post('/create')
+  async createCoupon(@Body() coupon: CouponDTO): Promise<Coupon> {
+    return this.couponService.createCoupon(coupon);
+  }
+
+  @Put()
+  async updateCoupon(@Body() coupon: CouponDTO) {
+    return this.couponService.updateCoupon(coupon);
   }
 }

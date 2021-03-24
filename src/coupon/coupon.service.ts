@@ -39,6 +39,10 @@ export class CouponService {
               }),
             );
             break;
+          case 'status':
+            queryBuilder.andWhere(`c.active = :status`, {
+              status: queryParam.value,
+            });
         }
       });
 
@@ -60,12 +64,14 @@ export class CouponService {
     return paginate<Coupon>(queryBuilder, options);
   }
 
-  async save(couponDTO: CouponDTO): Promise<Coupon> {
+  async createCoupon(couponDTO: CouponDTO): Promise<Coupon> {
     couponDTO.code = couponDTO.code.toUpperCase().trim();
+
     const existingCoupon = await this.couponRepository.findOne({
       code: couponDTO.code,
     });
     if (existingCoupon) return existingCoupon;
+
     const today = new Date();
     // see a better solution
     if (
@@ -91,6 +97,10 @@ export class CouponService {
     };
 
     return await this.couponRepository.save(coupon);
+  }
+
+  async updateCoupon(coupon: CouponDTO) {
+    return this.couponRepository.update({ id: coupon.id }, coupon);
   }
 
   async isCodeAvailable(code: string) {
@@ -164,7 +174,7 @@ export class CouponService {
     }, 0);
   }
 
-  @Cron('* * 23 * * *')
+  @Cron('* * 0 * * *') //Every 24h
   async expirateCoupon() {
     await this.couponRepository
       .createQueryBuilder('c')
