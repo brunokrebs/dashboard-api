@@ -52,7 +52,7 @@ describe('sale order with coupons use', () => {
     } catch (error) {}
   });
 
-  it.only('must not register coupon with expirated date', async () => {
+  it('must not register coupon with expirated date', async () => {
     const coupon: Coupon = couponScenarios[0];
     coupon.expirationDate = new Date('2020-01-21');
 
