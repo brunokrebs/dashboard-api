@@ -51,6 +51,8 @@ describe('AppController (e2e)', () => {
   require('./test-suites/sales-order/querying-sale-orders/querying-sale-orders.tests');
   require('./test-suites/sales-order/update-payment-status/update-payment-status.tests');
   require('./test-suites/sales-order/update-inventory/update-inventory.tests');
+  require('./test-suites/sales-order/using-coupon-sale-order/using-coupons.test');
+  require('./test-suites/coupons/coupons.test');
   require('./test-suites/suppliers/inserting-suppliers.tests');
   require('./test-suites/purchase-orders/update-purchase-order-status/update-purchase-order-status.tests');
   require('./test-suites/purchase-orders/querying-purchase-orders/querying-purchase-orders.tests');

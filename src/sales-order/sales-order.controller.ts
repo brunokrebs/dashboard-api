@@ -262,6 +262,7 @@ export class SalesOrderController {
       cancellationDate: saleOrder.cancellationDate,
       total: saleOrder.paymentDetails.total,
       blingStatus: saleOrder.blingStatus,
+      coupon: saleOrder.coupon,
     };
   }
 }

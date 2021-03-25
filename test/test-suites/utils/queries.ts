@@ -40,6 +40,7 @@ export async function cleanUpDatabase() {
       'delete from product_variation;',
       'delete from product;',
       'delete from image;',
+      'delete from coupon',
       'delete from app_user;',
     );
 

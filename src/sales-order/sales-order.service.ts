@@ -22,6 +22,8 @@ import { isNullOrUndefined } from '../util/numeric-transformer';
 import { SaleOrderBlingStatus } from './entities/sale-order-bling-status.enum';
 import { BlingService } from '../bling/bling.service';
 import { Propagation, Transactional } from 'typeorm-transactional-cls-hooked';
+import { CouponService } from '../coupon/coupon.service';
+import { Coupon } from 'src/coupon/coupon.entity';
 
 @Injectable()
 export class SalesOrderService {
@@ -30,6 +32,7 @@ export class SalesOrderService {
     private salesOrderRepository: Repository<SaleOrder>,
     @InjectRepository(SaleOrderItem)
     private salesOrderItemRepository: Repository<SaleOrderItem>,
+    private couponService: CouponService,
     private customersService: CustomersService,
     private productsService: ProductsService,
     private inventoryService: InventoryService,
@@ -150,11 +153,28 @@ export class SalesOrderService {
     const customer = await this.customersService.findOrCreate(
       saleOrderDTO.customer,
     );
-    const itemsTotal = items.reduce((currentValue, item) => {
-      return (item.price - item.discount) * item.amount + currentValue;
-    }, 0);
-    const total =
-      itemsTotal - (saleOrderDTO.discount || 0) + saleOrderDTO.shippingPrice;
+
+    let itemsTotal: number;
+    let total: number;
+    let coupon: Coupon;
+    if (saleOrderDTO.coupon) {
+      coupon = await this.couponService.findCouponByCode(
+        saleOrderDTO.coupon.code.toUpperCase(),
+      );
+      const resultCouponDiscount = this.couponService.calculateCouponDiscount(
+        saleOrderDTO,
+        items,
+        coupon,
+      );
+      total = resultCouponDiscount.total;
+      saleOrderDTO.shippingPrice = resultCouponDiscount.shippingPrice;
+    } else {
+      itemsTotal = items.reduce((currentValue, item) => {
+        return (item.price - item.discount) * item.amount + currentValue;
+      }, 0);
+      total =
+        itemsTotal - (saleOrderDTO.discount || 0) + saleOrderDTO.shippingPrice;
+    }
 
     const paymentDetails: SaleOrderPayment = {
       discount: saleOrderDTO.discount || 0,
@@ -185,6 +205,7 @@ export class SalesOrderService {
       shipmentDetails,
       creationDate: saleOrderDTO.creationDate,
       approvalDate: saleOrderDTO.approvalDate,
+      coupon: coupon ? coupon : null,
     };
 
     if (!isANewSaleOrder) {
@@ -303,6 +324,7 @@ export class SalesOrderService {
       .createQueryBuilder('so')
       .leftJoinAndSelect('so.customer', 'c')
       .leftJoinAndSelect('so.items', 'i')
+      .leftJoinAndSelect('so.coupon', 'coupon')
       .leftJoinAndSelect('i.productVariation', 'pv')
       .leftJoinAndSelect('pv.product', 'p')
       .where('so.referenceCode = :referenceCode', {

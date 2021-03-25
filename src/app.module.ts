@@ -33,6 +33,8 @@ import { PurchaseOrderModule } from './purchase-order/purchase-order.module';
 import { Supplier } from './supplier/supplier.entity';
 import { SupplierModule } from './supplier/supplier.module';
 import { SendgridModule } from './sendgrid/sendgrid.module';
+import { CouponModule } from './coupon/coupon.module';
+import { Coupon } from './coupon/coupon.entity';
 
 @Module({
   imports: [
@@ -44,6 +46,7 @@ import { SendgridModule } from './sendgrid/sendgrid.module';
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_NAME,
       entities: [
+        Coupon,
         Customer,
         Inventory,
         InventoryMovement,
@@ -89,6 +92,7 @@ import { SendgridModule } from './sendgrid/sendgrid.module';
     KeyValuePairModule,
     ChartModule,
     SendgridModule,
+    CouponModule,
   ],
   controllers: [],
   providers: [],

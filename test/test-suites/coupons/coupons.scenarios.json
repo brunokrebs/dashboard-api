@@ -1,0 +1,30 @@
+[
+  {
+    "code": "PRIMEIRACOMPRA",
+    "type": "PERCENTAGE",
+    "value": 10,
+    "description": "10% de desconto",
+    "active": true
+  },
+  {
+    "code": "R$",
+    "type": "R$",
+    "value": 10,
+    "description": "R$ 10 de desconto",
+    "active": true
+  },
+  {
+    "code": "EQUIPE",
+    "type": "EQUIPE",
+    "value": 25,
+    "description": "25% de desc",
+    "active": true
+  },
+  {
+    "code": "SHIPPING",
+    "type": "SHIPPING",
+    "value": 0,
+    "description": "Frete gratis",
+    "active": true
+  }
+]

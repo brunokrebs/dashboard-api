@@ -9,12 +9,14 @@ import { CustomersModule } from '../customers/customers.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { BlingModule } from '../bling/bling.module';
 import { SalesOrderReportsService } from './sales-order-reports.service';
+import { CouponModule } from '../coupon/coupon.module';
 
 @Module({
   imports: [
     BlingModule,
     ProductsModule,
     CustomersModule,
+    CouponModule,
     InventoryModule,
     TypeOrmModule.forFeature([SaleOrder, SaleOrderItem]),
   ],

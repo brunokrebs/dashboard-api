@@ -5,6 +5,7 @@ import { PaymentStatus } from './entities/payment-status.enum';
 import { ShippingType } from './entities/shipping-type.enum';
 import { SaleOrderBlingStatus } from './entities/sale-order-bling-status.enum';
 import { Allow } from 'class-validator';
+import { Coupon } from '../coupon/coupon.entity';
 
 export class SaleOrderDTO {
   @Allow()
@@ -75,4 +76,7 @@ export class SaleOrderDTO {
 
   @Allow()
   blingStatus?: SaleOrderBlingStatus | string;
+
+  @Allow()
+  coupon?: Coupon;
 }
