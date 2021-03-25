@@ -36,25 +36,32 @@ docker stop digituz-dashboard-postgres
 docker rm digituz-dashboard-postgres
 ```
 
+## Restoring Production Database
+
 To copy the backup, you can issue the following command:
 
 ```bash
+docker rm -f digituz-dashboard-postgres
+
+docker run --name digituz-dashboard-postgres \
+    -p 5432:5432 \
+    -e POSTGRES_DB=digituz-dashboard \
+    -e POSTGRES_USER=digituz-dashboard \
+    -e POSTGRES_PASSWORD=123 \
+    -d postgres:12.6-alpine
+
 docker exec -i -t digituz-dashboard-postgres /bin/bash
 
-# change the host details below, if needed
-pg_dump --host dashboard-database-do-user-132679-0.b.db.ondigitalocean.com \
-  --port=25060 \
-  -U brunokrebs \
-  -Fc digituz > /tmp/digituz-bkp.pgsql
+PGPASSWORD=spbGskUwcgv6RuNqJrcn3KqMqj pg_dump \
+    --host=databases.digituz.com.br \
+    --port=7432 \
+    --username=digituz-db-user \
+    --dbname=digituz > digituz.sql
 
-psql --user digituz-dashboard postgres
-
-# destroy and recreate the database
-drop database "digituz-dashboard";
-create database "digituz-dashboard";
-exit;
-
-pg_restore --no-privileges --no-owner --user digituz-dashboard -d digituz-dashboard -1 /tmp/digituz-bkp.pgsql
+psql \
+    --username=digituz-dashboard \
+    --dbname=digituz-dashboard \
+    --file=digituz.sql
 ```
 
 ## Running the app
