@@ -34,7 +34,7 @@ export class BackuperService {
     });
   }
 
-  @Cron('30 15 * * *')
+  @Cron('30 20 * * *')
   async backupPostgres(): Promise<void> {
     try {
       await execa(
