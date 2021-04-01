@@ -8,6 +8,12 @@ export enum ProductCategory {
   CONJUNTOS = 'CONJUNTOS',
   DECORACAO = 'DECORACAO',
   PULSEIRAS = 'PULSEIRAS',
+  // TEMP
+  MAE_EMPREENDEDORA = 'MAE_EMPREENDEDORA',
+  MAE_ARTISTA = 'MAE_ARTISTA',
+  MAE_CASEIRA = 'MAE_CASEIRA',
+  MAE_ESTILOSA = 'MAE_ESTILOSA',
+  MAE_CLASSICA = 'MAE_CLÁSSICA',
 }
 
 export function categoryDescription(category: ProductCategory) {
@@ -30,5 +36,15 @@ export function categoryDescription(category: ProductCategory) {
       return 'Decoração';
     case ProductCategory.PULSEIRAS:
       return 'Pulseiras';
+    case ProductCategory.MAE_EMPREENDEDORA:
+      return 'Mãe Empreendedora';
+    case ProductCategory.MAE_ARTISTA:
+      return 'Mãe Artista';
+    case ProductCategory.MAE_CASEIRA:
+      return 'Mãe Caseira';
+    case ProductCategory.MAE_ESTILOSA:
+      return 'Mãe Estilosa';
+    case ProductCategory.MAE_CLASSICA:
+      return 'Mãe Clássica';
   }
 }
