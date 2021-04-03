@@ -23,7 +23,6 @@ import { SaleOrderItem } from './sales-order/entities/sale-order-item.entity';
 import { SaleOrder } from './sales-order/entities/sale-order.entity';
 import { BlingModule } from './bling/bling.module';
 import { ProductComposition } from './products/entities/product-composition.entity';
-import { MarketplacesModule } from './marketplaces/marketplaces.module';
 import { KeyValuePair } from './key-value-pair/key-value-pair.entity';
 import { KeyValuePairModule } from './key-value-pair/key-value-pair.module';
 import { ChartModule } from './chart/chart.module';
@@ -85,7 +84,6 @@ import { SendgridModule } from './sendgrid/sendgrid.module';
     SupplierModule,
     PurchaseOrderModule,
     BlingModule,
-    MarketplacesModule,
     KeyValuePairModule,
     ChartModule,
     SendgridModule,
