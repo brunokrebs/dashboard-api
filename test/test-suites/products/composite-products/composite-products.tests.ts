@@ -178,7 +178,7 @@ describe('managing composite products', () => {
     ],
   };
 
-  it.only('should accept composite products with repeated items', async () => {
+  it('should accept composite products with repeated items', async () => {
     await prepareScenarioForTests(cpWithRepeatedItems);
 
     const response = await axios.get(
