@@ -329,7 +329,7 @@ export class InventoryService {
       // being moved. As such, we might need to update their inventory to reflect the new reality.
       const updateCompositionJobs = dependentProducts.map(
         async (dependentProduct: Product) => {
-          await this.updateProductCompositionInventories(
+          await this.updateDependentProductCompositionInventories(
             dependentProduct,
             saleOrder,
             inventoryMovementDTO.description,
@@ -340,7 +340,7 @@ export class InventoryService {
     }
   }
 
-  private async updateProductCompositionInventories(
+  private async updateDependentProductCompositionInventories(
     product: Product,
     saleOrder: SaleOrder,
     description: string,
