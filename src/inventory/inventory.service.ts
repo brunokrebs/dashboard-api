@@ -279,7 +279,8 @@ export class InventoryService {
     saleOrder: SaleOrder,
   ) {
     if (inventoryMovementDTO.amount > 0) {
-      // the thing is, too add items to composite products, one must add through its parts
+      // the only way to increase a composition's inventory, is by increasing
+      // the inventory of one or more of its parts
       return;
     }
 
@@ -287,6 +288,8 @@ export class InventoryService {
       .createQueryBuilder('pc')
       .leftJoinAndSelect('pc.productVariation', 'pv')
       .leftJoin('pc.product', 'p')
+      // either p.sku or pv.sku should work
+      // on product compositions they should be the same
       .where('p.sku = :sku', { sku: inventoryMovementDTO.sku })
       .getMany();
 
