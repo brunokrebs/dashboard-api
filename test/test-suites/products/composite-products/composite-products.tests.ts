@@ -111,7 +111,7 @@ describe('managing composite products', () => {
     description: 'define part 4 initial inventory',
   };
 
-  const compositeProduct: ProductDTO = {
+  const cp1: ProductDTO = {
     sku: 'CP-1',
     title: 'Composite Product 1',
     ncm: '1234.56.78',
@@ -140,8 +140,7 @@ describe('managing composite products', () => {
     await axios.post(MOVEMENT_ENDPOINT, inventoryPart4, authorizedRequest);
   }
 
-  async function createCompositeProductAndCheckInventory() {
-    // we create a composite product
+  async function createCompositeProduct(compositeProduct) {
     const response = await axios.post(
       PRODUCT_ENDPOINT,
       compositeProduct,
@@ -153,21 +152,21 @@ describe('managing composite products', () => {
     expect(response.status).toBe(201);
   }
 
-  async function prepareScenarioForTests() {
+  async function prepareScenarioForTests(compositeProduct) {
     await createAndMoveBasicProducts();
-    await createCompositeProductAndCheckInventory();
+    await createCompositeProduct(compositeProduct);
   }
 
   it('should be able to insert composite products', async () => {
-    await prepareScenarioForTests();
-    await checkInventory(compositeProduct.sku, inventoryPart1.amount);
+    await prepareScenarioForTests(cp1);
+    await checkInventory(cp1.sku, inventoryPart1.amount);
   });
 
   it('should not change composite inventory when min inventory is not changed', async () => {
     // as part 1 position is lower than part 2, even after the update,
     // composition's inventory must stay the same
 
-    await prepareScenarioForTests();
+    await prepareScenarioForTests(cp1);
 
     const movePart2: InventoryMovementDTO = {
       sku: productPart2.sku,
@@ -177,14 +176,14 @@ describe('managing composite products', () => {
 
     await axios.post(MOVEMENT_ENDPOINT, movePart2, authorizedRequest);
 
-    await checkInventory(compositeProduct.sku, inventoryPart1.amount);
+    await checkInventory(cp1.sku, inventoryPart1.amount);
   });
 
   it('should change composite inventory when min inventory gets lower', async () => {
     // as part 1 position is now higher than part 2, after the update,
     // composition's inventory must be equal to whatver part 2 is
 
-    await prepareScenarioForTests();
+    await prepareScenarioForTests(cp1);
 
     const movePart1: InventoryMovementDTO = {
       sku: productPart1.sku,
@@ -194,17 +193,14 @@ describe('managing composite products', () => {
 
     await axios.post(MOVEMENT_ENDPOINT, movePart1, authorizedRequest);
 
-    await checkInventory(
-      compositeProduct.sku,
-      inventoryPart1.amount + movePart1.amount,
-    );
+    await checkInventory(cp1.sku, inventoryPart1.amount + movePart1.amount);
   });
 
   it('should keep composite inventory in sync with min inventory', async () => {
     // as part 1 position is now higher than part 2, after the update,
     // composition's inventory must be equal to whatver part 2 is
 
-    await prepareScenarioForTests();
+    await prepareScenarioForTests(cp1);
 
     const movePart1: InventoryMovementDTO = {
       sku: productPart1.sku,
@@ -214,14 +210,14 @@ describe('managing composite products', () => {
 
     await axios.post(MOVEMENT_ENDPOINT, movePart1, authorizedRequest);
 
-    await checkInventory(compositeProduct.sku, inventoryPart2.amount);
+    await checkInventory(cp1.sku, inventoryPart2.amount);
   });
 
   it('should update parts when a composite product gets sold', async () => {
-    await prepareScenarioForTests();
+    await prepareScenarioForTests(cp1);
 
     const sellCompositeProduct: InventoryMovementDTO = {
-      sku: compositeProduct.sku,
+      sku: cp1.sku,
       amount: -2,
       description: 'selling composite products',
     };
@@ -243,10 +239,10 @@ describe('managing composite products', () => {
   });
 
   it("should fail when user try to add items to composite's inventory", async () => {
-    await prepareScenarioForTests();
+    await prepareScenarioForTests(cp1);
 
     const sellCompositeProduct: InventoryMovementDTO = {
-      sku: compositeProduct.sku,
+      sku: cp1.sku,
       amount: 2,
       description: 'adding more items to composite product',
     };
@@ -264,10 +260,10 @@ describe('managing composite products', () => {
   });
 
   it('should be able to make simple updates to composite products', async () => {
-    await prepareScenarioForTests();
+    await prepareScenarioForTests(cp1);
 
     const newVersion = {
-      ...compositeProduct,
+      ...cp1,
       title: 'new title to my composite product',
       weight: 0.9,
       height: 0.8,
@@ -290,10 +286,10 @@ describe('managing composite products', () => {
   });
 
   it('should be able to add new parts to composite products', async () => {
-    await prepareScenarioForTests();
+    await prepareScenarioForTests(cp1);
 
     const newVersion = {
-      ...compositeProduct,
+      ...cp1,
       title: 'new title',
       productComposition: ['P-1', 'P-2', 'P-3'],
     };
@@ -318,10 +314,10 @@ describe('managing composite products', () => {
   });
 
   it('should be able to remove parts from composite products', async () => {
-    await prepareScenarioForTests();
+    await prepareScenarioForTests(cp1);
 
     const withThreeParts = {
-      ...compositeProduct,
+      ...cp1,
       title: 'composition with three parts',
       productComposition: ['P-1', 'P-2', 'P-3'],
     };
@@ -359,10 +355,10 @@ describe('managing composite products', () => {
   });
 
   it('should be able to completely changes parts of composite products', async () => {
-    await prepareScenarioForTests();
+    await prepareScenarioForTests(cp1);
 
     const newVersion = {
-      ...compositeProduct,
+      ...cp1,
       title: 'new title',
       productComposition: ['P-3', 'P-4'],
     };
