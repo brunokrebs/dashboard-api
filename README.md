@@ -218,21 +218,14 @@ CREATE DATABASE "digituz-dashboard-test";
 GRANT ALL PRIVILEGES ON DATABASE "digituz-dashboard-test" TO "digituz-dashboard";
 ```
 
-After that, change the `TYPEORM_URL` variable (on the `.env` file on the `api` dir, not on the `api/test`) to point to this test database:
-
-```text
-TYPEORM_URL=postgres://digituz-dashboard:123@localhost:5432/digituz-dashboard-test
-```
-
-Then run the migrations:
+Then, execute the following command to run the migrations:
 
 ```bash
-# from the api dir
-ts-node ./node_modules/typeorm/cli.js migration:run
+npm run migrate-tests
 ```
 
-With that in place, just run the tests:
+After that, you are ready to run tests:
 
 ```bash
-npm test
+npm run test
 ```
