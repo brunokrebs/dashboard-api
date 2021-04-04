@@ -232,8 +232,12 @@ export class ProductsService {
       return;
     }
 
-    const productVariations = await this.productVariationsRepository.find({
+    const pvs = await this.productVariationsRepository.find({
       sku: In(productDTO.productComposition),
+    });
+
+    const productVariations = productDTO.productComposition.map(pc => {
+      return pvs.find(pv => pv.sku === pc);
     });
 
     // TODO test situations that prevent users from adding a product composition

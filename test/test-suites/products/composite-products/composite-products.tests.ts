@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { xor } from 'lodash';
 import { getCredentials } from '../../utils/credentials';
 import { cleanUpDatabase } from '../../utils/queries';
 import { ProductDTO } from '../../../../src/products/dtos/product.dto';
@@ -160,6 +161,42 @@ describe('managing composite products', () => {
   it('should be able to insert composite products', async () => {
     await prepareScenarioForTests(cp1);
     await checkInventory(cp1.sku, inventoryPart1.amount);
+  });
+
+  const cpWithRepeatedItems: ProductDTO = {
+    sku: 'CPR-1',
+    title: 'Composite with repeated items',
+    ncm: '1234.56.78',
+    productComposition: ['P-1', 'P-2', 'P-2'],
+    productVariations: [
+      {
+        parentSku: 'CPR-1',
+        sku: 'CPR-1',
+        sellingPrice: 29.95,
+        description: 'Tamanho Único',
+      },
+    ],
+  };
+
+  it.only('should accept composite products with repeated items', async () => {
+    await prepareScenarioForTests(cpWithRepeatedItems);
+
+    const response = await axios.get(
+      `${PRODUCT_ENDPOINT}/${cpWithRepeatedItems.sku}`,
+      authorizedRequest,
+    );
+
+    const cp: Product = response.data;
+    expect(cp.productComposition.length).toBe(
+      cpWithRepeatedItems.productComposition.length,
+    );
+
+    const skusSubmitted = cpWithRepeatedItems.productComposition;
+    const skusPersisted = cp.productComposition.map(
+      ({ productVariation }) => productVariation.sku,
+    );
+
+    expect(xor(skusPersisted, skusSubmitted).length).toBe(0);
   });
 
   it('should not change composite inventory when min inventory is not changed', async () => {
