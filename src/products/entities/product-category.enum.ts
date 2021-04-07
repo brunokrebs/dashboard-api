@@ -13,7 +13,7 @@ export enum ProductCategory {
   MAE_LOUCA_POR_FRIDA = 'MAE_LOUCA_POR_FRIDA',
   MAE_CASEIRA = 'MAE_CASEIRA',
   MAE_DESCOLADA = 'MAE_DESCOLADA',
-  MAE_CLASSICA = 'MAE_CLÁSSICA',
+  MAE_CLASSICA = 'MAE_CLASSICA',
 }
 
 export function categoryDescription(category: ProductCategory) {
