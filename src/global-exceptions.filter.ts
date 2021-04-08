@@ -44,11 +44,6 @@ export class GlobalExceptionsFilter implements ExceptionFilter {
       path: request.url,
     });
 
-    const url =
-      process.env.NODE_ENV === 'production'
-        ? process.env.ERROR_CHANNEL
-        : process.env.TEST_ALERTS_CHANNEL;
-
     const formatedMessage = {
       text: 'Falha em Digituz Dashboard API',
       attachments: [
@@ -73,7 +68,7 @@ export class GlobalExceptionsFilter implements ExceptionFilter {
     };
 
     try {
-      fetch(url, {
+      fetch(process.env.ERROR_CHANNEL, {
         mode: 'no-cors',
         method: 'POST',
         headers: {
