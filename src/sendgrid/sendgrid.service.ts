@@ -3,7 +3,7 @@ import { HttpService, Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { AppLogger } from '../logger/app-logger.service';
 import { CustomersService } from '../customers/customers.service';
-import { sendSlackAlert } from 'src/util/slack-alert';
+import { sendSlackAlert } from '../util/slack-alert';
 
 @Injectable()
 export class SendgridService {

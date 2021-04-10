@@ -7,7 +7,7 @@ import { SaleOrder } from '../sales-order/entities/sale-order.entity';
 import { PaymentStatus } from '../sales-order/entities/payment-status.enum';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { Product } from '../products/entities/product.entity';
-import { sendSlackAlert } from 'src/util/slack-alert';
+import { sendSlackAlert } from '../util/slack-alert';
 
 @Injectable()
 export class BlingService {

@@ -4,7 +4,7 @@ import { Product } from '../../products/entities/product.entity';
 import { categoryDescription } from '../../products/entities/product-category.enum';
 import { ProductsService } from '../../products/products.service';
 import { Cron } from '@nestjs/schedule';
-import { sendSlackAlert } from 'src/util/slack-alert';
+import { sendSlackAlert } from '../../util/slack-alert';
 
 @Injectable()
 export class ShopifyService {
