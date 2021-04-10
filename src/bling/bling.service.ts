@@ -7,6 +7,7 @@ import { SaleOrder } from '../sales-order/entities/sale-order.entity';
 import { PaymentStatus } from '../sales-order/entities/payment-status.enum';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { Product } from '../products/entities/product.entity';
+import { sendSlackAlert } from 'src/util/slack-alert';
 
 @Injectable()
 export class BlingService {
@@ -223,6 +224,7 @@ export class BlingService {
             try {
               await this.createOrUpdateProduct(p);
             } catch (e) {
+              sendSlackAlert('Falha ao criar ou atualizar produto no bling');
               console.error(e);
             }
             res();
@@ -237,6 +239,7 @@ export class BlingService {
           try {
             await this.createOrUpdateProductVariation(pv);
           } catch (e) {
+            sendSlackAlert('Falha ao criar ou atualizar variação no bling');
             console.error(e);
           }
           res();
@@ -269,6 +272,7 @@ export class BlingService {
       });
     } catch (e) {
       console.log(e);
+      sendSlackAlert('Falha ao criar ou atualizar produto no bling');
     }
   }
 }

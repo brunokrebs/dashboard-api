@@ -4,6 +4,7 @@ import { Product } from '../../products/entities/product.entity';
 import { categoryDescription } from '../../products/entities/product-category.enum';
 import { ProductsService } from '../../products/products.service';
 import { Cron } from '@nestjs/schedule';
+import { sendSlackAlert } from 'src/util/slack-alert';
 
 @Injectable()
 export class ShopifyService {
@@ -113,6 +114,7 @@ export class ShopifyService {
             res();
           } catch (error) {
             console.log(pv.sku);
+            sendSlackAlert('Falha ao atualizar o estoque no shopify');
           }
         }, 550 * idx);
       });

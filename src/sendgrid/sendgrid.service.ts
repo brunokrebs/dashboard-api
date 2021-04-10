@@ -3,6 +3,7 @@ import { HttpService, Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { AppLogger } from '../logger/app-logger.service';
 import { CustomersService } from '../customers/customers.service';
+import { sendSlackAlert } from 'src/util/slack-alert';
 
 @Injectable()
 export class SendgridService {
@@ -65,6 +66,7 @@ export class SendgridService {
         this.logger.log('Synced contacts with SendGrid.');
       })
       .catch(err => {
+        sendSlackAlert('Falha ao sincronizar contatos com o SendGrid');
         this.logger.error('Error while syncing up contacts with SendGrid.');
         this.logger.error(err);
       });

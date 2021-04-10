@@ -6,7 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { AppLogger } from './logger/app-logger.service';
-import fetch from 'node-fetch';
+import { sendSlackAlert } from './util/slack-alert';
 
 @Catch()
 export class GlobalExceptionsFilter implements ExceptionFilter {
@@ -44,44 +44,6 @@ export class GlobalExceptionsFilter implements ExceptionFilter {
       path: request.url,
     });
 
-    const formatedMessage = {
-      text: 'Falha em Digituz Dashboard API',
-      attachments: [
-        {
-          text: `Houve erro inesperado ao executar uma requisição`,
-          fallback: 'Não a erro',
-          callback_id: 'wopr_game',
-          color: '#3AA3E3',
-          attachment_type: 'default',
-          actions: [
-            {
-              name: 'goDatadog',
-              text: 'Ir para os logs do datadog',
-              style: 'danger',
-              type: 'button',
-              value: 'war',
-              url: 'https://app.datadoghq.com/logs?index=%2A&query=',
-            },
-          ],
-        },
-      ],
-    };
-
-    try {
-      fetch(process.env.ERROR_CHANNEL, {
-        mode: 'no-cors',
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Access-Control-Allow-Origin': '*',
-        },
-        body: JSON.stringify(formatedMessage),
-      })
-        .then(() => console.log('sucesso'))
-        .catch(err => console.log(err));
-    } catch (err) {
-      console.log(err);
-    }
+    sendSlackAlert();
   }
 }
