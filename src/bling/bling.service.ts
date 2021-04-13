@@ -7,12 +7,20 @@ import { SaleOrder } from '../sales-order/entities/sale-order.entity';
 import { PaymentStatus } from '../sales-order/entities/payment-status.enum';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { Product } from '../products/entities/product.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { InventoryService } from '../inventory/inventory.service';
 
 @Injectable()
 export class BlingService {
   parser = new XMLParser({});
 
-  constructor(private httpService: HttpService) {}
+  constructor(
+    private httpService: HttpService,
+    @InjectRepository(Product)
+    private productsRepository: Repository<Product>,
+    private inventoryService: InventoryService,
+  ) {}
 
   async removeProduct(productVariation: ProductVariation): Promise<any> {
     const data = {
@@ -26,14 +34,18 @@ export class BlingService {
       },
     );
   }
-
+  private formatImageUrlToBling(product: Product) {
+    return product.productImages.map(pi => {
+      const image = pi.image.originalFileURL.replace(
+        'https://s3.sa-east-1.amazonaws.com/',
+        'https://',
+      );
+      return { url: image };
+    });
+  }
   createOrUpdateProduct(product: Product): Promise<any> {
-    return this.pushItemToBling(
-      product.title,
-      product.sku,
-      product.ncm,
-      product.productVariations[0].sellingPrice,
-    );
+    const images = this.formatImageUrlToBling(product);
+    return this.pushProductToBling(product);
   }
 
   createOrUpdateProductVariation(
@@ -43,13 +55,65 @@ export class BlingService {
     if (productVariation.description !== 'Tamanho Único') {
       descricao = `${descricao} ${productVariation.description}`;
     }
+    const images = this.formatImageUrlToBling(productVariation.product);
 
     return this.pushItemToBling(
       descricao,
       productVariation.sku,
       productVariation.product.ncm,
       productVariation.sellingPrice,
+      productVariation.currentPosition,
     );
+  }
+
+  private pushProductToBling(product: Product) {
+    const images = this.formatImageUrlToBling(product);
+
+    let formatedProduct: any = {
+      produto: {
+        codigo: product.sku,
+        descricao: product.title,
+        class_fiscal: product.ncm,
+        un: 'Un',
+        vlr_unit: product.sellingPrice,
+        estoque: product.productVariations[0].currentPosition || 0,
+        imagens: images || null,
+        origem: 0,
+      },
+    };
+
+    if (product.variationsSize > 1) {
+      const variations = product.productVariations.map(pv => {
+        let description = product.title;
+        if (pv.description !== 'Tamanho Único') {
+          description = `${description} ${pv.description}`;
+        }
+        return {
+          varaicao: {
+            nome: pv.description,
+            codigo: pv.sku,
+            vlr_unit: pv.sellingPrice,
+            deposito: { estoque: pv.currentPosition },
+            clonarDadosPai: 'S',
+          },
+        };
+      });
+      formatedProduct.produto = {
+        ...formatedProduct.produto,
+        variacoes: variations,
+      };
+    }
+
+    const xml = this.parser.parse(formatedProduct);
+    console.log(xml);
+    const data = {
+      xml: xml,
+      apikey: process.env.BLING_APIKEY,
+    };
+
+    return this.httpService
+      .post('https://bling.com.br/Api/v2/produto/json/', qs.stringify(data))
+      .toPromise();
   }
 
   private pushItemToBling(
@@ -57,18 +121,24 @@ export class BlingService {
     sku: string,
     ncm: string,
     sellingPrice: number,
+    currentPosition?: number,
+    images?: any[],
+    haveVariation?: boolean,
   ) {
-    const xml = this.parser.parse({
+    let product = {
       produto: {
         codigo: sku,
         descricao: descricao,
         class_fiscal: ncm,
         un: 'Un',
         vlr_unit: sellingPrice,
-        origem: 0, // origem conforme ICMS (0 = nacional ...) TODO cadastrar origem nos produtos
+        estoque: currentPosition || 0,
+        imagens: images || null,
+        origem: 0,
       },
-    });
-
+    };
+    const xml = this.parser.parse(product);
+    console.log(xml);
     const data = {
       xml: xml,
       apikey: process.env.BLING_APIKEY,
@@ -271,4 +341,61 @@ export class BlingService {
       console.log(e);
     }
   }
+
+  async insertAllProductsOnBling() {
+    const products = await this.getAllProducts();
+    const productsVariations = products.flatMap(p => {
+      return p.productVariations.map(pv => ({
+        ...pv,
+        product: p,
+      }));
+    });
+    const insertProductsJobs = products.map((p, idx) => {
+      return new Promise<void>(res => {
+        setTimeout(async () => {
+          try {
+            await this.createOrUpdateProduct(p);
+          } catch (e) {
+            console.error(e);
+          }
+          res();
+        }, 200 * idx);
+      });
+    });
+    await Promise.all(insertProductsJobs);
+  }
+  async getAllProducts() {
+    const products = await this.productsRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.productVariations', 'pv')
+      .leftJoinAndSelect('product.productImages', 'pi')
+      .leftJoinAndSelect('pi.image', 'i')
+      .getMany();
+
+    const productVariations: ProductVariation[] = products.reduce(
+      (variations, product) => {
+        variations.push(...product.productVariations);
+        return variations;
+      },
+      [],
+    );
+
+    for (const variation of productVariations) {
+      const inventory = await this.inventoryService.findBySku(variation.sku);
+      variation.currentPosition = inventory.currentPosition || 0;
+    }
+    return Promise.resolve(products);
+  }
 }
+
+/*let variationDescription;
+      if(p.variationsSize>1){
+        p.productVariations.reduce(pv =>{
+          if(variationDescription){
+            variationDescription += `;${variationDescription}`
+          }else{
+            variationDescription = pv.description;
+          }
+        },variationDescription);
+      }
+*/
