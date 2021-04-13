@@ -357,7 +357,7 @@ export class BlingService {
   async insertAllProductsOnBling() {
     const products = await this.getAllProducts();
 
-    /* const insertProductsJobs = products
+    const insertProductsJobs = products
       .filter(p => !p.isComposition)
       .map((p, idx) => {
         return new Promise<void>(res => {
@@ -371,7 +371,7 @@ export class BlingService {
           }, 200 * idx);
         });
       });
-    await Promise.all(insertProductsJobs); */
+    await Promise.all(insertProductsJobs);
 
     const insertProductsCompositionJobs = products
       .filter(p => p.isComposition)
@@ -390,7 +390,7 @@ export class BlingService {
     await Promise.all(insertProductsCompositionJobs);
   }
   async getAllProducts() {
-    const products = await this.productsRepository
+    const allProducts = await this.productsRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.productVariations', 'pv')
       .leftJoinAndSelect('product.productComposition', 'pc')
@@ -398,18 +398,20 @@ export class BlingService {
       .leftJoinAndSelect('pi.image', 'i')
       .getMany();
 
-    /* const productVariations: ProductVariation[] = products.reduce(
-      (variations, product) => {
-        variations.push(...product.productVariations);
-        return variations;
-      },
-      [],
-    );
+    const products = allProducts.map(async p => {
+      const getProductVariationInventoryCurrentPositionJobs = p.productVariations.map(
+        async pv => {
+          const inventory = await this.inventoryService.findBySku(pv.sku);
+          pv.currentPosition = inventory.currentPosition || 0;
+          return pv;
+        },
+      );
+      p.productVariations = await Promise.all(
+        getProductVariationInventoryCurrentPositionJobs,
+      );
+      return p;
+    });
 
-    for (const variation of productVariations) {
-      const inventory = await this.inventoryService.findBySku(variation.sku);
-      variation.currentPosition = inventory.currentPosition || 0;
-    } */
-    return Promise.resolve(products);
+    return Promise.all(products);
   }
 }
