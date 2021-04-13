@@ -6,12 +6,18 @@ import { Product } from '../products/entities/product.entity';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { Inventory } from '../inventory/inventory.entity';
 import { InventoryModule } from '../inventory/inventory.module';
+import { ProductComposition } from '../products/entities/product-composition.entity';
 
 @Module({
   imports: [
     InventoryModule,
     HttpModule,
-    TypeOrmModule.forFeature([Product, ProductVariation, Inventory]),
+    TypeOrmModule.forFeature([
+      Product,
+      ProductVariation,
+      ProductComposition,
+      Inventory,
+    ]),
   ],
   providers: [BlingService],
   exports: [BlingService],

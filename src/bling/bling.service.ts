@@ -8,8 +8,9 @@ import { PaymentStatus } from '../sales-order/entities/payment-status.enum';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { Product } from '../products/entities/product.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { InventoryService } from '../inventory/inventory.service';
+import { ProductComposition } from '../products/entities/product-composition.entity';
 
 @Injectable()
 export class BlingService {
@@ -19,6 +20,10 @@ export class BlingService {
     private httpService: HttpService,
     @InjectRepository(Product)
     private productsRepository: Repository<Product>,
+    @InjectRepository(ProductVariation)
+    private productVariationsRepository: Repository<ProductVariation>,
+    @InjectRepository(ProductComposition)
+    private productsCompositionRepository: Repository<ProductComposition>,
     private inventoryService: InventoryService,
   ) {}
 
@@ -43,7 +48,7 @@ export class BlingService {
       return image;
     });
   }
-  createOrUpdateProduct(product: Product): Promise<any> {
+  async createOrUpdateProduct(product: Product): Promise<any> {
     const images = this.formatImageUrlToBling(product);
     if (product.variationsSize > 1)
       return this.pushProductWithVariationToBling(product, images);
@@ -122,15 +127,26 @@ export class BlingService {
       .toPromise();
   }
 
-  private pushCompositionProductToBling(product: Product, images: Object[]) {
-    const components = product.productComposition.map((pc, idx) => {
-      console.log(pc);
-      return {
-        nome: product.title,
-        codigo: 'teste',
-        quantidade: 0,
-      };
-    });
+  private async pushCompositionProductToBling(
+    product: Product,
+    images: Object[],
+  ) {
+    const getCompositionProductsJobs = product.productComposition.map(
+      async pc => {
+        const compositionProduct = await this.productsCompositionRepository.findOne(
+          {
+            where: { id: pc.id },
+            relations: ['productVariation'],
+          },
+        );
+        return {
+          nome: compositionProduct.productVariation.description,
+          codigo: compositionProduct.productVariation.sku,
+          quantidade: compositionProduct.productVariation.currentPosition,
+        };
+      },
+    );
+    const compositions = await Promise.all(getCompositionProductsJobs);
 
     const xml = this.parser.parse({
       produto: {
@@ -140,11 +156,11 @@ export class BlingService {
         un: 'Un',
         vlr_unit: product.sellingPrice,
         estoque: product.productVariations[0].currentPosition || 0,
-        imagens: images || null,
+        imagens: { url: images } || null,
         origem: 0,
         estrutura: {
           tipoEstoque: 'V',
-          componente: components,
+          componente: compositions,
         },
       },
     });
@@ -341,7 +357,7 @@ export class BlingService {
   async insertAllProductsOnBling() {
     const products = await this.getAllProducts();
 
-    const insertProductsJobs = products
+    /* const insertProductsJobs = products
       .filter(p => !p.isComposition)
       .map((p, idx) => {
         return new Promise<void>(res => {
@@ -355,7 +371,7 @@ export class BlingService {
           }, 200 * idx);
         });
       });
-    await Promise.all(insertProductsJobs);
+    await Promise.all(insertProductsJobs); */
 
     const insertProductsCompositionJobs = products
       .filter(p => p.isComposition)
@@ -382,7 +398,7 @@ export class BlingService {
       .leftJoinAndSelect('pi.image', 'i')
       .getMany();
 
-    const productVariations: ProductVariation[] = products.reduce(
+    /* const productVariations: ProductVariation[] = products.reduce(
       (variations, product) => {
         variations.push(...product.productVariations);
         return variations;
@@ -393,7 +409,7 @@ export class BlingService {
     for (const variation of productVariations) {
       const inventory = await this.inventoryService.findBySku(variation.sku);
       variation.currentPosition = inventory.currentPosition || 0;
-    }
+    } */
     return Promise.resolve(products);
   }
 }
