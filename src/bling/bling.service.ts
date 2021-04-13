@@ -89,11 +89,11 @@ export class BlingService {
           description = `${description} ${pv.description}`;
         }
         return {
-          varaicao: {
+          variacao: {
             nome: pv.description,
             codigo: pv.sku,
             vlr_unit: pv.sellingPrice,
-            deposito: { estoque: pv.currentPosition },
+            estoque: pv.currentPosition,
             clonarDadosPai: 'S',
           },
         };
@@ -344,24 +344,20 @@ export class BlingService {
 
   async insertAllProductsOnBling() {
     const products = await this.getAllProducts();
-    const productsVariations = products.flatMap(p => {
-      return p.productVariations.map(pv => ({
-        ...pv,
-        product: p,
-      }));
-    });
-    const insertProductsJobs = products.map((p, idx) => {
-      return new Promise<void>(res => {
-        setTimeout(async () => {
-          try {
-            await this.createOrUpdateProduct(p);
-          } catch (e) {
-            console.error(e);
-          }
-          res();
-        }, 200 * idx);
+    const insertProductsJobs = products
+      .filter(p => p.variationsSize === 10)
+      .map((p, idx) => {
+        return new Promise<void>(res => {
+          setTimeout(async () => {
+            try {
+              await this.createOrUpdateProduct(p);
+            } catch (e) {
+              console.error(e);
+            }
+            res();
+          }, 200 * idx);
+        });
       });
-    });
     await Promise.all(insertProductsJobs);
   }
   async getAllProducts() {
@@ -372,7 +368,7 @@ export class BlingService {
       .leftJoinAndSelect('pi.image', 'i')
       .getMany();
 
-    const productVariations: ProductVariation[] = products.reduce(
+    /* const productVariations: ProductVariation[] = products.reduce(
       (variations, product) => {
         variations.push(...product.productVariations);
         return variations;
@@ -383,19 +379,7 @@ export class BlingService {
     for (const variation of productVariations) {
       const inventory = await this.inventoryService.findBySku(variation.sku);
       variation.currentPosition = inventory.currentPosition || 0;
-    }
+    } */
     return Promise.resolve(products);
   }
 }
-
-/*let variationDescription;
-      if(p.variationsSize>1){
-        p.productVariations.reduce(pv =>{
-          if(variationDescription){
-            variationDescription += `;${variationDescription}`
-          }else{
-            variationDescription = pv.description;
-          }
-        },variationDescription);
-      }
-*/
