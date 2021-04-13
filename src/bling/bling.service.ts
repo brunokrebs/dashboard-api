@@ -40,35 +40,19 @@ export class BlingService {
         'https://s3.sa-east-1.amazonaws.com/',
         'https://',
       );
-      return { url: image };
+      return image;
     });
   }
   createOrUpdateProduct(product: Product): Promise<any> {
     const images = this.formatImageUrlToBling(product);
-    return this.pushProductToBling(product);
+    if (product.variationsSize > 1)
+      return this.pushProductWithVariationToBling(product, images);
+    if (product.isComposition)
+      return this.pushCompositionProductToBling(product, images);
+    return this.pushProductToBling(product, images);
   }
 
-  createOrUpdateProductVariation(
-    productVariation: ProductVariation,
-  ): Promise<any> {
-    let descricao = productVariation.product.title;
-    if (productVariation.description !== 'Tamanho Único') {
-      descricao = `${descricao} ${productVariation.description}`;
-    }
-    const images = this.formatImageUrlToBling(productVariation.product);
-
-    return this.pushItemToBling(
-      descricao,
-      productVariation.sku,
-      productVariation.product.ncm,
-      productVariation.sellingPrice,
-      productVariation.currentPosition,
-    );
-  }
-
-  private pushProductToBling(product: Product) {
-    const images = this.formatImageUrlToBling(product);
-
+  private pushProductWithVariationToBling(product: Product, images: Object[]) {
     let formatedProduct: any = {
       produto: {
         codigo: product.sku,
@@ -77,7 +61,7 @@ export class BlingService {
         un: 'Un',
         vlr_unit: product.sellingPrice,
         estoque: product.productVariations[0].currentPosition || 0,
-        imagens: images || null,
+        imagens: { url: images } || null,
         origem: 0,
       },
     };
@@ -89,18 +73,16 @@ export class BlingService {
           description = `${description} ${pv.description}`;
         }
         return {
-          variacao: {
-            nome: pv.description,
-            codigo: pv.sku,
-            vlr_unit: pv.sellingPrice,
-            estoque: pv.currentPosition,
-            clonarDadosPai: 'S',
-          },
+          nome: pv.description,
+          codigo: pv.sku,
+          vlr_unit: pv.sellingPrice,
+          estoque: pv.currentPosition,
+          clonarDadosPai: 'S',
         };
       });
       formatedProduct.produto = {
         ...formatedProduct.produto,
-        variacoes: variations,
+        variacoes: { variacao: variations },
       };
     }
 
@@ -116,28 +98,56 @@ export class BlingService {
       .toPromise();
   }
 
-  private pushItemToBling(
-    descricao: string,
-    sku: string,
-    ncm: string,
-    sellingPrice: number,
-    currentPosition?: number,
-    images?: any[],
-    haveVariation?: boolean,
-  ) {
-    let product = {
+  private pushProductToBling(product: Product, images: Object[]) {
+    const xml = this.parser.parse({
       produto: {
-        codigo: sku,
-        descricao: descricao,
-        class_fiscal: ncm,
+        codigo: product.sku,
+        descricao: product.title,
+        class_fiscal: product.ncm,
         un: 'Un',
-        vlr_unit: sellingPrice,
-        estoque: currentPosition || 0,
-        imagens: images || null,
+        vlr_unit: product.sellingPrice,
+        estoque: product.productVariations[0].currentPosition || 0,
+        imagens: { url: images } || null,
         origem: 0,
       },
+    });
+    console.log(xml);
+    const data = {
+      xml: xml,
+      apikey: process.env.BLING_APIKEY,
     };
-    const xml = this.parser.parse(product);
+
+    return this.httpService
+      .post('https://bling.com.br/Api/v2/produto/json/', qs.stringify(data))
+      .toPromise();
+  }
+
+  private pushCompositionProductToBling(product: Product, images: Object[]) {
+    const components = product.productComposition.map((pc, idx) => {
+      console.log(pc);
+      return {
+        nome: product.title,
+        codigo: 'teste',
+        quantidade: 0,
+      };
+    });
+
+    const xml = this.parser.parse({
+      produto: {
+        codigo: product.sku,
+        descricao: product.title,
+        class_fiscal: product.ncm,
+        un: 'Un',
+        vlr_unit: product.sellingPrice,
+        estoque: product.productVariations[0].currentPosition || 0,
+        imagens: images || null,
+        origem: 0,
+        estrutura: {
+          tipoEstoque: 'V',
+          componente: components,
+        },
+      },
+    });
     console.log(xml);
     const data = {
       xml: xml,
@@ -300,20 +310,6 @@ export class BlingService {
         });
       });
     await Promise.all(updateParentProductsJobs);
-
-    const updateVariationsJobs = allProductVariations.map((pv, idx) => {
-      return new Promise<void>(res => {
-        setTimeout(async () => {
-          try {
-            await this.createOrUpdateProductVariation(pv);
-          } catch (e) {
-            console.error(e);
-          }
-          res();
-        }, 200 * idx);
-      });
-    });
-    await Promise.all(updateVariationsJobs);
   }
 
   async loadPurchaseOrders() {
@@ -344,8 +340,9 @@ export class BlingService {
 
   async insertAllProductsOnBling() {
     const products = await this.getAllProducts();
+
     const insertProductsJobs = products
-      .filter(p => p.variationsSize === 10)
+      .filter(p => !p.isComposition)
       .map((p, idx) => {
         return new Promise<void>(res => {
           setTimeout(async () => {
@@ -359,16 +356,33 @@ export class BlingService {
         });
       });
     await Promise.all(insertProductsJobs);
+
+    const insertProductsCompositionJobs = products
+      .filter(p => p.isComposition)
+      .map((p, idx) => {
+        return new Promise<void>(res => {
+          setTimeout(async () => {
+            try {
+              await this.createOrUpdateProduct(p);
+            } catch (e) {
+              console.error(e);
+            }
+            res();
+          }, 200 * idx);
+        });
+      });
+    await Promise.all(insertProductsCompositionJobs);
   }
   async getAllProducts() {
     const products = await this.productsRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.productVariations', 'pv')
+      .leftJoinAndSelect('product.productComposition', 'pc')
       .leftJoinAndSelect('product.productImages', 'pi')
       .leftJoinAndSelect('pi.image', 'i')
       .getMany();
 
-    /* const productVariations: ProductVariation[] = products.reduce(
+    const productVariations: ProductVariation[] = products.reduce(
       (variations, product) => {
         variations.push(...product.productVariations);
         return variations;
@@ -379,7 +393,7 @@ export class BlingService {
     for (const variation of productVariations) {
       const inventory = await this.inventoryService.findBySku(variation.sku);
       variation.currentPosition = inventory.currentPosition || 0;
-    } */
+    }
     return Promise.resolve(products);
   }
 }
