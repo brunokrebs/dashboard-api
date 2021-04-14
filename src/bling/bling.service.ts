@@ -72,6 +72,10 @@ export class BlingService {
   }
 
   private pushProductToBling(product: Product, images: Object[]) {
+    const currentPosition =
+      product.productVariations[0].currentPosition < 0
+        ? 0
+        : product.productVariations[0].currentPosition;
     const xml = this.parser.parse({
       produto: {
         codigo: product.sku,
@@ -79,7 +83,7 @@ export class BlingService {
         class_fiscal: product.ncm,
         un: 'Un',
         vlr_unit: product.sellingPrice,
-        estoque: product.productVariations[0]?.currentPosition || 0,
+        estoque: currentPosition,
         imagens: { url: images } || null,
         altura: product.length || 0,
         comprimento: product.height || 0,
@@ -93,6 +97,10 @@ export class BlingService {
   }
 
   private pushProductWithVariationToBling(product: Product, images: Object[]) {
+    const currentPosition =
+      product.productVariations[0].currentPosition < 0
+        ? 0
+        : product.productVariations[0].currentPosition;
     const variations = product.productVariations.map(pv => {
       let description = product.title;
       if (pv.description !== 'Tamanho Único') {
@@ -102,7 +110,7 @@ export class BlingService {
         nome: pv.description,
         codigo: pv.sku,
         vlr_unit: pv.sellingPrice,
-        estoque: pv.currentPosition,
+        estoque: pv.currentPosition < 0 ? 0 : pv.currentPosition,
         clonarDadosPai: 'S',
       };
     });
@@ -114,7 +122,7 @@ export class BlingService {
         class_fiscal: product.ncm,
         un: 'Un',
         vlr_unit: product.sellingPrice,
-        estoque: product.productVariations[0].currentPosition || 0,
+        estoque: currentPosition,
         imagens: { url: images } || null,
         variacoes: { variacao: variations },
         altura: product.length || 0,
@@ -140,10 +148,11 @@ export class BlingService {
             relations: ['productVariation'],
           },
         );
+
         return {
           nome: compositionProduct.productVariation.description,
           codigo: compositionProduct.productVariation.sku,
-          quantidade: compositionProduct.productVariation.currentPosition,
+          quantidade: 1,
         };
       },
     );
@@ -156,7 +165,6 @@ export class BlingService {
         class_fiscal: product.ncm,
         un: 'Un',
         vlr_unit: product.sellingPrice,
-        estoque: product.productVariations[0].currentPosition || 0,
         imagens: { url: images } || null,
         origem: 0,
         estrutura: {
@@ -395,6 +403,7 @@ export class BlingService {
       .leftJoinAndSelect('product.productComposition', 'pc')
       .leftJoinAndSelect('product.productImages', 'pi')
       .leftJoinAndSelect('pi.image', 'i')
+      .where('product.isActive = true ')
       .getMany();
 
     const openedSalesOrders = await this.saleOrderRepository.find({
