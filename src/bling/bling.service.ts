@@ -444,7 +444,6 @@ export class BlingService {
     const orders = await this.saleOrderRepository.find({
       where: {
         paymentDetails: {
-          paymentType: PaymentType.BANK_SLIP,
           paymentStatus: PaymentStatus.IN_PROCESS,
         },
       },
@@ -523,7 +522,7 @@ export class BlingService {
       .toPromise();
   }
 
-  @Cron('* * 0 * * *')
+  @Cron('0 */5 * * * *')
   async insertProducsAndOrdersOnBling() {
     console.log('start');
     await this.insertProductsOnBling();
