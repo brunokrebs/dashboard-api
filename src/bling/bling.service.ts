@@ -42,6 +42,18 @@ export class BlingService {
       },
     );
   }
+
+  private sendProductToBling(xml: string) {
+    const data = {
+      xml,
+      apikey: process.env.BLING_APIKEY,
+    };
+
+    return this.httpService
+      .post('https://bling.com.br/Api/v2/produto/json/', qs.stringify(data))
+      .toPromise();
+  }
+
   private formatImageUrlToBling(product: Product) {
     return product.productImages.map(pi => {
       const image = pi.image.originalFileURL.replace(
@@ -60,52 +72,6 @@ export class BlingService {
     return this.pushProductToBling(product, images);
   }
 
-  private pushProductWithVariationToBling(product: Product, images: Object[]) {
-    let formatedProduct: any = {
-      produto: {
-        codigo: product.sku,
-        descricao: product.title,
-        class_fiscal: product.ncm,
-        un: 'Un',
-        vlr_unit: product.sellingPrice,
-        estoque: product.productVariations[0].currentPosition || 0,
-        imagens: { url: images } || null,
-        origem: 0,
-      },
-    };
-
-    if (product.variationsSize > 1) {
-      const variations = product.productVariations.map(pv => {
-        let description = product.title;
-        if (pv.description !== 'Tamanho Único') {
-          description = `${description} ${pv.description}`;
-        }
-        return {
-          nome: pv.description,
-          codigo: pv.sku,
-          vlr_unit: pv.sellingPrice,
-          estoque: pv.currentPosition,
-          clonarDadosPai: 'S',
-        };
-      });
-      formatedProduct.produto = {
-        ...formatedProduct.produto,
-        variacoes: { variacao: variations },
-      };
-    }
-
-    const xml = this.parser.parse(formatedProduct);
-
-    const data = {
-      xml: xml,
-      apikey: process.env.BLING_APIKEY,
-    };
-
-    return this.httpService
-      .post('https://bling.com.br/Api/v2/produto/json/', qs.stringify(data))
-      .toPromise();
-  }
-
   private pushProductToBling(product: Product, images: Object[]) {
     const xml = this.parser.parse({
       produto: {
@@ -119,15 +85,39 @@ export class BlingService {
         origem: 0,
       },
     });
+    return this.sendProductToBling(xml);
+  }
 
-    const data = {
-      xml: xml,
-      apikey: process.env.BLING_APIKEY,
-    };
+  private pushProductWithVariationToBling(product: Product, images: Object[]) {
+    const variations = product.productVariations.map(pv => {
+      let description = product.title;
+      if (pv.description !== 'Tamanho Único') {
+        description = `${description} ${pv.description}`;
+      }
+      return {
+        nome: pv.description,
+        codigo: pv.sku,
+        vlr_unit: pv.sellingPrice,
+        estoque: pv.currentPosition,
+        clonarDadosPai: 'S',
+      };
+    });
 
-    return this.httpService
-      .post('https://bling.com.br/Api/v2/produto/json/', qs.stringify(data))
-      .toPromise();
+    const xml = this.parser.parse({
+      produto: {
+        codigo: product.sku,
+        descricao: product.title,
+        class_fiscal: product.ncm,
+        un: 'Un',
+        vlr_unit: product.sellingPrice,
+        estoque: product.productVariations[0].currentPosition || 0,
+        imagens: { url: images } || null,
+        variacoes: { variacao: variations },
+        origem: 0,
+      },
+    });
+
+    return this.sendProductToBling(xml);
   }
 
   private async pushCompositionProductToBling(
@@ -168,14 +158,7 @@ export class BlingService {
       },
     });
 
-    const data = {
-      xml: xml,
-      apikey: process.env.BLING_APIKEY,
-    };
-
-    return this.httpService
-      .post('https://bling.com.br/Api/v2/produto/json/', qs.stringify(data))
-      .toPromise();
+    return this.sendProductToBling(xml);
   }
 
   async createPurchaseOrder(saleOrder: SaleOrder): Promise<any> {
@@ -392,6 +375,7 @@ export class BlingService {
       });
     await Promise.all(insertProductsCompositionJobs);
   }
+
   async getAllProducts() {
     const allProducts = await this.productsRepository
       .createQueryBuilder('product')

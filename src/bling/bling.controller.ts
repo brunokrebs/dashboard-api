@@ -7,6 +7,8 @@ export class BlingController {
 
   @Post()
   async createProductsOnBling() {
-    this.blingService.insertAllOrdersOnBling();
+    this.blingService.insertAllProductsOnBling();
+    //this.blingService.insertAllOrdersOnBling();
+    //this.blingService.insertProducsAndOrdersOnBling();
   }
 }
