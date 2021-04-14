@@ -1,4 +1,4 @@
-import { Injectable, HttpService, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, HttpService } from '@nestjs/common';
 import { j2xParser as XMLParser } from 'fast-xml-parser';
 import moment from 'moment';
 import qs from 'qs';
