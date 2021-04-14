@@ -12,6 +12,7 @@ import { Repository } from 'typeorm';
 import { InventoryService } from '../inventory/inventory.service';
 import { ProductComposition } from '../products/entities/product-composition.entity';
 import { PaymentType } from '../sales-order/entities/payment-type.enum';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class BlingService {
@@ -351,7 +352,7 @@ export class BlingService {
     }
   }
 
-  async insertAllProductsOnBling() {
+  async insertProductsOnBling() {
     const products = await this.getAllProducts();
 
     const insertProductsJobs = products
@@ -439,7 +440,7 @@ export class BlingService {
     return Promise.all(products);
   }
 
-  async insertAllOrdersOnBling() {
+  async insertOrdersOnBling() {
     const orders = await this.saleOrderRepository.find({
       where: {
         paymentDetails: {
@@ -522,10 +523,11 @@ export class BlingService {
       .toPromise();
   }
 
+  @Cron('* * 0 * * *')
   async insertProducsAndOrdersOnBling() {
     console.log('start');
-    await this.insertAllProductsOnBling();
-    await this.insertAllOrdersOnBling();
+    await this.insertProductsOnBling();
+    await this.insertOrdersOnBling();
     console.log('finish');
   }
 }
