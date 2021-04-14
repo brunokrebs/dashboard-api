@@ -1,4 +1,4 @@
-import { Module, HttpModule } from '@nestjs/common';
+import { Module, HttpModule, forwardRef } from '@nestjs/common';
 import { BlingService } from './bling.service';
 import { BlingController } from './bling.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -7,7 +7,8 @@ import { ProductVariation } from '../products/entities/product-variation.entity'
 import { Inventory } from '../inventory/inventory.entity';
 import { InventoryModule } from '../inventory/inventory.module';
 import { ProductComposition } from '../products/entities/product-composition.entity';
-
+import { SaleOrder } from '../sales-order/entities/sale-order.entity';
+import { SaleOrderItem } from '../sales-order/entities/sale-order-item.entity';
 @Module({
   imports: [
     InventoryModule,
@@ -17,6 +18,8 @@ import { ProductComposition } from '../products/entities/product-composition.ent
       ProductVariation,
       ProductComposition,
       Inventory,
+      SaleOrder,
+      SaleOrderItem,
     ]),
   ],
   providers: [BlingService],

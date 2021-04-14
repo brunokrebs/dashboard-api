@@ -1,4 +1,4 @@
-import { Injectable, HttpService } from '@nestjs/common';
+import { Injectable, HttpService, Inject, forwardRef } from '@nestjs/common';
 import { j2xParser as XMLParser } from 'fast-xml-parser';
 import moment from 'moment';
 import qs from 'qs';
@@ -8,7 +8,7 @@ import { PaymentStatus } from '../sales-order/entities/payment-status.enum';
 import { ProductVariation } from '../products/entities/product-variation.entity';
 import { Product } from '../products/entities/product.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { InventoryService } from '../inventory/inventory.service';
 import { ProductComposition } from '../products/entities/product-composition.entity';
 
@@ -21,9 +21,11 @@ export class BlingService {
     @InjectRepository(Product)
     private productsRepository: Repository<Product>,
     @InjectRepository(ProductVariation)
-    private productVariationsRepository: Repository<ProductVariation>,
+    private productVariationRepository: Repository<ProductVariation>,
     @InjectRepository(ProductComposition)
     private productsCompositionRepository: Repository<ProductComposition>,
+    @InjectRepository(SaleOrder)
+    private saleOrderRepository: Repository<SaleOrder>,
     private inventoryService: InventoryService,
   ) {}
 
@@ -92,7 +94,7 @@ export class BlingService {
     }
 
     const xml = this.parser.parse(formatedProduct);
-    console.log(xml);
+
     const data = {
       xml: xml,
       apikey: process.env.BLING_APIKEY,
@@ -116,7 +118,7 @@ export class BlingService {
         origem: 0,
       },
     });
-    console.log(xml);
+
     const data = {
       xml: xml,
       apikey: process.env.BLING_APIKEY,
@@ -164,7 +166,7 @@ export class BlingService {
         },
       },
     });
-    console.log(xml);
+
     const data = {
       xml: xml,
       apikey: process.env.BLING_APIKEY,
@@ -413,5 +415,80 @@ export class BlingService {
     });
 
     return Promise.all(products);
+  }
+
+  async insertAllOrdersOnBling() {
+    const orders = await this.saleOrderRepository.find({
+      relations: ['items', 'customer'],
+    });
+
+    const ordesXML = orders.map(async (saleOrder, idx) => {
+      const getItensJob = saleOrder.items.map(async item => {
+        const productVariation = await this.productVariationRepository.findOne({
+          where: { id: item.id },
+          relations: ['product'],
+        });
+        return {
+          codigo: productVariation?.sku,
+          descricao: productVariation?.description,
+          un: 'Un',
+          qtde: item.amount,
+          vlr_unit: item.price,
+        };
+      });
+
+      const items = await Promise.all(getItensJob);
+
+      const xml = this.parser.parse({
+        cliente: {
+          nome: saleOrder.customer.name,
+          cpf_cnpj: saleOrder.customer.cpf,
+          email: saleOrder.customer.email || '',
+          fone: saleOrder.customer.phoneNumber || null,
+        },
+        transporte: {
+          dados_etiqueta: {
+            nome: 'Endereço de entrega',
+            endereo: saleOrder.shipmentDetails.shippingStreetAddress,
+            numero: saleOrder.shipmentDetails.shippingStreetNumber,
+            complemento:
+              saleOrder.shipmentDetails.shippingStreetNumber2 || null,
+            municipio: saleOrder.shipmentDetails.shippingCity,
+            uf: saleOrder.shipmentDetails.shippingState,
+            cep: saleOrder.shipmentDetails.shippingZipAddress,
+            bairro: saleOrder.shipmentDetails.shippingNeighborhood,
+          },
+        },
+        itens: { item: items },
+        vlr_frete: saleOrder.shipmentDetails.shippingPrice,
+        vlr_descont: saleOrder.paymentDetails.discount,
+      });
+
+      const data = {
+        xml: xml,
+        apikey: process.env.BLING_APIKEY,
+      };
+
+      return new Promise<void>(res => {
+        setTimeout(async () => {
+          try {
+            console.log('aqui');
+            this.httpService
+              .post(
+                'https://bling.com.br/Api/v2/pedido/json/',
+                qs.stringify(data),
+              )
+              .toPromise();
+          } catch (e) {
+            console.error(e);
+          }
+          res();
+        }, 200 * idx);
+      });
+    });
+
+    await Promise.all(ordesXML)
+      .then(response => console.log(response))
+      .catch(err => console.log(err));
   }
 }
