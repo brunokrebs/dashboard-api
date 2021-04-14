@@ -21,8 +21,6 @@ export class BlingService {
     private httpService: HttpService,
     @InjectRepository(Product)
     private productsRepository: Repository<Product>,
-    @InjectRepository(ProductVariation)
-    private productVariationRepository: Repository<ProductVariation>,
     @InjectRepository(ProductComposition)
     private productsCompositionRepository: Repository<ProductComposition>,
     @InjectRepository(SaleOrder)
@@ -80,11 +78,16 @@ export class BlingService {
         class_fiscal: product.ncm,
         un: 'Un',
         vlr_unit: product.sellingPrice,
-        estoque: product.productVariations[0].currentPosition || 0,
+        estoque: product.productVariations[0]?.currentPosition || 0,
         imagens: { url: images } || null,
+        altura: product.length || 0,
+        comprimento: product.height || 0,
+        largura: product.width || 0,
+        peso_bruto: product.weight || 0,
         origem: 0,
       },
     });
+
     return this.sendProductToBling(xml);
   }
 
@@ -113,6 +116,10 @@ export class BlingService {
         estoque: product.productVariations[0].currentPosition || 0,
         imagens: { url: images } || null,
         variacoes: { variacao: variations },
+        altura: product.length || 0,
+        comprimento: product.height || 0,
+        largura: product.width || 0,
+        peso_bruto: product.weight || 0,
         origem: 0,
       },
     });
@@ -155,6 +162,10 @@ export class BlingService {
           tipoEstoque: 'V',
           componente: compositions,
         },
+        altura: product.length || 0,
+        comprimento: product.height || 0,
+        largura: product.width || 0,
+        peso_bruto: product.weight || 0,
       },
     });
 
@@ -385,11 +396,37 @@ export class BlingService {
       .leftJoinAndSelect('pi.image', 'i')
       .getMany();
 
+    const openedSalesOrders = await this.saleOrderRepository.find({
+      where: {
+        paymentDetails: {
+          paymentStatus: PaymentStatus.IN_PROCESS,
+          paymentType: PaymentType.BANK_SLIP,
+        },
+      },
+      relations: ['items', 'items.productVariation'],
+    });
+
+    const inventoryProduct = openedSalesOrders.flatMap(so => {
+      const items = so.items.map(item => {
+        return {
+          sku: item.productVariation.sku,
+          amount: item.amount,
+        };
+      });
+      return items;
+    });
+
     const products = allProducts.map(async p => {
       const getProductVariationInventoryCurrentPositionJobs = p.productVariations.map(
         async pv => {
           const inventory = await this.inventoryService.findBySku(pv.sku);
-          pv.currentPosition = inventory.currentPosition || 0;
+
+          const amountProductSlipBankOrder = inventoryProduct
+            .filter(p => p.sku === pv.sku)
+            .reduce((total, iv) => (total += iv.amount), 0);
+
+          pv.currentPosition =
+            inventory.currentPosition + amountProductSlipBankOrder || 0;
           return pv;
         },
       );
@@ -404,33 +441,33 @@ export class BlingService {
 
   async insertAllOrdersOnBling() {
     const orders = await this.saleOrderRepository.find({
+      where: {
+        paymentDetails: {
+          paymentType: PaymentType.BANK_SLIP,
+          paymentStatus: PaymentStatus.IN_PROCESS,
+        },
+      },
       relations: ['items', 'customer', 'items.productVariation'],
     });
 
-    const ordesXML = orders
-      .filter(
-        saleOrder =>
-          saleOrder.paymentDetails.paymentType === PaymentType.BANK_SLIP &&
-          saleOrder.paymentDetails.paymentStatus === PaymentStatus.IN_PROCESS,
-      )
-      .map(async (saleOrder, idx) => {
-        return new Promise<void>(res => {
-          setTimeout(async () => {
-            try {
-              await this.createSaleOrderOnBling(saleOrder);
-            } catch (e) {
-              console.error(e);
-            }
-            res();
-          }, 200 * idx);
-        });
+    const ordesXML = orders.map(async (saleOrder, idx) => {
+      return new Promise<void>(res => {
+        setTimeout(async () => {
+          try {
+            await this.createSaleOrderOnBling(saleOrder);
+          } catch (e) {
+            console.error(e);
+          }
+          res();
+        }, 200 * idx);
       });
+    });
 
     await Promise.all(ordesXML);
   }
 
   private async createSaleOrderOnBling(saleOrder: SaleOrder) {
-    const items = saleOrder.items.map(async item => {
+    const items = saleOrder.items.map(item => {
       return {
         codigo: item.productVariation.sku,
         descricao: item.productVariation.description,
@@ -486,7 +523,9 @@ export class BlingService {
   }
 
   async insertProducsAndOrdersOnBling() {
+    console.log('start');
     await this.insertAllProductsOnBling();
     await this.insertAllOrdersOnBling();
+    console.log('finish');
   }
 }
