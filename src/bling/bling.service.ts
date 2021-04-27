@@ -13,6 +13,7 @@ import { InventoryService } from '../inventory/inventory.service';
 import { ProductComposition } from '../products/entities/product-composition.entity';
 import { PaymentType } from '../sales-order/entities/payment-type.enum';
 import { Cron } from '@nestjs/schedule';
+import { isEqual, uniqBy, uniqWith } from 'lodash';
 
 @Injectable()
 export class BlingService {
@@ -85,9 +86,9 @@ export class BlingService {
         vlr_unit: product.sellingPrice,
         estoque: currentPosition,
         imagens: { url: images } || null,
-        altura: product.length || 0,
-        comprimento: product.height || 0,
+        altura: product.height || 0,
         largura: product.width || 0,
+        comprimento: product.length || 0,
         peso_bruto: product.weight || 0,
         origem: 0,
       },
@@ -125,9 +126,9 @@ export class BlingService {
         estoque: currentPosition,
         imagens: { url: images } || null,
         variacoes: { variacao: variations },
-        altura: product.length || 0,
-        comprimento: product.height || 0,
+        altura: product.height || 0,
         largura: product.width || 0,
+        comprimento: product.length || 0,
         peso_bruto: product.weight || 0,
         origem: 0,
       },
@@ -171,9 +172,9 @@ export class BlingService {
           tipoEstoque: 'V',
           componente: compositions,
         },
-        altura: product.length || 0,
-        comprimento: product.height || 0,
+        altura: product.height || 0,
         largura: product.width || 0,
+        comprimento: product.length || 0,
         peso_bruto: product.weight || 0,
       },
     });
@@ -531,7 +532,50 @@ export class BlingService {
       .toPromise();
   }
 
-  @Cron('0 0 0 * * *')
+  private async createCategoriesOnBling() {
+    const productCategories = await this.productsRepository.find({
+      select: ['category'],
+    });
+    const categories = uniqWith(
+      productCategories.map(productCategory => {
+        return { descricao: productCategory.category };
+      }),
+      isEqual,
+    );
+
+    const categoriesXML = categories.map(async (category, idx) => {
+      return new Promise<void>(res => {
+        setTimeout(async () => {
+          try {
+            await this.createCategory(category);
+          } catch (e) {
+            console.error(e);
+          }
+          res();
+        }, 200 * idx);
+      });
+    });
+
+    await Promise.all(categoriesXML);
+  }
+
+  private async createCategory(category: string) {
+    const xml = this.parser.parse({
+      categorias: { categoria: { descricao: category } },
+    });
+
+    const data = {
+      xml,
+      apikey: process.env.BLING_APIKEY,
+    };
+
+    return this.httpService
+      .post('https://bling.com.br/Api/v2/categoria/json/', qs.stringify(data))
+      .toPromise()
+      .catch(err => console.log(err));
+  }
+
+  @Cron('0 */2 * * * *')
   async insertProducsAndOrdersOnBling() {
     console.log('start');
     await this.insertProductsOnBling();
