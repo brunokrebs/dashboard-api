@@ -55,13 +55,18 @@ export class BlingService {
   }
 
   private formatImageUrlToBling(product: Product) {
-    return product.productImages.map(pi => {
+    let images = product.productImages.map(pi => {
       const image = pi.image.originalFileURL.replace(
         'https://s3.sa-east-1.amazonaws.com/',
         'https://',
       );
-      return image;
+      return { image, order: pi.order };
     });
+    const newOrderImages = images
+      .sort((pi1, pi2) => pi1.order - pi2.order)
+      .reverse()
+      .map(pi => pi.image);
+    return newOrderImages;
   }
   async createOrUpdateProduct(product: Product): Promise<any> {
     const images = this.formatImageUrlToBling(product);
