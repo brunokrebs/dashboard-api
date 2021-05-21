@@ -91,10 +91,10 @@ export class BlingService {
         vlr_unit: product.sellingPrice,
         estoque: currentPosition,
         imagens: { url: images } || null,
-        altura: product.height || 0,
+        /* altura: product.height || 0,
         largura: product.width || 0,
         comprimento: product.length || 0,
-        peso_bruto: product.weight || 0,
+        peso_bruto: product.weight || 0, */
         origem: 0,
       },
     });
@@ -131,10 +131,10 @@ export class BlingService {
         estoque: currentPosition,
         imagens: { url: images } || null,
         variacoes: { variacao: variations },
-        altura: product.height || 0,
+        /*  altura: product.height || 0,
         largura: product.width || 0,
         comprimento: product.length || 0,
-        peso_bruto: product.weight || 0,
+        peso_bruto: product.weight || 0, */
         origem: 0,
       },
     });
@@ -177,10 +177,10 @@ export class BlingService {
           tipoEstoque: 'V',
           componente: compositions,
         },
-        altura: product.height || 0,
+        /* altura: product.height || 0,
         largura: product.width || 0,
         comprimento: product.length || 0,
-        peso_bruto: product.weight || 0,
+        peso_bruto: product.weight || 0, */
       },
     });
 
