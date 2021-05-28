@@ -91,10 +91,10 @@ export class BlingService {
         vlr_unit: product.sellingPrice,
         estoque: currentPosition,
         imagens: { url: images } || null,
-        /* altura: product.height || 0,
+        altura: product.height || 0,
         largura: product.width || 0,
-        comprimento: product.length || 0,
-        peso_bruto: product.weight || 0, */
+        profundidade: product.length || 0,
+        peso_bruto: product.weight || 0,
         origem: 0,
       },
     });
@@ -131,10 +131,10 @@ export class BlingService {
         estoque: currentPosition,
         imagens: { url: images } || null,
         variacoes: { variacao: variations },
-        /*  altura: product.height || 0,
+        altura: product.height || 0,
         largura: product.width || 0,
-        comprimento: product.length || 0,
-        peso_bruto: product.weight || 0, */
+        profundidade: product.length || 0,
+        peso_bruto: product.weight || 0,
         origem: 0,
       },
     });
@@ -177,10 +177,10 @@ export class BlingService {
           tipoEstoque: 'V',
           componente: compositions,
         },
-        /* altura: product.height || 0,
+        altura: product.height || 0,
         largura: product.width || 0,
-        comprimento: product.length || 0,
-        peso_bruto: product.weight || 0, */
+        profundidade: product.length || 0,
+        peso_bruto: product.weight || 0,
       },
     });
 
@@ -580,11 +580,11 @@ export class BlingService {
       .catch(err => console.log(err));
   }
 
-  @Cron('0 */2 * * * *')
   async insertProducsAndOrdersOnBling() {
     console.log('start');
     await this.insertProductsOnBling();
     await this.insertOrdersOnBling();
     console.log('finish');
+    return 'Migration is compĺete';
   }
 }

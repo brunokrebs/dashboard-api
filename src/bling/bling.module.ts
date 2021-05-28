@@ -5,6 +5,7 @@ import { Product } from '../products/entities/product.entity';
 import { InventoryModule } from '../inventory/inventory.module';
 import { ProductComposition } from '../products/entities/product-composition.entity';
 import { SaleOrder } from '../sales-order/entities/sale-order.entity';
+import { BlingController } from './bling.controller';
 
 @Module({
   imports: [
@@ -14,5 +15,6 @@ import { SaleOrder } from '../sales-order/entities/sale-order.entity';
   ],
   providers: [BlingService],
   exports: [BlingService],
+  controllers: [BlingController],
 })
 export class BlingModule {}
