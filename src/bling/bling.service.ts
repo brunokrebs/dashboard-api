@@ -82,23 +82,36 @@ export class BlingService {
       product.productVariations[0].currentPosition < 0
         ? 0
         : product.productVariations[0].currentPosition;
-    const xml = this.parser.parse({
-      produto: {
-        codigo: product.sku,
-        descricao: product.title,
-        class_fiscal: product.ncm,
-        un: 'Un',
-        vlr_unit: product.sellingPrice,
-        estoque: currentPosition,
-        imagens: { url: images } || null,
-        altura: product.height || 0,
-        largura: product.width || 0,
-        profundidade: product.length || 0,
-        peso_bruto: product.weight || 0,
-        origem: 0,
-      },
-    });
-
+    const xml =
+      product.category !== 'ACESSORIOS'
+        ? this.parser.parse({
+            produto: {
+              codigo: product.sku,
+              descricao: product.title,
+              class_fiscal: product.ncm,
+              un: 'Un',
+              vlr_unit: product.sellingPrice,
+              estoque: currentPosition,
+              imagens: { url: images } || null,
+              altura: product.height || 0,
+              largura: product.width || 0,
+              profundidade: product.length || 0,
+              peso_bruto: product.weight || 0,
+              origem: 0,
+            },
+          })
+        : this.parser.parse({
+            produto: {
+              codigo: product.sku,
+              descricao: product.title,
+              class_fiscal: product.ncm,
+              un: 'Un',
+              vlr_unit: product.sellingPrice,
+              estoque: currentPosition,
+              imagens: { url: images } || null,
+              peso_bruto: product.weight || 0,
+            },
+          });
     return this.sendProductToBling(xml);
   }
 
@@ -121,23 +134,38 @@ export class BlingService {
       };
     });
 
-    const xml = this.parser.parse({
-      produto: {
-        codigo: product.sku,
-        descricao: product.title,
-        class_fiscal: product.ncm,
-        un: 'Un',
-        vlr_unit: product.sellingPrice,
-        estoque: currentPosition,
-        imagens: { url: images } || null,
-        variacoes: { variacao: variations },
-        altura: product.height || 0,
-        largura: product.width || 0,
-        profundidade: product.length || 0,
-        peso_bruto: product.weight || 0,
-        origem: 0,
-      },
-    });
+    const xml =
+      product.category !== 'ACESSORIOS'
+        ? this.parser.parse({
+            produto: {
+              codigo: product.sku,
+              descricao: product.title,
+              class_fiscal: product.ncm,
+              un: 'Un',
+              vlr_unit: product.sellingPrice,
+              estoque: currentPosition,
+              imagens: { url: images } || null,
+              variacoes: { variacao: variations },
+              altura: product.height || 0,
+              largura: product.width || 0,
+              profundidade: product.length || 0,
+              peso_bruto: product.weight || 0,
+              origem: 0,
+            },
+          })
+        : this.parser.parse({
+            produto: {
+              codigo: product.sku,
+              descricao: product.title,
+              class_fiscal: product.ncm,
+              un: 'Un',
+              vlr_unit: product.sellingPrice,
+              estoque: currentPosition,
+              imagens: { url: images } || null,
+              variacoes: { variacao: variations },
+              peso_bruto: product.weight || 0,
+            },
+          });
 
     return this.sendProductToBling(xml);
   }
@@ -164,25 +192,43 @@ export class BlingService {
     );
     const compositions = await Promise.all(getCompositionProductsJobs);
 
-    const xml = this.parser.parse({
-      produto: {
-        codigo: product.sku,
-        descricao: product.title,
-        class_fiscal: product.ncm,
-        un: 'Un',
-        vlr_unit: product.sellingPrice,
-        imagens: { url: images } || null,
-        origem: 0,
-        estrutura: {
-          tipoEstoque: 'V',
-          componente: compositions,
-        },
-        altura: product.height || 0,
-        largura: product.width || 0,
-        profundidade: product.length || 0,
-        peso_bruto: product.weight || 0,
-      },
-    });
+    const xml =
+      product.category !== 'ACESSORIOS'
+        ? this.parser.parse({
+            produto: {
+              codigo: product.sku,
+              descricao: product.title,
+              class_fiscal: product.ncm,
+              un: 'Un',
+              vlr_unit: product.sellingPrice,
+              imagens: { url: images } || null,
+              origem: 0,
+              estrutura: {
+                tipoEstoque: 'V',
+                componente: compositions,
+              },
+              altura: product.height || 0,
+              largura: product.width || 0,
+              profundidade: product.length || 0,
+              peso_bruto: product.weight || 0,
+            },
+          })
+        : this.parser.parse({
+            produto: {
+              codigo: product.sku,
+              descricao: product.title,
+              class_fiscal: product.ncm,
+              un: 'Un',
+              vlr_unit: product.sellingPrice,
+              imagens: { url: images } || null,
+              origem: 0,
+              estrutura: {
+                tipoEstoque: 'V',
+                componente: compositions,
+              },
+              peso_bruto: product.weight || 0,
+            },
+          });
 
     return this.sendProductToBling(xml);
   }
@@ -535,49 +581,6 @@ export class BlingService {
     return this.httpService
       .post('https://bling.com.br/Api/v2/pedido/json/', qs.stringify(data))
       .toPromise();
-  }
-
-  private async createCategoriesOnBling() {
-    const productCategories = await this.productsRepository.find({
-      select: ['category'],
-    });
-    const categories = uniqWith(
-      productCategories.map(productCategory => {
-        return { descricao: productCategory.category };
-      }),
-      isEqual,
-    );
-
-    const categoriesXML = categories.map(async (category, idx) => {
-      return new Promise<void>(res => {
-        setTimeout(async () => {
-          try {
-            await this.createCategory(category);
-          } catch (e) {
-            console.error(e);
-          }
-          res();
-        }, 200 * idx);
-      });
-    });
-
-    await Promise.all(categoriesXML);
-  }
-
-  private async createCategory(category: string) {
-    const xml = this.parser.parse({
-      categorias: { categoria: { descricao: category } },
-    });
-
-    const data = {
-      xml,
-      apikey: process.env.BLING_APIKEY,
-    };
-
-    return this.httpService
-      .post('https://bling.com.br/Api/v2/categoria/json/', qs.stringify(data))
-      .toPromise()
-      .catch(err => console.log(err));
   }
 
   async insertProducsAndOrdersOnBling() {

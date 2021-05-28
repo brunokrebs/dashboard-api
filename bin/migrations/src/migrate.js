@@ -10,4 +10,4 @@ const getToken =  require('./util/auth');
             responseType: "json",
           });
     console.log("Products and Orders was sending with successful");
-})().catch(err=>console.log(err));
+})();
