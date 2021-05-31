@@ -8,7 +8,7 @@ export class setProductsDimensions1622125454497 implements MigrationInterface {
         UPDATE product SET  height = 3,width = 3,length = 3,weight = 0.010 WHERE product.category = 'PULSEIRAS';
         UPDATE product SET  height =2,width =2,length =2,weight = 0.003 WHERE product.category = 'COLARES';
         UPDATE product SET  weight = 0.400 WHERE product.category = 'ACESSORIOS';
-        UPDATE product SET  height = 40,width = 30,length = 0.300,weight = 0.500 WHERE product.category = 'DECORACAO';
+        UPDATE product SET  height = 40.0,width = 30.0,length = 0.300,weight = 0.500 WHERE product.category = 'DECORACAO';
         UPDATE product SET  height = 6,width = 6,length = 6,weight = 0.020 WHERE product.category = 'CONJUNTOS';
         `);
   }
